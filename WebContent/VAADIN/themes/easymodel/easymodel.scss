@@ -1,0 +1,245 @@
+// Global variable overrides. Must be declared before importing Valo.
+
+// Defines the plaintext font size, weight and family. Font size affects general component sizing.
+//$v-font-size: 16px;
+//$v-font-weight: 300;
+//$v-font-family: "Open Sans", sans-serif;
+
+// Defines the border used by all components.
+//$v-border: 1px solid (v-shade 0.7);
+//$v-border-radius: 4px;
+
+// Affects the color of some component elements, e.g Button, Panel title, etc
+//$v-background-color: hsl(210, 0%, 98%);
+// Affects the color of content areas, e.g  Panel and Window content, TextField input etc
+//$v-app-background-color: $v-background-color;
+
+// Affects the visual appearance of all components
+//$v-gradient: v-linear 8%;
+//$v-bevel-depth: 30%;
+//$v-shadow-opacity: 5%;
+
+// Defines colors for indicating status (focus, success, failure)
+//$v-focus-color: valo-focus-color(); // Calculates a suitable color automatically
+//$v-friendly-color: #2c9720;
+//$v-error-indicator-color: #ed473b;
+
+// For more information, see: https://vaadin.com/book/-/page/themes.valo.html
+// Example variants can be copy/pasted from https://vaadin.com/wiki/-/wiki/Main/Valo+Examples
+
+@import "../valo/valo.scss";
+
+@mixin easymodel {
+  @include valo;
+  // Insert your own theme rules here
+  	.v-textfield.v-readonly {
+  		background: #fcfcfc;
+  	}
+  	.v-caption {
+  		font-size: 14px;
+  		font-weight: 600;
+  	}
+    .v-label {
+  		font-size: 16px;
+  	}
+  	.v-label.textH1 {
+  		font-size: 18px;
+  		font-weight: bold;
+  	}
+  	.v-label.textH2 {
+  		font-size: 16px;
+  		font-weight: bold;
+  	}
+  	.v-label.textSmall {
+  		font-size: 10px;
+  	}
+  	.v-slot-textSmall {
+  		height: 14px;
+  	}
+  	.v-gridlayout.table {
+  		outline: solid 2px rgb(199, 199, 199);
+  	}
+  	.v-gridlayout.table .v-gridlayout-slot {
+  		outline: solid 1px rgb(199, 199, 199);
+  	}
+  	.v-accordion#simAccordion .v-accordion-item-caption > .v-caption {
+  		font-weight: 600;
+		font-size: 16px;
+  	}
+  	.v-verticallayout.formulasVL {
+  		padding: 5px 5px 5px 5px;
+  	}
+	.v-verticallayout#outPanelConsoleVL {
+		padding: 0px 5px 5px 5px;
+	}
+	.v-verticallayout#modelsEditorVL {
+		padding: 0px 5px 5px 5px;
+	}
+  	.v-spacing {
+		width: 5px;
+		height: 5px;
+	}
+  	.v-horizontallayout#mainLayout {
+		padding: 5px;
+	}
+	.v-textfield-redBG {
+		//color: #FFFFFF;
+    	background: #ffe2e2;
+	}
+	.v-textfield-greenBG {
+    	//color: #FFFFFF;
+    	background: #ecffe2;
+	}
+	.v-button-small {
+    	font-size: 14px;
+    	//height: auto;
+    	text-align: center;
+	}
+	.v-button-editBtn {
+		background-color: #fafafa;
+		background-image: url("img/edit.png");
+		background-image: linear-gradient(#fafafa,#efefef);
+		background-size: 32px;
+		background-repeat: no-repeat;
+		background-position: center;
+	}
+	.v-button-eachBtn {
+		background-color: #fafafa;
+		background-image: url("img/each.png");
+		background-image: linear-gradient(#fafafa,#efefef);
+		background-size: 32px;
+		background-repeat: no-repeat;
+		background-position: center;
+	}
+	.v-button-exitBtn {
+		background-color: #ffffff !important;
+		background: center url(img/exit.png) no-repeat;
+		background-size: 25px;
+		border-radius: 0px;
+		border: none;
+	}
+	.v-button-infoBtn {
+		background-color: #fafafa;
+		background-image: url("img/info.png");
+		background-image: linear-gradient(#fafafa,#efefef);
+		background-size: 32px;
+		background-repeat: no-repeat;
+		background-position: center;
+	}
+	.v-nativebutton-infoNoBorderBtn {
+		background: center url(img/info.png) no-repeat;
+		background-size: 28px;
+		border: none;
+	}
+	.v-nativebutton-eyeBtn {
+		background: center url(img/eye.png) no-repeat;
+		background-size: 26px;
+		border-radius: 0px;
+		border: none;
+	}
+	.v-button-linkFn {
+		//border: none;
+		background: url(img/linkFn.png) no-repeat;
+		background-size: 100%;
+		width: 50px;
+		height: 37px;
+	}
+	.v-button-linkFnDone {
+		//border: none;
+		background: transparent url(img/linkFnDone.png) no-repeat;
+		background-size: 100%;
+		width: 50px;
+		height: 37px;
+	}
+	.v-button-remove {
+		background: transparent url(img/remove.png) no-repeat;
+		width: 37px;
+		height: 37px;
+	}
+	.v-button-restriction {
+		background: transparent url(img/restr.png) no-repeat;
+		width: 37px;
+		height: 37px;
+	}
+	.v-button-stepNotSelected {
+		background-image: none;
+		background-color: #ffffff;
+		color: #020202;
+		border-radius: 0px;
+		border: none;
+	}
+	.v-button-stepNotSelected.v-disabled {
+		background-image: none;
+		background-color: #eee;
+		color: #a8a7a7;
+		border-radius: 0px;
+		border: none;
+	}
+	.v-button-stepSelected {
+		background-image: none;
+		background-color: #00A8EC;
+		color: #ffffff;
+		border-radius: 0px;
+		border: none;
+	}
+	/*
+	.v-button-stepSelected:focus::after {
+    	-webkit-box-shadow: none !important;
+    	box-shadow: none !important;
+    }
+    .v-button-stepSelected.v-pressed {
+    	-webkit-box-shadow: none !important;
+    	box-shadow: none !important;
+    }
+    */
+	.v-horizontallayout-maxButton {
+    	border: none;
+    	background: transparent url(img/panelMax.png) no-repeat;
+    	width: 25px;
+    	height: 25px;
+	}
+	.v-horizontallayout-minButton {
+    	border: none;
+    	background: transparent url(img/panelMin.png) no-repeat;
+    	width: 25px;
+    	height: 25px;
+	}
+	.v-slot-panelHeader {
+		background: #f8f8f8;
+		border-bottom: 1px solid #d5d5d5;
+		border-radius: 4px 4px 0px 0px;
+	}
+	.v-slot-panelButtons {
+		background: #f8f8f8;
+		border-bottom: 1px solid #d5d5d5;
+	}
+	.v-slot-panelstyle {
+		border: 1px solid #d5d5d5;
+		border-radius: 4px;
+	}
+	.v-panel-withoutborder {
+		 border-style: none;
+		 -webkit-box-shadow: none;
+		 box-shadow: none;
+	}
+	.v-panel-reactionsPanel {
+		max-width: 800px;
+	}
+	.v-textfield-selected {
+		color: #FFFFFF;
+		background: #197DE1;
+		border-style: none;
+	}
+	.v-textfield-withFormula { //not used yet
+		color: #FFFFFF;
+		background: #c0f8ff;
+		border-style: none;
+	}
+	.v-textfield.v-disabled {
+		background: #D4D4D4;
+		opacity: 1.0 !important;
+	}
+	.v-select.v-disabled select {
+		background: #D4D4D4;
+	}
+}
