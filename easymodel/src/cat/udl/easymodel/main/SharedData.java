@@ -41,13 +41,13 @@ public class SharedData {
 	public static final String appDir = "easymodel";
 	public static final String propertiesFile = "easymodel.properties";
 	public static final String propertiesFilePath = appDir+"/"+propertiesFile;
-	public static final String tempDir = appDir + "/upload";
+	public static final String tempDir = appDir + "/tmp";
 	public static final String appName = "EasyModel";
 	public static final String appVersion = "1.0b";
 	public static final String fullAppName = appName + " " + appVersion;
 	public static final int privateWeeks = 2;
 	// public static final boolean enableMath = true;
-	public static final String dbError = "FATAL ERROR: DATABASE ISSUE";
+	public static final String dbError = "FATAL ERROR: DATABASE PROBLEM";
 	// mathLink
 	public static final String mathLinkError = "CAN'T OPEN MATHLINK, PLEASE TRY AGAIN LATER";
 	public static final String mathPrintPrefix = "MSG::";
@@ -56,15 +56,8 @@ public class SharedData {
 	public static final int sbmlVersion = 2;
 
 	private SharedData() {
-		if (!new File(appDir).exists() && !new File(appDir).mkdirs()) {
-			System.err.println("COULD NOT CREATE DIRECTORY: " + appDir);
-			System.err.println("THIS IS IMPORTANT FOR WRITING APP FILES!");
-			System.exit(1);
-		}
-		if (!new File(tempDir).exists() && !new File(tempDir).mkdirs()) {
-			System.err.println("COULD NOT CREATE DIRECTORY: " + tempDir);
-			System.exit(1);
-		}
+		createDir(appDir);
+		createDir(tempDir);
 		cleanTempDir();
 
 		properties = new Properties();
@@ -97,12 +90,13 @@ public class SharedData {
 
 		if (properties.getProperty("debugMode").equals("1"))
 			System.out.println("WARNING: DEBUG MODE ON");
-		if (properties.getProperty("waitMathKernelSecs") == null)
-			properties.setProperty("waitMathKernelSecs", "60");
+//		if (properties.getProperty("waitMathKernelSecs") == null)
+//			properties.setProperty("waitMathKernelSecs", "60");
 		try {
 			OutputStream out = new FileOutputStream(propertiesFilePath);
 			String propComments = appName+" CONFIG FILE\nWINDOWS mathKernelPath=-linkmode launch -linkname 'C\\:\\\\Program Files\\\\Wolfram Research\\\\Mathematica\\\\10.0\\\\MathKernel.exe'\n"
-					+ "LINUX mathKernelPath=-linkmode launch -linkname 'math -mathlink'\nwaitMathKernelSecs: time in seconds to wait until mathKernel is free again from doing tasks";
+					+ "LINUX mathKernelPath=-linkmode launch -linkname 'math -mathlink'";
+			//\nwaitMathKernelSecs: time in seconds to wait until mathKernel is free again from doing tasks";
 			properties.store(out, propComments);
 			out.close();
 		} catch (Exception e) {
@@ -119,6 +113,13 @@ public class SharedData {
 		// decimalFormat = new DecimalFormat("0",
 		// DecimalFormatSymbols.getInstance(Locale.ENGLISH));
 		// decimalFormat.setMaximumFractionDigits(340);
+	}
+
+	private void createDir(String dir) {
+		if (!new File(dir).exists() && !new File(dir).mkdirs()) {
+			System.err.println("EXIT: COULD NOT CREATE DIRECTORY: " + dir);
+			System.exit(1);
+		}
 	}
 
 	public static SharedData getInstance() {

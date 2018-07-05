@@ -5,8 +5,8 @@ Project is written in Java EE for Eclipse IDE
 
 HOW TO IMPORT PROJECT INTO ECLIPSE
 
-1. Download project in a temporal directory called "easymodel"
-2. File>Import...>General>Existing Projects into Workspace
+1. Download the "easymodel" Java project directory
+2. File>Import...>General>Projects from Folder or Archive>Select the "easymodel" folder
 3. Right click on project>Ivy>Resolve
 
 HOW TO RUN PROJECT IN ECLIPSE
@@ -28,5 +28,5 @@ HOW TO RUN PROJECT ON A STANDALONE APACHE TOMCAT SERVER
 HOW TO SET UP THE MYSQL SERVER
 
 1. Create a database called "easymodel" in the MySQL server
-2. Execute the file MySQLeasymodelDB/easymodel.sql in the MySQL server to set up the database tables etc. (in phpmyadmin: select the easymodel database and import the .sql file)
+2. Execute the file MySQLDB_easymodel/easymodel.sql in the MySQL server to set up the database tables etc. (in phpmyadmin: select the easymodel database and import the .sql file)
 3. Edit MySQL configuration in application properties file (easymodel/easymodel.properties) if necessary and restart application
