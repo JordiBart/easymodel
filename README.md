@@ -1,7 +1,7 @@
 # easymodel
 Public repository for EasyModel (kinetic modeling of biological systems)
 
-Project is written in Java EE for Eclipse IDE
+Project is written in Java EE using Eclipse IDE
 
 HOW TO IMPORT PROJECT INTO ECLIPSE
 
@@ -19,11 +19,8 @@ HOW TO RUN PROJECT IN ECLIPSE
 HOW TO RUN PROJECT ON A STANDALONE APACHE TOMCAT SERVER
 
 1. Export project to WAR file in $TomcatDir$/webapps: Right click project>Export>WAR file
-2. Create a file setenv.sh (linux) / setenv.bat (windows) with this content:
-
-*CONTENT TO COMPLETE*
-
-3. Run tomcat by executing $TomcatDir$/bin/startup.sh / startup.bat
+2. Copy the file TomcatConfig/setenv.sh (linux) or setenv.bat (windows) to $TomcatDir$/bin and edit the file to fit your system
+3. Run tomcat by executing $TomcatDir$/bin/startup.sh (linux) or startup.bat (windows)
 
 HOW TO SET UP THE MYSQL SERVER
 
