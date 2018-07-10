@@ -5,8 +5,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.commons.lang3.Validate;
-
 import com.vaadin.data.Property.ValueChangeEvent;
 import com.vaadin.data.Property.ValueChangeListener;
 import com.vaadin.event.FieldEvents.BlurEvent;
@@ -18,31 +16,27 @@ import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.ui.CheckBox;
 import com.vaadin.ui.Component;
-import com.vaadin.ui.GridLayout;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.Panel;
 import com.vaadin.ui.PopupView;
-import com.vaadin.ui.Slider;
 import com.vaadin.ui.TabSheet;
 import com.vaadin.ui.TabSheet.CloseHandler;
 import com.vaadin.ui.TabSheet.SelectedTabChangeEvent;
 import com.vaadin.ui.TabSheet.SelectedTabChangeListener;
 import com.vaadin.ui.TabSheet.Tab;
+import com.vaadin.ui.TextField;
+import com.vaadin.ui.UI;
+import com.vaadin.ui.VerticalLayout;
 
 import cat.udl.easymodel.logic.model.Model;
 import cat.udl.easymodel.logic.simconfig.SimConfig;
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.utils.VaadinUtils;
-import cat.udl.easymodel.utils.p;
 import cat.udl.easymodel.vcomponent.AppPanel;
-
-import com.vaadin.ui.TextField;
-import com.vaadin.ui.UI;
-import com.vaadin.ui.VerticalLayout;
 
 public class SimulationVL extends VerticalLayout {
 	private SessionData sessionData;
@@ -51,6 +45,7 @@ public class SimulationVL extends VerticalLayout {
 	private VerticalLayout simVL;
 	private Accordion accordion;
 	private boolean tabSheetListenerEnable = true;
+	private PopupView infoPopup = new PopupView(null, getInfoLayout());
 
 	private Model selectedModel;
 	private SimConfig simConfig;
@@ -60,7 +55,7 @@ public class SimulationVL extends VerticalLayout {
 	private VerticalLayout ssVisVL;
 
 	private TabSheet plotViewsTabs = new TabSheet();
-	
+
 	private PopupView infoDynPopup = new PopupView(null, getInfoDynLayout());
 	private PopupView infoSSPopup = new PopupView(null, getInfoSSLayout());
 	private PopupView infoPlotViewsPopup = new PopupView(null, getInfoPlotViewsLayout());
@@ -88,6 +83,7 @@ public class SimulationVL extends VerticalLayout {
 		ssVisVL.setSizeFull();
 
 		simVL = new VerticalLayout();
+		simVL.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
 		simVL.setSpacing(true);
 		simVL.setMargin(true);
 		simVL.setWidth("100%");
@@ -106,10 +102,25 @@ public class SimulationVL extends VerticalLayout {
 		simVL.removeAllComponents();
 
 		accordion = getAccordion();
-		Button simBtn = getSimulateButton();
-		simVL.addComponents(accordion, simBtn);
-		simVL.setComponentAlignment(accordion, Alignment.MIDDLE_CENTER);
-		simVL.setComponentAlignment(simBtn, Alignment.MIDDLE_CENTER);
+		HorizontalLayout buttonsHL = getButtonsHL();
+		simVL.addComponents(getHeaderHL(), accordion, buttonsHL);
+	}
+
+	private HorizontalLayout getButtonsHL() {
+		HorizontalLayout hl = new HorizontalLayout();
+		hl.setMargin(false);
+		hl.setSpacing(false);
+		hl.addComponents(getSimulateButton());
+		return hl;
+	}
+
+	private HorizontalLayout getHeaderHL() {
+		HorizontalLayout hl = new HorizontalLayout();
+		hl.setWidth("100%");
+		HorizontalLayout spacer = new HorizontalLayout();
+		hl.addComponents(spacer, infoPopup, getInfoButton());
+		hl.setExpandRatio(spacer, 1f);
+		return hl;
 	}
 
 	private void updateDynVis() {
@@ -129,7 +140,7 @@ public class SimulationVL extends VerticalLayout {
 	private Accordion getAccordion() {
 		Accordion acc = new Accordion();
 		acc.setId("simAccordion");
-		acc.setWidth("95%");
+		acc.setWidth("100%");
 
 		VerticalLayout dynVL = getDynVL();
 		VerticalLayout ssVL = getSSVL();
@@ -152,7 +163,7 @@ public class SimulationVL extends VerticalLayout {
 		initPlotTabs();
 		leftVL.addComponents(plotViewsTabs);
 		updatePlotTabs();
-		
+
 		VerticalLayout rightVL = new VerticalLayout();
 		rightVL.setDefaultComponentAlignment(Alignment.TOP_RIGHT);
 		rightVL.setWidth("50px");
@@ -162,14 +173,14 @@ public class SimulationVL extends VerticalLayout {
 		Button iBtn = getInfoPlotViewsButton();
 		Button eachBtn = getSetEachDepVarToOneViewButton();
 		rightVL.addComponents(iBtn, eachBtn);
-		
+
 		HorizontalLayout hl = new HorizontalLayout();
 		hl.setSizeFull();
 		hl.setSpacing(false);
 		hl.setMargin(false);
-		hl.addComponents(leftVL,infoPlotViewsPopup,rightVL);
+		hl.addComponents(leftVL, infoPlotViewsPopup, rightVL);
 		hl.setExpandRatio(leftVL, 1f);
-		
+
 		VerticalLayout mainVL = new VerticalLayout();
 		mainVL.setSizeFull();
 		mainVL.setMargin(true);
@@ -191,9 +202,8 @@ public class SimulationVL extends VerticalLayout {
 				simConfig.clearPlotViews();
 				for (String dv : selectedModel.getAllSpeciesTimeDependent().keySet()) {
 					simConfig.addPlotView();
-					((ArrayList<String>) simConfig.getPlotViews()
-							.get(simConfig.getPlotViews().size() - 1).get("DepVarsToShow"))
-									.add(dv);
+					((ArrayList<String>) simConfig.getPlotViews().get(simConfig.getPlotViews().size() - 1)
+							.get("DepVarsToShow")).add(dv);
 				}
 				updatePlotTabs();
 			}
@@ -307,7 +317,7 @@ public class SimulationVL extends VerticalLayout {
 		}
 		leftVL.addComponent(dynVisVL);
 		updateDynVis();
-		
+
 		VerticalLayout rightVL = new VerticalLayout();
 		rightVL.setWidth("50px");
 		rightVL.setHeight("100%");
@@ -316,14 +326,14 @@ public class SimulationVL extends VerticalLayout {
 		Button iBtn = getInfoDynButton();
 		rightVL.setDefaultComponentAlignment(Alignment.TOP_RIGHT);
 		rightVL.addComponents(iBtn);
-		
+
 		HorizontalLayout hl = new HorizontalLayout();
 		hl.setSizeFull();
 		hl.setSpacing(false);
 		hl.setMargin(false);
-		hl.addComponents(leftVL,infoDynPopup,rightVL);
+		hl.addComponents(leftVL, infoDynPopup, rightVL);
 		hl.setExpandRatio(leftVL, 1f);
-		
+
 		VerticalLayout mainVL = new VerticalLayout();
 		mainVL.setSizeFull();
 		mainVL.setMargin(true);
@@ -361,7 +371,7 @@ public class SimulationVL extends VerticalLayout {
 		});
 		return btn;
 	}
-	
+
 	private Button getInfoPlotViewsButton() {
 		Button btn = new Button();
 		btn.setDescription("How to set Plot Views settings");
@@ -376,13 +386,15 @@ public class SimulationVL extends VerticalLayout {
 		});
 		return btn;
 	}
-	
+
 	private VerticalLayout getInfoDynLayout() {
 		VerticalLayout vlt = new VerticalLayout();
 		vlt.addComponent(new Label("Dynamic simulation allows you to:"));
 		vlt.addComponent(new Label("1. Run a time course of your system"));
-		vlt.addComponent(new Label("2. Calculate the dynamic gains of your system with respect to its independent variables by checkboxing \"Gains\""));
-		vlt.addComponent(new Label("3. Calculate the dynamic sensitivities of your system with respect to its parameters by checkboxing \"Sensitivities\""));
+		vlt.addComponent(new Label(
+				"2. Calculate the dynamic gains of your system with respect to its independent variables by checkboxing \"Gains\""));
+		vlt.addComponent(new Label(
+				"3. Calculate the dynamic sensitivities of your system with respect to its parameters by checkboxing \"Sensitivities\""));
 		return vlt;
 	}
 
@@ -390,18 +402,22 @@ public class SimulationVL extends VerticalLayout {
 		VerticalLayout vlt = new VerticalLayout();
 		vlt.addComponent(new Label("Steady State simulation allows you to:"));
 		vlt.addComponent(new Label("1. Calculate the Steady State(s) of your system"));
-		vlt.addComponent(new Label("2. Analyse the stability of the Steady State(s) by checkboxing \"Stability analysis\""));
-		vlt.addComponent(new Label("3. Calculate the steady state gains of your system with respect to its independent variables by checkboxing \"Gains\""));
-		vlt.addComponent(new Label("4. Calculate the steady state sensitivities of your system with respect to its parameters by checkboxing \"Sensitivities\""));
+		vlt.addComponent(
+				new Label("2. Analyse the stability of the Steady State(s) by checkboxing \"Stability analysis\""));
+		vlt.addComponent(new Label(
+				"3. Calculate the steady state gains of your system with respect to its independent variables by checkboxing \"Gains\""));
+		vlt.addComponent(new Label(
+				"4. Calculate the steady state sensitivities of your system with respect to its parameters by checkboxing \"Sensitivities\""));
 		return vlt;
 	}
-	
+
 	private Component getInfoPlotViewsLayout() {
 		VerticalLayout vlt = new VerticalLayout();
-		vlt.addComponent(new Label("Define or select the graphical representation options for the different result views"));
+		vlt.addComponent(
+				new Label("Define or select the graphical representation options for the different result views"));
 		return vlt;
 	}
-	
+
 	private VerticalLayout getSSVL() {
 		Component comp = null;
 		VerticalLayout leftVL = new VerticalLayout();
@@ -424,7 +440,7 @@ public class SimulationVL extends VerticalLayout {
 		}
 		leftVL.addComponent(ssVisVL);
 		updateSSVis();
-		
+
 		VerticalLayout rightVL = new VerticalLayout();
 		rightVL.setWidth("50px");
 		rightVL.setHeight("100%");
@@ -433,14 +449,14 @@ public class SimulationVL extends VerticalLayout {
 		Button iBtn = getInfoSSButton();
 		rightVL.setDefaultComponentAlignment(Alignment.TOP_RIGHT);
 		rightVL.addComponents(iBtn, infoSSPopup);
-		
+
 		HorizontalLayout hl = new HorizontalLayout();
 		hl.setSizeFull();
 		hl.setSpacing(false);
 		hl.setMargin(false);
-		hl.addComponents(leftVL,infoSSPopup,rightVL);
+		hl.addComponents(leftVL, infoSSPopup, rightVL);
 		hl.setExpandRatio(leftVL, 1f);
-		
+
 		VerticalLayout mainVL = new VerticalLayout();
 		mainVL.setSizeFull();
 		mainVL.setMargin(true);
@@ -450,7 +466,7 @@ public class SimulationVL extends VerticalLayout {
 	}
 
 	private Component getBooleanParamHL(String configKey, Map<String, Object> cMap) {
-//		Boolean o = (Boolean) cMap.get(configKey);
+		// Boolean o = (Boolean) cMap.get(configKey);
 		HorizontalLayout line = new HorizontalLayout();
 		line.setWidth("100%");
 		String caption = "";
@@ -548,7 +564,7 @@ public class SimulationVL extends VerticalLayout {
 
 	private Button getSimulateButton() {
 		Button btn = new Button("Run Simulation");
-//		btn.setWidth("60%");
+		// btn.setWidth("60%");
 		btn.addClickListener(new ClickListener() {
 			@Override
 			public void buttonClick(ClickEvent event) {
@@ -559,6 +575,30 @@ public class SimulationVL extends VerticalLayout {
 				} catch (Exception e) {
 					Notification.show(e.getMessage(), Type.WARNING_MESSAGE);
 				}
+			}
+		});
+		return btn;
+	}
+	
+	private VerticalLayout getInfoLayout() {
+		VerticalLayout vlt = new VerticalLayout();
+		vlt.addComponent(new Label("Simulation configuration:"));
+		vlt.addComponent(new Label("1. Add and configure the needed types of simulations from the accordeon"));
+		vlt.addComponent(new Label("2. (Optional) Configure the plot settings. Plot views allow to output multiple different plots from each generated plot"));
+		vlt.addComponent(new Label("3. Run Simulation. On results tab, left click on images to view an enlarged version of them in a new tab"));
+		return vlt;
+	}
+	
+	private Button getInfoButton() {
+		Button btn = new Button();
+		btn.setDescription("How to configure simulation");
+		btn.setWidth("36px");
+		btn.setStyleName("infoBtn");
+		btn.addClickListener(new ClickListener() {
+			private static final long serialVersionUID = 1L;
+
+			public void buttonClick(ClickEvent event) {
+				infoPopup.setPopupVisible(true);
 			}
 		});
 		return btn;

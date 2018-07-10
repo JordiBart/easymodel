@@ -59,7 +59,7 @@ public class AppPanel extends Panel {
 		super();
 
 		this.sessionData = (SessionData) UI.getCurrent().getData();
-		resultsVL = new ResultsVL(sessionData.getSelectedModel(), globalThis);
+		resultsVL = new ResultsVL(globalThis);
 		simCtrl = new SimulationCtrlImpl(sessionData);
 
 		HorizontalLayout headerHL = new HorizontalLayout();

@@ -20,6 +20,7 @@ import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.utils.ByteArrayStreamSource;
 import cat.udl.easymodel.utils.DownFileStreamSource;
+import cat.udl.easymodel.utils.VaadinUtils;
 
 public class OutVL extends VerticalLayout {
 	private static final long serialVersionUID = 1L;
@@ -54,11 +55,9 @@ public class OutVL extends VerticalLayout {
 	}
 	
 	public void out(String msg, String style) {
-		if (msg != null && style != null) {
+		if (msg != null) {
 			for (String line : msg.split("\\n")) {
-				Label lab = new Label(line, ContentMode.TEXT);
-				lab.setStyleName(style);
-				globalThis.addComponent(lab);
+				globalThis.addComponent(VaadinUtils.getStyledLabel(line, style));
 			}
 		}
 	}
@@ -70,7 +69,7 @@ public class OutVL extends VerticalLayout {
 //		}
 //	}
 
-	public void out(Layout l) {
+	public void out(Component l) {
 		if (l != null) {
 			globalThis.addComponent(l);
 		}

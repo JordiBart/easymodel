@@ -23,6 +23,7 @@ import com.vaadin.ui.CheckBox;
 
 public class SimPlotVL extends VerticalLayout {
 
+	private static final long serialVersionUID = 1L;
 	private Map<String, Object> plotConfig;
 	private PopupView infoPlotSetPopup = new PopupView(null, getInfoPlotSettingsLayout());
 

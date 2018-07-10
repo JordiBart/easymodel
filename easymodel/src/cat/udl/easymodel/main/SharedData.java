@@ -3,32 +3,22 @@ package cat.udl.easymodel.main;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Types;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
-import java.util.Locale;
 import java.util.Properties;
-
-import org.apache.commons.io.FileUtils;
-
-import com.vaadin.ui.Notification;
-import com.vaadin.ui.Notification.Type;
 
 import cat.udl.easymodel.logic.types.UserType;
 import cat.udl.easymodel.logic.user.User;
 import cat.udl.easymodel.logic.user.UserImpl;
 import cat.udl.easymodel.persistence.DBManager;
 import cat.udl.easymodel.persistence.DBManagerImpl;
-import cat.udl.easymodel.utils.Utils;
 
 public class SharedData {
 	private DBManager dbManager = null;
@@ -40,7 +30,7 @@ public class SharedData {
 	// Constants
 	public static final String appDir = "easymodel";
 	public static final String propertiesFile = "easymodel.properties";
-	public static final String propertiesFilePath = appDir+"/"+propertiesFile;
+	public static final String propertiesFilePath = appDir + "/" + propertiesFile;
 	public static final String tempDir = appDir + "/tmp";
 	public static final String appName = "EasyModel";
 	public static final String appVersion = "1.0b";
@@ -65,9 +55,9 @@ public class SharedData {
 			InputStream input = new FileInputStream(propertiesFilePath);
 			properties.load(input);
 			input.close();
-			System.out.println("PROPERTIES FILE LOADED "+propertiesFilePath);
+			System.out.println("PROPERTIES FILE LOADED " + propertiesFilePath);
 		} catch (Exception e) {
-			System.out.println("COULDN'T READ PROPERTIES FILE "+propertiesFilePath);
+			System.out.println("COULDN'T READ PROPERTIES FILE " + propertiesFilePath);
 		}
 		if (properties.getProperty("mathKernelPath") == null) {
 			if (isWindowsSystem())
@@ -90,17 +80,19 @@ public class SharedData {
 
 		if (properties.getProperty("debugMode").equals("1"))
 			System.out.println("WARNING: DEBUG MODE ON");
-//		if (properties.getProperty("waitMathKernelSecs") == null)
-//			properties.setProperty("waitMathKernelSecs", "60");
+		// if (properties.getProperty("waitMathKernelSecs") == null)
+		// properties.setProperty("waitMathKernelSecs", "60");
 		try {
 			OutputStream out = new FileOutputStream(propertiesFilePath);
-			String propComments = appName+" CONFIG FILE\nWINDOWS mathKernelPath=-linkmode launch -linkname 'C\\:\\\\Program Files\\\\Wolfram Research\\\\Mathematica\\\\10.0\\\\MathKernel.exe'\n"
+			String propComments = appName
+					+ " CONFIG FILE\nWINDOWS mathKernelPath=-linkmode launch -linkname 'C\\:\\\\Program Files\\\\Wolfram Research\\\\Mathematica\\\\10.0\\\\MathKernel.exe'\n"
 					+ "LINUX mathKernelPath=-linkmode launch -linkname 'math -mathlink'";
-			//\nwaitMathKernelSecs: time in seconds to wait until mathKernel is free again from doing tasks";
+			// \nwaitMathKernelSecs: time in seconds to wait until mathKernel is free again
+			// from doing tasks";
 			properties.store(out, propComments);
 			out.close();
 		} catch (Exception e) {
-			System.out.println("COULDN'T WRITE PROPERTIES FILE "+propertiesFilePath);
+			System.out.println("COULDN'T WRITE PROPERTIES FILE " + propertiesFilePath);
 		}
 
 		dbManager = new DBManagerImpl();
