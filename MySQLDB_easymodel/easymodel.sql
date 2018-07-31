@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Jul 05, 2018 at 11:15 AM
+-- Generation Time: Jul 19, 2018 at 12:32 PM
 -- Server version: 5.7.19
 -- PHP Version: 5.6.31
 
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS `formula` (
   `modified` date NOT NULL,
   PRIMARY KEY (`id`),
   KEY `id_user` (`id_user`)
-) ENGINE=InnoDB AUTO_INCREMENT=451 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=450 DEFAULT CHARSET=latin1;
 
 --
 -- Dumping data for table `formula`
@@ -97,7 +97,7 @@ INSERT INTO `formula` (`id`, `id_user`, `name`, `formula`, `onesubstrateonly`, `
 (441, 1, 'Peroxida_K29', 'k13b', 0, 0, 0, 1, 0, '2018-07-05'),
 (442, 1, 'Peroxida_K30', 'k14', 0, 0, 0, 1, 0, '2018-07-05'),
 (446, 1, 'Overall__K1', 'alpha1*X0^g10*X3^g13', 1, 0, 1, 1, 0, '2018-07-05'),
-(449, 1, 'Alanine__K1', 'kcat*Enzyme*Substrate/(Km+Substrate)', 0, 0, 0, 1, 1, '2018-07-05');
+(449, 1, 'Alanine__K1', 'kcat*Enzyme*Substrate/(Km+Substrate)', 0, 0, 0, 1, 1, '2018-07-10');
 
 -- --------------------------------------------------------
 
@@ -149,7 +149,7 @@ CREATE TABLE IF NOT EXISTS `formulamodifiersarray` (
   `constant` varchar(100) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `id_reaction` (`id_reaction`)
-) ENGINE=InnoDB AUTO_INCREMENT=62 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=63 DEFAULT CHARSET=latin1;
 
 --
 -- Dumping data for table `formulamodifiersarray`
@@ -161,7 +161,8 @@ INSERT INTO `formulamodifiersarray` (`id`, `id_reaction`, `constant`) VALUES
 (6, 263, 'g'),
 (16, 282, 'g'),
 (17, 284, 'g'),
-(18, 286, 'g');
+(18, 286, 'g'),
+(62, 1602, 'g');
 
 -- --------------------------------------------------------
 
@@ -177,7 +178,7 @@ CREATE TABLE IF NOT EXISTS `formulamodifiersarrayvalue` (
   `value` varchar(100) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `id_formulamodifiersarray` (`id_formulamodifiersarray`)
-) ENGINE=InnoDB AUTO_INCREMENT=60 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=61 DEFAULT CHARSET=latin1;
 
 --
 -- Dumping data for table `formulamodifiersarrayvalue`
@@ -187,7 +188,8 @@ INSERT INTO `formulamodifiersarrayvalue` (`id`, `id_formulamodifiersarray`, `mod
 (13, 16, 'X3', '-1'),
 (14, 16, 'X4', '-1'),
 (15, 17, 'X4', '0.5'),
-(16, 18, 'X3', '0.5');
+(16, 18, 'X3', '0.5'),
+(60, 62, 'AMS1', '1');
 
 -- --------------------------------------------------------
 
@@ -202,7 +204,7 @@ CREATE TABLE IF NOT EXISTS `formulasubstratesarray` (
   `constant` varchar(100) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `id_reaction` (`id_reaction`)
-) ENGINE=InnoDB AUTO_INCREMENT=62 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=63 DEFAULT CHARSET=latin1;
 
 --
 -- Dumping data for table `formulasubstratesarray`
@@ -214,7 +216,8 @@ INSERT INTO `formulasubstratesarray` (`id`, `id_reaction`, `constant`) VALUES
 (6, 263, 'g'),
 (16, 282, 'g'),
 (17, 284, 'g'),
-(18, 286, 'g');
+(18, 286, 'g'),
+(62, 1602, 'g');
 
 -- --------------------------------------------------------
 
@@ -230,7 +233,7 @@ CREATE TABLE IF NOT EXISTS `formulasubstratesarrayvalue` (
   `value` varchar(100) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `id_formulasubstratesarray` (`id_formulasubstratesarray`)
-) ENGINE=InnoDB AUTO_INCREMENT=62 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=63 DEFAULT CHARSET=latin1;
 
 --
 -- Dumping data for table `formulasubstratesarrayvalue`
@@ -242,7 +245,8 @@ INSERT INTO `formulasubstratesarrayvalue` (`id`, `id_formulasubstratesarray`, `s
 (6, 6, 'Phenylalanine', '1'),
 (16, 16, 'X0', '1'),
 (17, 17, 'X2', '1'),
-(18, 18, 'X2', '1');
+(18, 18, 'X2', '1'),
+(62, 62, 'Gly', '1');
 
 -- --------------------------------------------------------
 
@@ -261,7 +265,7 @@ CREATE TABLE IF NOT EXISTS `formulavalue` (
   `modifiervalue` varchar(100) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `id_reaction` (`id_reaction`)
-) ENGINE=InnoDB AUTO_INCREMENT=5524 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=5526 DEFAULT CHARSET=latin1;
 
 --
 -- Dumping data for table `formulavalue`
@@ -365,78 +369,8 @@ INSERT INTO `formulavalue` (`id`, `id_reaction`, `constant`, `formulavaluetype`,
 (543, 286, 'a', 0, '0.4', NULL, NULL),
 (544, 287, 'k', 0, '2', NULL, NULL),
 (545, 287, 'v', 0, '1', NULL, NULL),
-(5452, 1583, 'Enzyme', 2, NULL, NULL, 'E1'),
-(5453, 1583, 'Km', 0, '12', NULL, NULL),
-(5454, 1583, 'Substrate', 1, NULL, 'Glutamate', NULL),
-(5455, 1583, 'kcat', 0, '0.071', NULL, NULL),
-(5456, 1584, 'Enzyme', 2, NULL, NULL, 'E2'),
-(5457, 1584, 'Km', 0, '0.00045', NULL, NULL),
-(5458, 1584, 'Substrate', 1, NULL, 'LGlutamylP', NULL),
-(5459, 1584, 'kcat', 0, '1.32335', NULL, NULL),
-(5460, 1585, 'Enzyme', 2, NULL, NULL, 'E3'),
-(5461, 1585, 'Km', 0, '15.7', NULL, NULL),
-(5462, 1585, 'Substrate', 1, NULL, 'Arginine', NULL),
-(5463, 1585, 'kcat', 0, '10', NULL, NULL),
-(5464, 1586, 'Enzyme', 2, NULL, NULL, 'E4'),
-(5465, 1586, 'Km', 0, '3.95', NULL, NULL),
-(5466, 1586, 'Substrate', 1, NULL, 'Ornithine', NULL),
-(5467, 1586, 'kcat', 0, '2', NULL, NULL),
-(5468, 1587, 'Enzyme', 2, NULL, NULL, 'E4'),
-(5469, 1587, 'Km', 0, '25', NULL, NULL),
-(5470, 1587, 'Substrate', 1, NULL, 'LGlutamate5semialdehyde', NULL),
-(5471, 1587, 'kcat', 0, '2.5', NULL, NULL),
-(5472, 1588, 'Enzyme', 2, NULL, NULL, 'E5'),
-(5473, 1588, 'Km', 0, '0.21', NULL, NULL),
-(5474, 1588, 'Substrate', 1, NULL, 'Ornithine', NULL),
-(5475, 1588, 'kcat', 0, '315', NULL, NULL),
-(5476, 1589, 'Enzyme', 2, NULL, NULL, 'E6'),
-(5477, 1589, 'Km', 0, '0.02', NULL, NULL),
-(5478, 1589, 'Substrate', 1, NULL, 'Putrescine', NULL),
-(5479, 1589, 'kcat', 0, '5.28', NULL, NULL),
-(5480, 1590, 'Enzyme', 2, NULL, NULL, 'E7'),
-(5481, 1590, 'Km', 0, '0.274', NULL, NULL),
-(5482, 1590, 'Substrate', 1, NULL, 'spermidine', NULL),
-(5483, 1590, 'kcat', 0, '203.856', NULL, NULL),
-(5484, 1591, 'Enzyme', 2, NULL, NULL, 'E6'),
-(5485, 1591, 'Km', 0, '0.02', NULL, NULL),
-(5486, 1591, 'Substrate', 1, NULL, 'spermidine', NULL),
-(5487, 1591, 'kcat', 0, '5.28', NULL, NULL),
-(5488, 1592, 'Enzyme', 2, NULL, NULL, 'E7'),
-(5489, 1592, 'Km', 0, '0.188', NULL, NULL),
-(5490, 1592, 'Substrate', 1, NULL, 'spermine', NULL),
-(5491, 1592, 'kcat', 0, '3722.4', NULL, NULL),
-(5492, 1593, 'Enzyme', 2, NULL, NULL, 'E7'),
-(5493, 1593, 'Km', 0, '0.274', NULL, NULL),
-(5494, 1593, 'Substrate', 1, NULL, 'spermidine', NULL),
-(5495, 1593, 'kcat', 0, '203.68', NULL, NULL),
-(5496, 1594, 'Enzyme', 2, NULL, NULL, 'E10'),
-(5497, 1594, 'Km', 0, '0.013', NULL, NULL),
-(5498, 1594, 'Substrate', 1, NULL, 'baminopropionaldehyde', NULL),
-(5499, 1594, 'kcat', 0, '34.64', NULL, NULL),
-(5500, 1595, 'Enzyme', 2, NULL, NULL, 'E11'),
-(5501, 1595, 'Km', 0, '0.46', NULL, NULL),
-(5502, 1595, 'Substrate', 1, NULL, 'baminopropionaldehyde', NULL),
-(5503, 1595, 'kcat', 0, '828', NULL, NULL),
-(5504, 1596, 'Enzyme', 2, NULL, NULL, 'E12'),
-(5505, 1596, 'Km', 0, '2.32', NULL, NULL),
-(5506, 1596, 'Substrate', 1, NULL, 'Aspartate', NULL),
-(5507, 1596, 'kcat', 0, '310', NULL, NULL),
-(5508, 1597, 'Enzyme', 2, NULL, NULL, 'E13'),
-(5509, 1597, 'Km', 0, '0.25', NULL, NULL),
-(5510, 1597, 'Substrate', 1, NULL, 'balanine', NULL),
-(5511, 1597, 'kcat', 0, '9.6', NULL, NULL),
-(5512, 1598, 'Enzyme', 2, NULL, NULL, 'E14'),
-(5513, 1598, 'Km', 0, '2.4', NULL, NULL),
-(5514, 1598, 'Substrate', 1, NULL, 'balanine', NULL),
-(5515, 1598, 'kcat', 0, '921.6', NULL, NULL),
-(5516, 1599, 'Enzyme', 2, NULL, NULL, 'E15'),
-(5517, 1599, 'Km', 0, '0.2', NULL, NULL),
-(5518, 1599, 'Substrate', 1, NULL, 'spermidine', NULL),
-(5519, 1599, 'kcat', 0, '1920', NULL, NULL),
-(5520, 1600, 'Enzyme', 2, NULL, NULL, 'E7'),
-(5521, 1600, 'Km', 0, '0.188', NULL, NULL),
-(5522, 1600, 'Substrate', 1, NULL, 'spermine', NULL),
-(5523, 1600, 'kcat', 0, '3722.4', NULL, NULL);
+(5524, 1601, 'a', 0, '0.0000443592', NULL, NULL),
+(5525, 1602, 'a', 0, '1', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -454,20 +388,20 @@ CREATE TABLE IF NOT EXISTS `model` (
   `modified` date NOT NULL,
   PRIMARY KEY (`id`),
   KEY `id_user` (`id_user`)
-) ENGINE=InnoDB AUTO_INCREMENT=159 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=160 DEFAULT CHARSET=latin1;
 
 --
 -- Dumping data for table `model`
 --
 
 INSERT INTO `model` (`id`, `id_user`, `name`, `description`, `repositorytype`, `modified`) VALUES
-(32, 1, 'Brusselator', 'Based on the COPASI example', 0, '2018-07-03'),
-(37, 1, 'Peroxidase', 'Based on the COPASI example', 0, '2018-07-03'),
-(38, 1, 'Test Gains+Sensitivities', 'Test Gains + Sensitivities + Stability', 0, '2018-07-03'),
-(40, 1, 'Test Dynamic+Steady State', 'Test dynamic and steady state simulations', 0, '2018-07-03'),
-(42, 1, 'Overall Feedback', 'Unbranched biosynthetic pathway', 0, '2018-07-03'),
-(46, 1, 'Branched pathway', '', 0, '2018-07-03'),
-(158, 1, 'Alanine - Proline - Arginine', '', 1, '2018-07-03');
+(32, 1, 'Brusselator', 'Based on the COPASI example', 0, '2018-07-19'),
+(37, 1, 'Peroxidase', 'Based on the COPASI example', 0, '2018-07-19'),
+(38, 1, 'Test Gains+Sensitivities', 'Test Gains + Sensitivities + Stability', 0, '2018-07-19'),
+(40, 1, 'Test Dynamic+Steady State', 'Test dynamic and steady state simulations', 0, '2018-07-19'),
+(42, 1, 'Overall Feedback', 'Unbranched biosynthetic pathway', 0, '2018-07-19'),
+(46, 1, 'Branched pathway', '', 0, '2018-07-19'),
+(159, 1, 'N-Glycan', '', 1, '2018-07-19');
 
 -- --------------------------------------------------------
 
@@ -484,7 +418,7 @@ CREATE TABLE IF NOT EXISTS `reaction` (
   PRIMARY KEY (`id`),
   KEY `id_model` (`id_model`),
   KEY `reaction_ibfk_2` (`id_formula`)
-) ENGINE=InnoDB AUTO_INCREMENT=1601 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=1603 DEFAULT CHARSET=latin1;
 
 --
 -- Dumping data for table `reaction`
@@ -544,24 +478,8 @@ INSERT INTO `reaction` (`id`, `id_model`, `id_formula`, `reaction`) VALUES
 (285, 46, 361, 'X3 ->'),
 (286, 46, 357, 'X2 -> X4;X3'),
 (287, 46, 361, 'X4 ->'),
-(1583, 158, 449, 'Glutamate -> LGlutamylP; E1'),
-(1584, 158, 449, 'LGlutamylP -> LGlutamate5semialdehyde; E2'),
-(1585, 158, 449, 'Arginine -> Ornithine; E3'),
-(1586, 158, 449, 'Ornithine -> LGlutamate5semialdehyde; E4'),
-(1587, 158, 449, 'LGlutamate5semialdehyde -> Ornithine; E4'),
-(1588, 158, 449, 'Ornithine -> Putrescine; E5'),
-(1589, 158, 449, 'Putrescine   ->  spermidine; E6'),
-(1590, 158, 449, 'spermidine -> Putrescine; E7'),
-(1591, 158, 449, 'spermidine   -> spermine; E6'),
-(1592, 158, 449, 'spermine -> spermidine; E7'),
-(1593, 158, 449, 'spermidine -> baminopropionaldehyde; E7'),
-(1594, 158, 449, 'baminopropionaldehyde -> balanine; E10'),
-(1595, 158, 449, 'baminopropionaldehyde -> balanine; E11'),
-(1596, 158, 449, 'Aspartate -> balanine; E12'),
-(1597, 158, 449, 'balanine -> ; E13'),
-(1598, 158, 449, 'balanine -> ; E14'),
-(1599, 158, 449, 'spermidine  -> spermine; E15'),
-(1600, 158, 449, 'spermine -> baminopropionaldehyde; E7');
+(1601, 159, 360, '->Gly'),
+(1602, 159, 357, 'Gly->;AMS1');
 
 -- --------------------------------------------------------
 
@@ -578,7 +496,7 @@ CREATE TABLE IF NOT EXISTS `species` (
   `vartype` int(1) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `id_model` (`id_model`)
-) ENGINE=InnoDB AUTO_INCREMENT=1977 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=1979 DEFAULT CHARSET=latin1;
 
 --
 -- Dumping data for table `species`
@@ -623,30 +541,8 @@ INSERT INTO `species` (`id`, `id_model`, `species`, `concentration`, `vartype`) 
 (233, 46, 'X2', '0.5', 0),
 (234, 46, 'X3', '0.5', 0),
 (235, 46, 'X4', '0.5', 0),
-(1953, 158, 'Arginine', '18000', 1),
-(1954, 158, 'Aspartate', '8000', 1),
-(1955, 158, 'E1', '0.000103649', 1),
-(1956, 158, 'E10', '0.000460280', 1),
-(1957, 158, 'E11', '0.000184686', 1),
-(1958, 158, 'E12', '0.000080496', 1),
-(1959, 158, 'E13', '0.000098391', 1),
-(1960, 158, 'E14', '0.000086710', 1),
-(1961, 158, 'E15', '0.000086710', 1),
-(1962, 158, 'E2', '0.000381883', 1),
-(1963, 158, 'E3', '0.000216215', 1),
-(1964, 158, 'E4', '0.000500975', 1),
-(1965, 158, 'E5', '0.000014299', 1),
-(1966, 158, 'E6', '0.001657184', 1),
-(1967, 158, 'E7', '0.000006859', 1),
-(1968, 158, 'Glutamate', '25000', 1),
-(1969, 158, 'LGlutamate5semialdehyde', '1.7693', 0),
-(1970, 158, 'LGlutamylP', '6.64646E-6', 0),
-(1971, 158, 'Ornithine', '0.194816', 0),
-(1972, 158, 'Putrescine', '0.00665851', 0),
-(1973, 158, 'balanine', '1.17967', 0),
-(1974, 158, 'baminopropionaldehyde', '0.00658895', 0),
-(1975, 158, 'spermidine', '0.00361888', 0),
-(1976, 158, 'spermine', '0.0172848', 0);
+(1977, 159, 'AMS1', '0.0000683603', 1),
+(1978, 159, 'Gly', '7230.66', 0);
 
 -- --------------------------------------------------------
 

@@ -21,9 +21,10 @@ HOW TO RUN PROJECT ON A STANDALONE APACHE TOMCAT SERVER
 1. Export project to WAR file in $TomcatDir$/webapps: Right click project>Export>WAR file
 2. Copy the file TomcatConfig/setenv.sh (linux) or setenv.bat (windows) to $TomcatDir$/bin and edit the file to fit your system
 3. Run tomcat by executing $TomcatDir$/bin/startup.sh (linux) or startup.bat (windows)
+(NOTE: in UNIX server systems you may need to create a virtual screen with "Xvfb -shmem -screen 0 1280x1024x24 &" in order to allow Mathematica generate image files)
 
 HOW TO SET UP THE MYSQL SERVER
 
 1. Create a database called "easymodel" in the MySQL server
 2. Execute the file MySQLDB_easymodel/easymodel.sql in the MySQL server to set up the database tables etc. (in phpmyadmin: select the easymodel database and import the .sql file)
-3. Edit MySQL configuration in application properties file (easymodel/easymodel.properties) if necessary and restart application
+3. Edit MySQL configuration in EasyModel properties file (easymodel/easymodel.properties) to match your MySQL server and restart application

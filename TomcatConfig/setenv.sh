@@ -1,5 +1,6 @@
-CATALINA_HOME=/path/to/tomcat/base
-CATALINA_BASE=/path/to/tomcat/base
-JRE_HOME=/usr/lib/jvm/java-7-openjdk-amd64
-CLASSPATH=/usr/lib/jvm/java-7-openjdk-amd64/lib/tools.jar:/usr/local/Wolfram/Mathematica/10.0/SystemFiles/Links/JLink/JLink.jar
-#AUTHBIND=yes
+JAVA_OPTS=-Djava.security.egd=file:/dev/./urandom
+CATALINA_HOME=/tomcat/path
+CATALINA_BASE=/tomcat/path
+CATALINA_TMPDIR=/tomcat/path/temp
+JRE_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+CLASSPATH=/tomcat/path/bin/bootstrap.jar:/tomcat/path/bin/tomcat-juli.jar:/usr/local/Wolfram/Mathematica/9.0/SystemFiles/Links/JLink/JLink.jar
