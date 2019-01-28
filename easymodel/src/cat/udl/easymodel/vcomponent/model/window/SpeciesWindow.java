@@ -1,8 +1,10 @@
 package cat.udl.easymodel.vcomponent.model.window;
 
-import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
+import javax.el.ExpressionFactory;
+import javax.el.ValueExpression;
 
 import com.vaadin.data.Property.ValueChangeEvent;
 import com.vaadin.data.Property.ValueChangeListener;
@@ -15,18 +17,18 @@ import com.vaadin.event.ShortcutListener;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
-
-import cat.udl.easymodel.logic.model.Model;
-import cat.udl.easymodel.logic.model.Species;
-import cat.udl.easymodel.logic.types.SpeciesVarTypeType;
-import cat.udl.easymodel.utils.p;
-
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.NativeSelect;
 import com.vaadin.ui.Panel;
 import com.vaadin.ui.TextField;
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.Window;
+
+import cat.udl.easymodel.logic.model.Model;
+import cat.udl.easymodel.logic.model.Species;
+import cat.udl.easymodel.logic.types.InputType;
+import cat.udl.easymodel.logic.types.SpeciesVarTypeType;
+import cat.udl.easymodel.utils.Utils;
 
 public class SpeciesWindow extends Window {
 	private static final long serialVersionUID = 1L;
@@ -128,7 +130,7 @@ public class SpeciesWindow extends Window {
 			if (prevSp.getVarType() != null)
 				typeSelect.select(prevSp.getVarType());
 		}
-		
+
 		// vars only modifiers can't be time dependent
 		if (!model.getAllSpeciesExceptModifiers().containsKey(species)) {
 			typeSelect.select(SpeciesVarTypeType.INDEP);
@@ -154,14 +156,15 @@ public class SpeciesWindow extends Window {
 			@Override
 			public void blur(BlurEvent event) {
 				String newText = ((TextField) event.getComponent()).getValue();
-				String componentId = event.getComponent().getId();
-				String newVal = newText;
+				String newVal = null;
 				try {
-					BigDecimal testBigDec = new BigDecimal(newVal);
+					newVal = Utils.evalMathExpr(newText);
+					((TextField) event.getComponent()).setValue(newVal);
 				} catch (Exception e) {
 					newVal = null;
 					((TextField) event.getComponent()).setValue("");
 				} finally {
+					String componentId = event.getComponent().getId();
 					if (speciesMap.get(componentId) != null)
 						speciesMap.get(componentId).setConcentration(newVal);
 				}

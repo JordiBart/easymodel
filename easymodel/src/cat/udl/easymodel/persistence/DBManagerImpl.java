@@ -36,9 +36,9 @@ public class DBManagerImpl implements DBManager {
 				SharedData sharedData = SharedData.getInstance();
 				Properties properties = sharedData.getProperties();
 				Class.forName("com.mysql.jdbc.Driver");
-				con = DriverManager.getConnection("jdbc:mysql://" + properties.getProperty("mySqlHost") + "/"+properties.getProperty("mySqlDb")+"?"
-						+ "user=" + properties.getProperty("mySqlUser") + "&password="
-						+ properties.getProperty("mySqlPass"));
+				con = DriverManager.getConnection("jdbc:mysql://" + properties.getProperty("mySqlHost") + "/"
+						+ properties.getProperty("mySqlDb") + "?" + "user=" + properties.getProperty("mySqlUser")
+						+ "&password=" + properties.getProperty("mySqlPass"));
 			}
 		} catch (ClassNotFoundException | SQLException e1) {
 			e1.printStackTrace();
@@ -178,7 +178,7 @@ public class DBManagerImpl implements DBManager {
 					preparedStatement.setString(p++, ((String) hm.get("name")));
 					preparedStatement.setInt(p++, ((UserType) hm.get("usertype")).getValue());
 					if (!((String) hm.get("password")).equals(""))
-						preparedStatement.setString(p++, ((String) hm.get("password")));
+						preparedStatement.setString(p++, BCrypt.hashpw((String) hm.get("password"), BCrypt.gensalt()));
 					preparedStatement.setInt(p++, id);
 					preparedStatement.executeUpdate();
 					preparedStatement.close();
@@ -278,10 +278,10 @@ public class DBManagerImpl implements DBManager {
 			throw e;
 		}
 	}
-	
+
 	@Override
-	public User createGuestUserDB() {
-		User guestUser=null;
+	public User insertGuestUserDB() {
+		User guestUser = null;
 		try {
 			guestUser = new UserImpl(null, "guest", "", UserType.GUEST);
 			Connection con = SharedData.getInstance().getDbManager().getCon();
@@ -310,5 +310,33 @@ public class DBManagerImpl implements DBManager {
 			e.printStackTrace();
 		}
 		return guestUser;
+	}
+
+	@Override
+	public void insertNewUserDB(User newUser) throws SQLException {
+		if (newUser == null)
+			throw new SQLException("insertNewUserDB(User newUser): newUser==null");
+		Connection con = SharedData.getInstance().getDbManager().getCon();
+		PreparedStatement preparedStatment = null;
+		int p = 1;
+		preparedStatment = con.prepareStatement(
+				"INSERT INTO `user`(`id`, `name`, `password`, `usertype`) VALUES (NULL,?,?,?)",
+				Statement.RETURN_GENERATED_KEYS);
+		preparedStatment.setString(p++, newUser.getName());
+		preparedStatment.setString(p++, newUser.getEncPassword());
+		preparedStatment.setInt(p++, newUser.getUserType().getValue());
+		int affectedRows = preparedStatment.executeUpdate();
+		if (affectedRows == 0) {
+			throw new SQLException("Creating newUser failed, no rows affected.");
+		}
+		try (ResultSet generatedKeys = preparedStatment.getGeneratedKeys()) {
+			if (generatedKeys.next()) {
+				newUser.setId(generatedKeys.getInt(1));
+			} else {
+				throw new SQLException("Creating newUser failed, no ID obtained.");
+			}
+			generatedKeys.close();
+		}
+		preparedStatment.close();
 	}
 }

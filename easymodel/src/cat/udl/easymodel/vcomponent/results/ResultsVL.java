@@ -6,7 +6,7 @@ import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
 
 import cat.udl.easymodel.main.SessionData;
-import cat.udl.easymodel.vcomponent.AppPanel;
+import cat.udl.easymodel.vcomponent.app.AppPanel;
 
 public class ResultsVL extends VerticalLayout {
 

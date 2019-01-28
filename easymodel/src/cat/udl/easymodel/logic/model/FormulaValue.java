@@ -23,4 +23,5 @@ public interface FormulaValue {
 	public abstract boolean isFilled();
 
 	public abstract String getStringValue();
+
 }

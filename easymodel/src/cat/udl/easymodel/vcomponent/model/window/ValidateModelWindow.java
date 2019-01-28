@@ -27,7 +27,7 @@ public class ValidateModelWindow extends Window {
 	private VerticalLayout windowVL;
 	private SessionData sessionData;
 	private Model selectedModel;
-	private int width = 400;
+	private int width = 500;
 	private int height = 500;
 
 	public ValidateModelWindow(Model selMod) {
@@ -80,7 +80,7 @@ public class ValidateModelWindow extends Window {
 		windowVL.setExpandRatio(conPanel, 1.0f);
 		
 		try {
-			selectedModel.checkModel();
+			selectedModel.checkValidModel();
 			Label resLab = new Label("Validation: OK");
 			conPanelVL.addComponents(resLab);
 			conPanelVL.addComponents(new Label("Stoichiometric Matrix"), selectedModel.getDisplayStoichiometricMatrix());

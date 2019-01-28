@@ -1,8 +1,10 @@
 package cat.udl.easymodel.logic.formula;
 
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
+import cat.udl.easymodel.logic.model.Model;
 import cat.udl.easymodel.logic.model.Reaction;
 import cat.udl.easymodel.logic.types.FormulaType;
 import cat.udl.easymodel.logic.types.FormulaValueType;
@@ -19,7 +21,7 @@ public interface Formula {
 
 	public abstract String getFormulaDef();
 
-	public abstract void setFormula(String formula);
+	public abstract void setFormulaDef(String formula);
 
 	public abstract String getName();
 
@@ -51,8 +53,6 @@ public interface Formula {
 
 	public abstract void setOneModifierOnly(boolean oneModifierOnly);
 
-	public abstract String getFormulaWithAddedPrefix(String sessionId, String reactionId);
-
 	public abstract String getIdJavaStr();
 
 	public abstract String getNameToShow();
@@ -77,5 +77,13 @@ public interface Formula {
 
 	void setTypeOfGenericParameter(String genPar, FormulaValueType fvt);
 
+	String getMathematicaReadyFormula(String reactionContext, Model m);
+	
+	void clear();
 
+	void saveDB() throws SQLException;
+
+	boolean isDirty();
+
+	void setDirty(boolean isDirty);
 }

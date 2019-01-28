@@ -26,5 +26,5 @@ HOW TO RUN PROJECT ON A STANDALONE APACHE TOMCAT SERVER
 HOW TO SET UP THE MYSQL SERVER
 
 1. Create a database called "easymodel" in the MySQL server
-2. Execute the file MySQLDB_easymodel/easymodel.sql in the MySQL server to set up the database tables etc. (in phpmyadmin: select the easymodel database and import the .sql file)
+2. Execute the file MySQL_DB_easymodel/easymodel.sql in the MySQL server to set up the database tables etc. (in phpmyadmin: select the easymodel database and import the .sql file)
 3. Edit MySQL configuration in EasyModel properties file (easymodel/easymodel.properties) to match your MySQL server and restart application

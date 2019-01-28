@@ -30,6 +30,8 @@ public interface DBManager {
 
 	ArrayList<Formula> getAllFormulas() throws SQLException;
 
-	User createGuestUserDB();
+	User insertGuestUserDB();
+
+	void insertNewUserDB(User newUser) throws SQLException;
 
 }

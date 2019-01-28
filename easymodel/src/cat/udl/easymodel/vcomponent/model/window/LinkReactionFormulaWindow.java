@@ -19,13 +19,17 @@ import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
 
 import cat.udl.easymodel.logic.formula.Formula;
+import cat.udl.easymodel.logic.model.FormulaArrayValue;
 import cat.udl.easymodel.logic.model.FormulaValue;
 import cat.udl.easymodel.logic.model.FormulaValueImpl;
 import cat.udl.easymodel.logic.model.Model;
 import cat.udl.easymodel.logic.model.Reaction;
 import cat.udl.easymodel.logic.types.FormulaValueType;
+import cat.udl.easymodel.logic.types.InputType;
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
+import cat.udl.easymodel.utils.Utils;
+import cat.udl.easymodel.utils.p;
 
 import com.vaadin.ui.Component;
 import com.vaadin.ui.HorizontalLayout;
@@ -52,8 +56,8 @@ public class LinkReactionFormulaWindow extends Window {
 	private PopupView infoPopup = new PopupView(null, getInfoLayout());
 	private NativeSelect formulaSelect = null;
 	private SortedMap<String, SortedMap<FormulaValueType, Component>> formulaValuesMap = new TreeMap<>();
-	private SortedMap<String, SortedMap<String, String>> formulaSubstratesArrayParametersMap = new TreeMap<>();
-	private SortedMap<String, SortedMap<String, String>> formulaModifiersArrayParametersMap = new TreeMap<>();
+	private SortedMap<String, SortedMap<String, FormulaArrayValue>> formulaSubstratesArrayParametersMap = new TreeMap<>();
+	private SortedMap<String, SortedMap<String, FormulaArrayValue>> formulaModifiersArrayParametersMap = new TreeMap<>();
 
 	public LinkReactionFormulaWindow(SessionData sessionData, Reaction reaction) {
 		super();
@@ -501,8 +505,9 @@ public class LinkReactionFormulaWindow extends Window {
 
 			// Load previous value
 			String prevValue = null;
-			if (formulaSubstratesArrayParametersMap.get(constantStr) != null)
-				prevValue = formulaSubstratesArrayParametersMap.get(constantStr).get(speciesStr);
+			if (formulaSubstratesArrayParametersMap.get(constantStr) != null
+					&& formulaSubstratesArrayParametersMap.get(constantStr).get(speciesStr) != null)
+				prevValue = formulaSubstratesArrayParametersMap.get(constantStr).get(speciesStr).getValue();
 			if (prevValue != null)
 				constantValueTF.setValue(prevValue.toString());
 
@@ -546,8 +551,9 @@ public class LinkReactionFormulaWindow extends Window {
 
 			// Load previous value
 			String prevValue = null;
-			if (formulaModifiersArrayParametersMap.get(constantStr) != null)
-				prevValue = formulaModifiersArrayParametersMap.get(constantStr).get(modStr);
+			if (formulaModifiersArrayParametersMap.get(constantStr) != null
+					&& formulaModifiersArrayParametersMap.get(constantStr).get(modStr) != null)
+				prevValue = formulaModifiersArrayParametersMap.get(constantStr).get(modStr).getValue();
 			if (prevValue != null)
 				constantValueTF.setValue(prevValue.toString());
 
@@ -576,34 +582,40 @@ public class LinkReactionFormulaWindow extends Window {
 		String constantType = eventTF.getId().substring(0, 2);
 		String constantId = eventTF.getId().substring(2);
 		String newVal = newText;
+//		if (!newText.matches(InputType.simpleMathExpressionRegex)) {
+//			newVal = null;
+//			eventTF.setValue("");
+//		}
 		try {
-			BigDecimal testBigDec = new BigDecimal(newVal);
+			newVal = Utils.evalMathExpr(newText);
+			eventTF.setValue(newVal);
 		} catch (Exception e) {
 			newVal = null;
 			eventTF.setValue("");
-		} finally {
-			if (constantType.equals("r:")) {
-				// constant by reaction
-				FormulaValueType parFVT = selectedFormula.getGenericParameters().get(constantId);
-				if (parFVT == null) {
-					// disable other selects
-					for (Component comp : formulaValuesMap.get(constantId).values()) {
-						if (eventTF != comp) {
-							comp.setEnabled(newVal == null);
-						}
+		}
+
+		// save newVal
+		if (constantType.equals("r:")) {
+			// constant by reaction
+			FormulaValueType parFVT = selectedFormula.getGenericParameters().get(constantId);
+			if (parFVT == null) {
+				// disable other selects
+				for (Component comp : formulaValuesMap.get(constantId).values()) {
+					if (eventTF != comp) {
+						comp.setEnabled(newVal == null);
 					}
 				}
-			} else if (constantType.equals("s:")) {
-				// constant by species
-				String constName = constantId.split("-")[0];
-				String speciesName = constantId.split("-")[1];
-				formulaSubstratesArrayParametersMap.get(constName).put(speciesName, newVal);
-			} else if (constantType.equals("m:")) {
-				// constant by modifier
-				String constName = constantId.split("-")[0];
-				String modName = constantId.split("-")[1];
-				formulaModifiersArrayParametersMap.get(constName).put(modName, newVal);
 			}
+		} else if (constantType.equals("s:")) {
+			// constant by species
+			String constName = constantId.split("-")[0];
+			String speciesName = constantId.split("-")[1];
+			formulaSubstratesArrayParametersMap.get(constName).put(speciesName, new FormulaArrayValue(newVal));
+		} else if (constantType.equals("m:")) {
+			// constant by modifier
+			String constName = constantId.split("-")[0];
+			String modName = constantId.split("-")[1];
+			formulaModifiersArrayParametersMap.get(constName).put(modName, new FormulaArrayValue(newVal));
 		}
 	}
 
@@ -613,8 +625,8 @@ public class LinkReactionFormulaWindow extends Window {
 		ns.setWidth("100%");
 		ns.setNullSelectionAllowed(false);
 		// Set custom and predefined formulas
-		if (sessionData.getCustomFormulas() != null) {
-			for (Formula f : sessionData.getCustomFormulas()) {
+		if (sessionData.getAllFormulas() != null) {
+			for (Formula f : sessionData.getAllFormulas()) {
 				if (f.parse() && f.isCompatibleWithReaction(reaction)) {
 					if (ns.addItem(f) != null)
 						ns.setItemCaption(f, f.getNameToShow());
@@ -623,18 +635,7 @@ public class LinkReactionFormulaWindow extends Window {
 						selectedFormula = f;
 					}
 				}
-			}
-		}
-		if (sessionData.getPredefinedFormulas() != null) {
-			for (Formula f : sessionData.getPredefinedFormulas()) {
-				if (f.parse() && f.isCompatibleWithReaction(reaction)) {
-					if (ns.addItem(f) != null)
-						ns.setItemCaption(f, f.getNameToShow());
-					if (selectedFormula == null) {
-						ns.select(f);
-						selectedFormula = f;
-					}
-				}
+//				else p.p("formula not correct/compatible: "+f.getFormulaDef());
 			}
 		}
 		ns.setImmediate(true);

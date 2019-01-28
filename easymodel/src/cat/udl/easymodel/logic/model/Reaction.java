@@ -1,69 +1,72 @@
 package cat.udl.easymodel.logic.model;
 
-import java.util.Map;
 import java.util.SortedMap;
 
 import cat.udl.easymodel.logic.formula.Formula;
 
 public interface Reaction extends Comparable<Reaction> {
 
-	public abstract int getIdJava();
+	int getIdJava();
 
-	public abstract void setIdJava(int id);
+	void setIdJava(int id);
 
-	public abstract String getReactionStr();
+	String getReactionStr();
 
-	public abstract void setReactionStr(String reactionStr);
+	void setReactionStr(String reactionStr);
 
-	public abstract boolean isValid();
+	boolean isValid();
 
-	public abstract boolean isBlank();
+	boolean isBlank();
 
-	public abstract int compareTo(Reaction react2);
+	int compareTo(Reaction react2);
 
-	public abstract boolean parse();
+	boolean parse();
 
-	public abstract SortedMap<String, FormulaValue> getFormulaValues();
+	SortedMap<String, FormulaValue> getFormulaValues();
 
-	public abstract SortedMap<String, SortedMap<String, String>> getFormulaModifiersArrayParameters();
+	SortedMap<String, SortedMap<String, FormulaArrayValue>> getFormulaSubstratesArrayParameters();
 
-	public abstract SortedMap<String, SortedMap<String, String>> getFormulaSubstratesArrayParameters();
+	SortedMap<String, SortedMap<String, FormulaArrayValue>> getFormulaModifiersArrayParameters();
 
-	public abstract void setFormula(Formula formula);
+	SortedMap<String, SortedMap<String, FormulaArrayValue>> getFormulaSubstratesArrayParametersRAW();
+	
+	SortedMap<String, SortedMap<String, FormulaArrayValue>> getFormulaModifiersArrayParametersRAW();
+	
+	SortedMap<String, SortedMap<String, FormulaArrayValue>> getFormulaSubstratesArrayParametersForFormula(Formula f);
+	
+	SortedMap<String, SortedMap<String, FormulaArrayValue>> getFormulaModifiersArrayParametersForFormula(Formula f);
+	
+	void setFormula(Formula formula);
 
-	public abstract Formula getFormula();
+	Formula getFormula();
 
-	public abstract SortedMap<String, Integer> getSpeciesValuesForStMatrix();
+	SortedMap<String, Integer> getSpeciesValuesForStMatrix();
 
-	public abstract boolean areFormulaValuesValid();
+	boolean areFormulaValuesValid();
 
-	public abstract SortedMap<String, Integer> getRightPartSpecies();
+	SortedMap<String, Integer> getRightPartSpecies();
 
-	public abstract SortedMap<String, Integer> getLeftPartSpecies();
+	SortedMap<String, Integer> getLeftPartSpecies();
 
-	public abstract SortedMap<String, Integer> getModifiers();
+	SortedMap<String, Integer> getModifiers();
 
-	public abstract boolean isReactionConcentrationsSet(SortedMap<String, String> concentrations);
+	boolean isReactionConcentrationsSet(SortedMap<String, String> concentrations);
 
-	// XXX only keyset is used, not values!!! Values comes from concentration
-	public abstract SortedMap<String, Integer> getBothSides();
+	// only keyset is used, not values!!! Values/Concentrations are stored in getRightPartSpecies() getLeftPartSpecies() getModifiers()
+	SortedMap<String, Integer> getBothSides();
 
-	public abstract SortedMap<String, FormulaValue> getFormulaValuesForFormula(Formula f);
+	SortedMap<String, FormulaValue> getFormulaValuesForFormula(Formula f);
 
-	public abstract SortedMap<String, SortedMap<String, String>> getFormulaSubstratesArrayParametersForFormula(Formula f);
-
-	public abstract SortedMap<String, SortedMap<String, String>> getFormulaModifiersArrayParametersForFormula(Formula f);
 
 	String getIdJavaStr();
+	
+	String getMathematicaContext();
 
 	int getId();
 
 	void setId(int id);
 
-	SortedMap<String, FormulaValue> getFormulaValuesNative();
+	SortedMap<String, FormulaValue> getFormulaValuesRAW();
 
-	SortedMap<String, SortedMap<String, String>> getFormulaSubstratesArrayParametersNative();
-
-	SortedMap<String, SortedMap<String, String>> getFormulaModifiersArrayParametersNative();
 
 }

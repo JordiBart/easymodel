@@ -7,29 +7,27 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.concurrent.ThreadLocalRandom;
 
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
 import javax.imageio.stream.ImageInputStream;
 
-import com.sun.media.sound.FFT;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.GridLayout;
-import com.vaadin.ui.Label;
 import com.wolfram.jlink.MathLinkException;
 
 import cat.udl.easymodel.logic.model.FormulaValue;
 import cat.udl.easymodel.logic.model.Model;
 import cat.udl.easymodel.logic.model.Reaction;
 import cat.udl.easymodel.logic.simconfig.SimConfig;
+import cat.udl.easymodel.logic.simconfig.SimConfigArray;
 import cat.udl.easymodel.logic.types.FormulaValueType;
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
-import cat.udl.easymodel.mathlink.MathLinkOp;
-import cat.udl.easymodel.sbml.SBMLTools;
+import cat.udl.easymodel.mathlink.MathLink;
+import cat.udl.easymodel.sbml.SBMLMan;
 import cat.udl.easymodel.utils.CException;
-import cat.udl.easymodel.utils.p;
+import cat.udl.easymodel.utils.Utils;
 import cat.udl.easymodel.utils.buffer.ExportMathCommands;
 import cat.udl.easymodel.utils.buffer.ExportMathCommandsImpl;
 import cat.udl.easymodel.utils.buffer.MathBuffer;
@@ -42,26 +40,31 @@ public class SimulationCtrlImpl implements SimulationCtrl {
 	private SessionData sessionData = null;
 	private SharedData sharedData = SharedData.getInstance();
 	private OutVL outVL;
-	private MathLinkOp mathLinkOp;
+	private MathLink mathLink;
 
-	private String timeVar = "t";
+	private String genContext = ContextUtils.generalContext;
+	private String modelContext = ContextUtils.modelContext;
+	private String indexContext = ContextUtils.indexContext;
+	private String gainContext = ContextUtils.gainContext;
+	private String sensContext = ContextUtils.sensitivityContext;
+
+	private String timeVar = genContext + "t";
 	private String bigSize;
 	private String smallSize;
 
 	private Model m = null;
 	private SimConfig simConfig;
 
-	private String genContext = "g`";
-	private String exportContext = "";
 	private MathBuffer mathBuffer = new MathBufferImpl();
 	private ExportMathCommands exportMathCommands = new ExportMathCommandsImpl();
 	private String mathCommand, mathCommand2, mathCommand3;
 	private String sbmlDataString;
+	private long startNanoTime;
 
 	public SimulationCtrlImpl(SessionData sessionData) {
 		this.sessionData = sessionData;
 		this.outVL = this.sessionData.getOutVL();
-		this.mathLinkOp = this.sessionData.getMathLinkOp();
+		this.mathLink = this.sessionData.getMathLinkOp();
 	}
 
 	private String getChopTolerance() {
@@ -69,7 +72,7 @@ public class SimulationCtrlImpl implements SimulationCtrl {
 	}
 
 	private void executeMathBuffer() throws MathLinkException {
-		mathLinkOp.evaluate(mathBuffer.getString());
+		mathLink.evaluate(mathBuffer.getString());
 		mathBuffer.reset();
 	}
 
@@ -89,13 +92,13 @@ public class SimulationCtrlImpl implements SimulationCtrl {
 	}
 
 	private String executeMathCommandString(String mathCommand) throws MathLinkException {
-		String mOut = mathLinkOp.evaluateToString(mathCommand);
+		String mOut = mathLink.evaluateToString(mathCommand);
 		exportMathCommands.addCommand(mathCommand);
 		return mOut;
 	}
 
 	private Boolean executeMathCommandBoolean(String mathCommand) throws MathLinkException {
-		Boolean mOut = mathLinkOp.evaluateToBoolean(mathCommand);
+		Boolean mOut = mathLink.evaluateToBoolean(mathCommand);
 		exportMathCommands.addCommand(mathCommand);
 		return mOut;
 	}
@@ -115,14 +118,18 @@ public class SimulationCtrlImpl implements SimulationCtrl {
 	}
 
 	private void executeFunctionGraphicGrid(String plotList, String plotLegends, String ndSolveVar, String xLabel,
-			String yLabel, boolean addToGrid, String fileName, String smallSize2, String bigSize2) throws MathLinkException {
-		String cmd = "PlotVars = " + plotList + "; Plot[Evaluate[PlotVars /. " + ndSolveVar + "], {" + timeVar + ",ti,"
-				+ "tf}, LabelStyle -> {FontFamily -> Arial, FontWeight -> " + simConfig.getPlot().get("FontWeight")
-				+ ", FontSlant -> " + simConfig.getPlot().get("FontSlant") + ", FontSize -> "
-				+ simConfig.getPlot().get("FontSize") + "}, PlotLegends->" + plotLegends
-				+ ", Axes -> False, Frame -> True, PlotStyle -> Table[{Dashing[0.03 k1/Length["
-				+ "PlotVars]], Thickness[" + simConfig.getPlot().get("LineThickness")
-				+ "]}, {k1, 1, Length[PlotVars]}], FrameLabel -> {\"" + xLabel + "\", \"" + yLabel
+			String yLabel, boolean addToGrid, String fileName, String smallSize2, String bigSize2)
+			throws MathLinkException {
+		String cmd = genContext + "PlotVars = " + plotList + "; Plot[Evaluate[" + genContext + "PlotVars /. "
+				+ ndSolveVar + "], {" + timeVar + "," + genContext + "ti," + genContext
+				+ "tf}, LabelStyle -> {FontFamily -> Arial, FontWeight -> "
+				+ ((Boolean) simConfig.getPlotSettings().get("FontWeight").getValue() ? "Bold" : "Plain")
+				+ ", FontSlant -> "
+				+ ((Boolean) simConfig.getPlotSettings().get("FontSlant").getValue() ? "Italic" : "Plain")
+				+ ", FontSize -> " + simConfig.getPlotSettings().get("FontSize").getValue() + "}, PlotLegends->"
+				+ plotLegends + ", Axes -> False, Frame -> True, PlotStyle -> Table[{Dashing[0.03 k1/Length["
+				+ genContext + "PlotVars]], Thickness[" + simConfig.getPlotSettings().get("LineThickness").getValue()
+				+ "]}, {k1, 1, Length[" + genContext + "PlotVars]}], FrameLabel -> {\"" + xLabel + "\", \"" + yLabel
 				+ "\"}, PlotRange->Full]";
 		executeMathCommandImage(cmd, addToGrid, fileName, smallSize2, bigSize2, true);
 	}
@@ -140,12 +147,12 @@ public class SimulationCtrlImpl implements SimulationCtrl {
 			bigSizeCmd = mathCommand;
 		}
 		normalSizeCmd = "Rasterize[" + normalSizeCmd + ", ImageResolution->"
-				+ simConfig.getPlot().get("ImageResolution") + ", ImageSize->" + smallSize + "]";
-		bigSizeCmd = "Rasterize[" + bigSizeCmd + ", ImageResolution->" + simConfig.getPlot().get("ImageResolution")
-				+ ", ImageSize->" + bigSize + "]";
+				+ simConfig.getPlotSettings().get("ImageResolution") + ", ImageSize->" + smallSize + "]";
+		bigSizeCmd = "Rasterize[" + bigSizeCmd + ", ImageResolution->"
+				+ simConfig.getPlotSettings().get("ImageResolution") + ", ImageSize->" + bigSize + "]";
 		exportMathCommands.addCommand(normalSizeCmd);
-		byte[] mImage = mathLinkOp.evaluateToImage(normalSizeCmd);
-		byte[] mImageBig = mathLinkOp.evaluateToImage(bigSizeCmd);
+		byte[] mImage = mathLink.evaluateToImage(normalSizeCmd);
+		byte[] mImageBig = mathLink.evaluateToImage(bigSizeCmd);
 		// get mImage height
 		String imHeight = "";
 		try {
@@ -160,12 +167,15 @@ public class SimulationCtrlImpl implements SimulationCtrl {
 			// readers.remove();
 			// iis.close();
 		} catch (IOException e1) {
+			System.err.println("IO Exception");
 			e1.printStackTrace();
+			throw new MathLinkException(e1);
 		}
 		outVL.out(fileName, addToGrid, mImage, imHeight, mImageBig);
 	}
 
-	private void executeDynamicDownloadButton(String mathCommand, String caption, String filename) throws MathLinkException {
+	private void executeDynamicDownloadButton(String mathCommand, String caption, String filename)
+			throws MathLinkException {
 		String fileString = executeMathCommandString(mathCommand);
 		// String sidReplace = "";
 		// for (int i = 0; i < sid.length(); i++)
@@ -179,17 +189,18 @@ public class SimulationCtrlImpl implements SimulationCtrl {
 			if (!line.equals(""))
 				fileString2 += line + sharedData.getNewLine();
 		fileString = null;
-		outVL.outFile(caption, "", filename, fileString2, false);
+		outVL.outFile(caption, "", filename, fileString2, null, false);
 	}
 
-	private void executeMathTable(String tableName, String columnList, String rowList, boolean isBindTableToDepVars) throws MathLinkException {
+	private void executeMathTable(String tableName, String columnList, String rowList, boolean isBindTableToDepVars)
+			throws MathLinkException {
 		if (columnList != null)
-			mathCommand = "columnList = {Join[{\" \"},Map[TextString," + columnList + "]]}";
+			mathCommand = "columnList = {Join[{\" \"},Map[ToString," + columnList + "]]}";
 		else
 			mathCommand = "columnList = {}";
 		bufferCommand(mathCommand);
 		if (rowList != null)
-			mathCommand = "rowList = Map[TextString," + rowList + "]";
+			mathCommand = "rowList = Map[ToString," + rowList + "]";
 		else
 			mathCommand = "rowList = {}";
 		bufferCommand(mathCommand);
@@ -198,7 +209,7 @@ public class SimulationCtrlImpl implements SimulationCtrl {
 					+ "[[j]]], {j, 1, Length[rowList]}]]";
 		else
 			mathCommand = "tab = Join[columnList, Table[Join[If[rowList != {}, List[rowList[[j]]],{}]," + tableName
-					+ "[[(FirstPosition[DepVarsString,rowList[[j]]][[1]])]]], {j, 1, Length[rowList]}]]";
+					+ "[[(Position[DepVarsString,rowList[[j]]][[1]][[1]])]]], {j, 1, Length[rowList]}]]";
 		bufferCommand(mathCommand);
 		mathCommand = "gridColor = Flatten[Table[{i, j} -> If[i == If[columnList != {}, 1,0] || j == If[rowList != {}, 1,0], RGBColor[0.86, 0.86, 0.86],If[(Chop["
 				+ "tab[[i, j]]]) < 0., RGBColor[1.0, 0.43, 0.43],If[("
@@ -229,26 +240,29 @@ public class SimulationCtrlImpl implements SimulationCtrl {
 		outVL.out("Generated Files", "textH2");
 		outVL.resetHorizontalLayout();
 		exportMathCommands.end();
-		outVL.outFile("Mathematica", "Save the Mathematica code to modify and run locally", m.getName() + ".nb", exportMathCommands.getString(), true);
+		outVL.outFile("Mathematica", "Save the Mathematica code to modify and run locally", m.getName() + ".nb",
+				exportMathCommands.getString(), "exportMathematicaBtn", true);
 		try {
 			generateSBML();
-			outVL.outFile("SBML", "Save the SBML file to use in other Systems Biology software", m.getName() + ".xml", sbmlDataString, true);
+			outVL.outFile("SBML", "Save the SBML file to use in other Systems Biology software", m.getName() + ".xml",
+					sbmlDataString, "exportSbmlBtn", true);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		outVL.outHorizontalLayout();
-		
-		bufferEndContext();
-		executeMathBuffer();
+
+//		bufferEndContext();
+//		executeMathBuffer();
 		exportMathCommands.reset();
 	}
 
 	private void generateSBML() throws Exception {
-		sbmlDataString = SBMLTools.exportSBML(m, mathLinkOp);
+		sbmlDataString = SBMLMan.getInstance().exportSBML(m, mathLink);
 	}
 
 	/////////
-	private void fillSteadyStateSimulationMap(String mathListName, TreeMap<String, String> ssMap) throws MathLinkException {
+	private void fillSteadyStateSimulationMap(String mathListName, TreeMap<String, String> ssMap)
+			throws MathLinkException {
 		mathCommand = mathListName + " // TableForm";
 		String fileString = executeMathCommandString(mathCommand);
 		fileString = fileString.replace("\n", sharedData.getNewLine());
@@ -257,14 +271,14 @@ public class SimulationCtrlImpl implements SimulationCtrl {
 		String sp = "";
 		for (String line : fileString.split(sharedData.getNewLine())) {
 			if (!line.equals("")) {
-				if (!line.matches(".*\\[t\\]\\s*\\->.*")) {
+				if (!line.matches(".*\\[" + timeVar + "\\]\\s*\\->.*")) {
 					eValue = line;
 					eValue = eValue.replace(" ", "");
 				} else {
 					first = true;
-					for (String word : line.split("\\[t\\] -> ")) {
+					for (String word : line.split("\\[" + timeVar + "\\] -> ")) {
 						if (first) { // species
-							sp = word;
+							sp = ContextUtils.removeContext(word);
 							first = false;
 						} else { // concentration value
 							if (!eValue.equals("")) {
@@ -326,7 +340,7 @@ public class SimulationCtrlImpl implements SimulationCtrl {
 			j++;
 		}
 		outVL.out(gl);
-		outVL.outFile(caption,"", filename, file2Download,false);
+		outVL.outFile(caption, "", filename, file2Download, null, false);
 	}
 
 	// private void waitUntilMathKernelIsFree() throws Exception {
@@ -350,270 +364,318 @@ public class SimulationCtrlImpl implements SimulationCtrl {
 	// exportMathCommands.reset();
 	// }
 
-	private void checkModelFormulas() throws MathLinkException, CException {
-		bufferBeginContext();
-		executeMathBuffer();
-		mathLinkOp.checkMultiCommands(m.getAllUsedFormulaStrings());
-		bufferEndContext();
-		executeMathBuffer();
-		exportMathCommands.reset();
-	}
-
 	///////////
 	@Override
-	public void simulate() throws CException, MathLinkException,Exception {
+	public void simulate() throws CException, MathLinkException, Exception {
 		try {
+			if (sharedData.isDebug())
+				startNanoTime = System.nanoTime();
 			outVL.reset();
-			mathLinkOp.openMathLink();
 			m = sessionData.getSelectedModel();
 			m.checkIfReadyToSimulate();
-			checkModelFormulas();
+			mathLink.openMathLink();
+			m.checkMathExpressions(mathLink);
 			// validated
 			simConfig = m.getSimConfig();
-			smallSize = (String) simConfig.getPlot().get("ImageSize-Small");
-			bigSize = (String) simConfig.getPlot().get("ImageSize-Big");
+			smallSize = (String) simConfig.getPlotSettings().get("ImageSize-Small").getValue().toString();
+			bigSize = (String) simConfig.getPlotSettings().get("ImageSize-Big").getValue().toString();
 			// begin
 			sessionData.getOutVL().out("Results for " + m.getName(), "textH1");
 //			sessionData.getOutVL().out("(click image/s to enlarge)", "textSmall");
 			initSimulation();
-			if ((Boolean) simConfig.getDynamic().get("Enable")) {
+			if ((Boolean) simConfig.getDynamic().get("Enable").getValue()) {
 				dynamicSimulation();
 			}
-			if ((Boolean) simConfig.getSteadyState().get("Enable")) {
+			if ((Boolean) simConfig.getSteadyState().get("Enable").getValue()) {
 				steadyStateSimulation();
 			}
 			endMathCommands();
-		} catch (CException|MathLinkException e) {
+		} catch (CException | MathLinkException e) {
+			e.printStackTrace();
 			throw e;
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
-			mathLinkOp.closeMathLink();			
+			mathLink.closeMathLink();
 		}
+		if (sharedData.isDebug())
+			Utils.debug("Sim took " + ((double) ((System.nanoTime() - startNanoTime) / 1000000000d)) + "s");
 	}
 
 	private void initSimulation() throws CException {
-		bufferBeginContext();
+//		bufferBeginContext();
 		// DECLARE DEPVARS
-		mathCommand = "DepVars={";
+		mathCommand = genContext + "DepVars={";
 		for (String sp : m.getAllSpeciesTimeDependent().keySet())
-			mathCommand += sp + ",";
+			mathCommand += modelContext + sp + ",";
 		if (mathCommand.charAt(mathCommand.length() - 1) == ',')
-			mathCommand = mathCommand.substring(0, mathCommand.lastIndexOf(","));
+			mathCommand = mathCommand.substring(0, mathCommand.length() - 1);
 		mathCommand += "}";
 		bufferCommand(mathCommand);
-		mathCommand = "DepVarsString = Map[TextString,DepVars]";
+
+		mathCommand = genContext + "DepVarsString={";
+		for (String sp : m.getAllSpeciesTimeDependent().keySet())
+			mathCommand += "ToString[" + sp + "],";
+		if (mathCommand.charAt(mathCommand.length() - 1) == ',')
+			mathCommand = mathCommand.substring(0, mathCommand.length() - 1);
+		mathCommand += "}";
 		bufferCommand(mathCommand);
+
 		// MAKE DEPVARS DEPEND OF T
-		mathCommand = "SubsDepVarsWithT={";
+		mathCommand = genContext + "SubsDepVarsWithT={";
 		for (String sp : m.getAllSpeciesTimeDependent().keySet()) {
-			mathCommand += sp + "->" + sp + "[" + timeVar + "],";
+			mathCommand += modelContext + sp + "->" + modelContext + sp + "[" + timeVar + "],";
 		}
 		if (mathCommand.charAt(mathCommand.length() - 1) == ',')
-			mathCommand = mathCommand.substring(0, mathCommand.lastIndexOf(","));
+			mathCommand = mathCommand.substring(0, mathCommand.length() - 1);
 		mathCommand += "}";
 		bufferCommand(mathCommand);
-		mathCommand = "DepVarsWithT=" + "DepVars /. " + "SubsDepVarsWithT";
+		mathCommand = genContext + "DepVarsWithT=" + genContext + "DepVars /. " + genContext + "SubsDepVarsWithT";
 		bufferCommand(mathCommand);
-		mathCommand = "DepVarsWithTDiff=Table[" + "DepVars[[i]]'[t],{i,1,Length[" + "DepVars]}]";
+		mathCommand = genContext + "DepVarsWithTDiff=Table[" + genContext + "DepVars[[i]]'[" + timeVar
+				+ "],{i,1,Length[" + genContext + "DepVars]}]";
 		bufferCommand(mathCommand);
 		// CONCENTRATIONS
-		mathCommand = "DepVarsConc={";
+		mathCommand = genContext + "DepVarsConc={";
 		for (String sp : m.getAllSpeciesTimeDependent().keySet())
-			mathCommand += sp + "[0]==" + m.getAllSpecies().get(sp).getConcentration() + ",";
+			mathCommand += modelContext + sp + "[0]==" + m.getAllSpecies().get(sp).getConcentration() + ",";
 		if (mathCommand.charAt(mathCommand.length() - 1) == ',')
-			mathCommand = mathCommand.substring(0, mathCommand.lastIndexOf(","));
+			mathCommand = mathCommand.substring(0, mathCommand.length() - 1);
 		mathCommand += "}";
 		bufferCommand(mathCommand);
 		// STOICHIOMETRIC MATRIX
 		try {
-			mathCommand = "SM=" + m.getStoichiometricMatrix();
+			mathCommand = genContext + "SM=" + m.getStoichiometricMatrix();
 		} catch (Exception e) {
 			outVL.out("Error creating Stoichiometric Matrix" + e.getMessage());
 		}
 		// mathCommand += ";\n";
 		bufferCommand(mathCommand);
 		// DECLARE FORMULAS
-		mathCommand = "Rates={";
-		for (Reaction r : m)
-			mathCommand += "Hold[" + r.getFormula().getFormulaWithAddedPrefix("", r.getIdJavaStr()) + "],";
+		mathCommand = genContext + "Rates={";
+		for (Reaction r : m) {
+			mathCommand += "Hold[" + r.getFormula().getMathematicaReadyFormula(r.getMathematicaContext(), m) + "],";
+		}
 		if (mathCommand.charAt(mathCommand.length() - 1) == ',')
-			mathCommand = mathCommand.substring(0, mathCommand.lastIndexOf(","));
+			mathCommand = mathCommand.substring(0, mathCommand.length() - 1);
 		mathCommand += "}";
 		bufferCommand(mathCommand);
 		// DECLARE FORMULAS built-in vars (X,M...)
-		mathCommand = "SubsFormVars={";
+		mathCommand = genContext + "SubsFormVars={";
 		for (Reaction r : m) {
 			if (r.getLeftPartSpecies().size() != 0) {
-				mathCommand += r.getIdJavaStr() + "X->{";
+				mathCommand += r.getMathematicaContext() + ContextUtils.builtInContext + "X->{";
 				for (String sp : r.getLeftPartSpecies().keySet())
-					mathCommand += sp + ",";
+					mathCommand += modelContext + sp + ",";
 				if (mathCommand.charAt(mathCommand.length() - 1) == ',')
-					mathCommand = mathCommand.substring(0, mathCommand.lastIndexOf(","));
+					mathCommand = mathCommand.substring(0, mathCommand.length() - 1);
 				mathCommand += "},";
-				mathCommand += r.getIdJavaStr() + "A->{";
+				mathCommand += r.getMathematicaContext() + ContextUtils.builtInContext + "A->{";
 				for (String sp : r.getLeftPartSpecies().keySet())
 					mathCommand += r.getLeftPartSpecies().get(sp) + ",";
 				if (mathCommand.charAt(mathCommand.length() - 1) == ',')
-					mathCommand = mathCommand.substring(0, mathCommand.lastIndexOf(","));
+					mathCommand = mathCommand.substring(0, mathCommand.length() - 1);
 				mathCommand += "},";
-				mathCommand += r.getIdJavaStr() + "XF->" + r.getLeftPartSpecies().firstKey() + ",";
+				mathCommand += r.getMathematicaContext() + ContextUtils.builtInContext + "XF->" + modelContext
+						+ r.getLeftPartSpecies().firstKey() + ",";
 			}
 			if (r.getModifiers().size() != 0) {
-				mathCommand += r.getIdJavaStr() + "M->{";
+				mathCommand += r.getMathematicaContext() + ContextUtils.builtInContext + "M->{";
 				for (String sp : r.getModifiers().keySet())
-					mathCommand += sp + ",";
+					mathCommand += modelContext + sp + ",";
 				if (mathCommand.charAt(mathCommand.length() - 1) == ',')
-					mathCommand = mathCommand.substring(0, mathCommand.lastIndexOf(","));
+					mathCommand = mathCommand.substring(0, mathCommand.length() - 1);
 				mathCommand += "},";
-				mathCommand += r.getIdJavaStr() + "MF->" + r.getModifiers().firstKey() + ",";
+				mathCommand += r.getMathematicaContext() + ContextUtils.builtInContext + "MF->" + modelContext
+						+ r.getModifiers().firstKey() + ",";
 			}
 		}
 		if (mathCommand.charAt(mathCommand.length() - 1) == ',')
-			mathCommand = mathCommand.substring(0, mathCommand.lastIndexOf(","));
+			mathCommand = mathCommand.substring(0, mathCommand.length() - 1);
 		mathCommand += "}";
 		bufferCommand(mathCommand);
 
 		// DECLARE FORMULAS PARAMETERS VALUES WHICH ARE SPECIES (a...)
-		mathCommand = "ParVarVals={";
+		mathCommand = genContext + "ParVarVals={";
 		for (Reaction r : m) {
 			Map<String, FormulaValue> valuesByReaction = r.getFormulaValues();
 			for (String key : valuesByReaction.keySet()) {
 				if (valuesByReaction.get(key).getType() != FormulaValueType.CONSTANT)
-					mathCommand += r.getIdJavaStr() + key + "->" + valuesByReaction.get(key).getStringValue() + ",";
+					mathCommand += r.getMathematicaContext() + key + "->" + modelContext
+							+ valuesByReaction.get(key).getStringValue() + ",";
 			}
 		}
 		if (mathCommand.charAt(mathCommand.length() - 1) == ',')
-			mathCommand = mathCommand.substring(0, mathCommand.lastIndexOf(","));
+			mathCommand = mathCommand.substring(0, mathCommand.length() - 1);
 		mathCommand += "}";
 		bufferCommand(mathCommand);
 
 		// DECLARE FORMULAS PARAMETERS WHICH DEFINE NUMBERS (a, "g array",...)
-		mathCommand = "Pars={";
+		mathCommand = genContext + "Pars={";
 		for (Reaction r : m) {
 			// CONSTANT VALUES BY REACTIONS (ig a)
 			Map<String, FormulaValue> valuesByReaction = r.getFormulaValues();
 			for (String key : valuesByReaction.keySet()) {
 				if (valuesByReaction.get(key).getType() == FormulaValueType.CONSTANT)
-					mathCommand += r.getIdJavaStr() + key + ",";
+					mathCommand += r.getMathematicaContext() + key + ",";
+			}
+			// substrates and modifiers constants (ig "g array")
+			for (String co : r.getFormulaSubstratesArrayParameters().keySet()) {
+				// loop could be over getFormulaModifiersArrayParameters() too
+				for (String sp : r.getFormulaSubstratesArrayParameters().get(co).keySet()) {
+					mathCommand += r.getMathematicaContext() + ContextUtils.arrayContext + co + "`"
+							+ ContextUtils.substrateContext + sp + ",";
+				}
+				for (String sp : r.getFormulaModifiersArrayParameters().get(co).keySet()) {
+					mathCommand += r.getMathematicaContext() + ContextUtils.arrayContext + co + "`"
+							+ ContextUtils.modifierContext + sp + ",";
+				}
+			}
+		}
+		if (mathCommand.charAt(mathCommand.length() - 1) == ',')
+			mathCommand = mathCommand.substring(0, mathCommand.length() - 1);
+		mathCommand += "}";
+		bufferCommand(mathCommand);
+
+		bufferParsString();
+
+		// DECLARE FORMULAS PARAMETERS ARRAYS WITH VARS ("g array",...)
+		mathCommand = genContext + "ParArrayInVars={";
+		for (Reaction r : m) {
+			for (String co : r.getFormulaSubstratesArrayParameters().keySet()) {
+				// loop could be over getFormulaModifiersArrayParameters() too
+				mathCommand += r.getMathematicaContext() + co + "->{";
+				for (String sp : r.getFormulaSubstratesArrayParameters().get(co).keySet()) {
+					mathCommand += r.getMathematicaContext() + ContextUtils.arrayContext + co + "`"
+							+ ContextUtils.substrateContext + sp + ",";
+				}
+				for (String sp : r.getFormulaModifiersArrayParameters().get(co).keySet()) {
+					mathCommand += r.getMathematicaContext() + ContextUtils.arrayContext + co + "`"
+							+ ContextUtils.modifierContext + sp + ",";
+				}
+				if (mathCommand.charAt(mathCommand.length() - 1) == ',')
+					mathCommand = mathCommand.substring(0, mathCommand.length() - 1);
+				mathCommand += "},";
+			}
+		}
+		if (mathCommand.charAt(mathCommand.length() - 1) == ',')
+			mathCommand = mathCommand.substring(0, mathCommand.length() - 1);
+		mathCommand += "}";
+		bufferCommand(mathCommand);
+
+		// DECLARE FORMULAS PARAMETERS VALUES WHICH ARE NUMBERS (a, "g array",...)
+		mathCommand = genContext + "ParNumVals={";
+		for (Reaction r : m) {
+			// CONSTANT VALUES BY REACTIONS (ig a)
+			Map<String, FormulaValue> valuesByReaction = r.getFormulaValues();
+			for (String key : valuesByReaction.keySet()) {
+				if (valuesByReaction.get(key).getType() == FormulaValueType.CONSTANT)
+					mathCommand += r.getMathematicaContext() + key + "->" + valuesByReaction.get(key).getStringValue()
+							+ ",";
+			}
+			// species and modifiers constants (ig "g array vars")
+			for (String co : r.getFormulaSubstratesArrayParameters().keySet()) {
+				// loop could be over getFormulaModifiersArrayParameters() too
+				for (String sp : r.getFormulaSubstratesArrayParameters().get(co).keySet()) {
+					mathCommand += r.getMathematicaContext() + ContextUtils.arrayContext + co + "`"
+							+ ContextUtils.substrateContext + sp + "->"
+							+ r.getFormulaSubstratesArrayParameters().get(co).get(sp).getValue() + ",";
+				}
+				for (String sp : r.getFormulaModifiersArrayParameters().get(co).keySet()) {
+					mathCommand += r.getMathematicaContext() + ContextUtils.arrayContext + co + "`"
+							+ ContextUtils.modifierContext + sp + "->"
+							+ r.getFormulaModifiersArrayParameters().get(co).get(sp).getValue() + ",";
+				}
+			}
+		}
+		if (mathCommand.charAt(mathCommand.length() - 1) == ',')
+			mathCommand = mathCommand.substring(0, mathCommand.length() - 1);
+		mathCommand += "}";
+		bufferCommand(mathCommand);
+
+		mathCommand = genContext + "IndVars={";
+		for (String sp : m.getAllSpeciesConstant().keySet())
+			mathCommand += modelContext + sp + ",";
+		if (mathCommand.charAt(mathCommand.length() - 1) == ',')
+			mathCommand = mathCommand.substring(0, mathCommand.length() - 1);
+		mathCommand += "}";
+		bufferCommand(mathCommand);
+
+		mathCommand = genContext + "IndVarsString={";
+		for (String sp : m.getAllSpeciesConstant().keySet())
+			mathCommand += "ToString[" + sp + "],";
+		if (mathCommand.charAt(mathCommand.length() - 1) == ',')
+			mathCommand = mathCommand.substring(0, mathCommand.length() - 1);
+		mathCommand += "}";
+		bufferCommand(mathCommand);
+
+		mathCommand = genContext + "IndVarVals={";
+		for (String sp : m.getAllSpeciesConstant().keySet())
+			mathCommand += modelContext + sp + "->" + m.getAllSpecies().get(sp).getConcentration() + ",";
+		if (mathCommand.charAt(mathCommand.length() - 1) == ',')
+			mathCommand = mathCommand.substring(0, mathCommand.length() - 1);
+		mathCommand += "}";
+		bufferCommand(mathCommand);
+
+		mathCommand = genContext + "RateEqs = " + genContext + "SM.(" + genContext + "Rates/. Join[" + genContext
+				+ "SubsFormVars," + genContext + "ParVarVals," + genContext + "ParArrayInVars])";
+		bufferCommand(mathCommand);
+		mathCommand = genContext + "RateEqs = ReleaseHold[" + genContext + "RateEqs]";
+		bufferCommand(mathCommand);
+		mathCommand = genContext + "RateEqsWithT = " + genContext + "RateEqs/." + genContext + "SubsDepVarsWithT";
+		bufferCommand(mathCommand);
+		mathCommand = genContext + "RateEqsAllSubs = " + genContext + "RateEqsWithT /." + genContext + "ParNumVals/."
+				+ genContext + "IndVarVals";
+		bufferCommand(mathCommand);
+		// mathCommand = "RateEqsAllSubs = ReleaseHold[" +
+		// "RateEqsAllSubs]";
+		// executeMathCommand(mathCommand);
+		mathCommand = genContext + "Jac = Outer[D, " + genContext + "RateEqsWithT, " + genContext + "DepVarsWithT]";
+		bufferCommand(mathCommand);
+		mathCommand = genContext + "EqsToSolve = Join[Table[((" + genContext + "DepVars[[i]]))'[" + timeVar + "] == "
+				+ genContext + "RateEqsAllSubs[[i]], {i, 1, Length[" + genContext + "DepVars]}], " + genContext
+				+ "DepVarsConc]";
+		bufferCommand(mathCommand);
+	}
+
+	private void bufferParsString() {
+		mathCommand = genContext + "ParsString={";
+		for (Reaction r : m) {
+			// CONSTANT VALUES BY REACTIONS (ig a)
+			Map<String, FormulaValue> valuesByReaction = r.getFormulaValues();
+			for (String key : valuesByReaction.keySet()) {
+				if (valuesByReaction.get(key).getType() == FormulaValueType.CONSTANT)
+					mathCommand += "ToString[" + r.getIdJavaStr() + key + "],";
 			}
 			// substrates and modifiers constants (ig "g array")
 			for (String co : r.getFormulaSubstratesArrayParameters().keySet()) {
 				// loop could be over getFormulaModifiersArrayParameters() too
 				int i = 1;
 				for (String sp : r.getFormulaSubstratesArrayParameters().get(co).keySet()) {
-					mathCommand += r.getIdJavaStr() + co + sp + ",";
+					mathCommand += "ToString[" + r.getIdJavaStr() + co + sp + "],";
 					i++;
 				}
 				for (String sp : r.getFormulaModifiersArrayParameters().get(co).keySet()) {
-					mathCommand += r.getIdJavaStr() + co + sp + ",";
+					mathCommand += "ToString[" + r.getIdJavaStr() + co + sp + "],";
 					i++;
 				}
 			}
 		}
 		if (mathCommand.charAt(mathCommand.length() - 1) == ',')
-			mathCommand = mathCommand.substring(0, mathCommand.lastIndexOf(","));
+			mathCommand = mathCommand.substring(0, mathCommand.length() - 1);
 		mathCommand += "}";
-		bufferCommand(mathCommand);
-
-		// DECLARE FORMULAS PARAMETERS ARRAYS WITH VARS ("g array",...)
-		mathCommand = "ParArrayInVars={";
-		for (Reaction r : m) {
-			for (String co : r.getFormulaSubstratesArrayParameters().keySet()) {
-				// loop could be over getFormulaModifiersArrayParameters() too
-				mathCommand += r.getIdJavaStr() + co + "->{";
-				int i = 1;
-				for (String sp : r.getFormulaSubstratesArrayParameters().get(co).keySet()) {
-					mathCommand += r.getIdJavaStr() + co + sp + ",";
-					i++;
-				}
-				for (String sp : r.getFormulaModifiersArrayParameters().get(co).keySet()) {
-					mathCommand += r.getIdJavaStr() + co + sp + ",";
-					i++;
-				}
-				if (mathCommand.charAt(mathCommand.length() - 1) == ',')
-					mathCommand = mathCommand.substring(0, mathCommand.lastIndexOf(","));
-				mathCommand += "},";
-			}
-		}
-		if (mathCommand.charAt(mathCommand.length() - 1) == ',')
-			mathCommand = mathCommand.substring(0, mathCommand.lastIndexOf(","));
-		mathCommand += "}";
-		bufferCommand(mathCommand);
-
-		// DECLARE FORMULAS PARAMETERS VALUES WHICH ARE NUMBERS (a, "g array",...)
-		mathCommand = "ParNumVals={";
-		for (Reaction r : m) {
-			// CONSTANT VALUES BY REACTIONS (ig a)
-			Map<String, FormulaValue> valuesByReaction = r.getFormulaValues();
-			for (String key : valuesByReaction.keySet()) {
-				if (valuesByReaction.get(key).getType() == FormulaValueType.CONSTANT)
-					mathCommand += r.getIdJavaStr() + key + "->" + valuesByReaction.get(key).getStringValue() + ",";
-			}
-			// species and modifiers constants (ig "g array vars")
-			for (String co : r.getFormulaSubstratesArrayParameters().keySet()) {
-				// loop could be over getFormulaModifiersArrayParameters() too
-				int i = 1;
-				for (String sp : r.getFormulaSubstratesArrayParameters().get(co).keySet()) {
-					mathCommand += r.getIdJavaStr() + co + sp + "->"
-							+ r.getFormulaSubstratesArrayParameters().get(co).get(sp) + ",";
-					i++;
-				}
-				for (String sp : r.getFormulaModifiersArrayParameters().get(co).keySet()) {
-					mathCommand += r.getIdJavaStr() + co + sp + "->"
-							+ r.getFormulaModifiersArrayParameters().get(co).get(sp) + ",";
-					i++;
-				}
-			}
-		}
-		if (mathCommand.charAt(mathCommand.length() - 1) == ',')
-			mathCommand = mathCommand.substring(0, mathCommand.lastIndexOf(","));
-		mathCommand += "}";
-		bufferCommand(mathCommand);
-
-		mathCommand = "IndVars={";
-		for (String sp : m.getAllSpeciesConstant().keySet())
-			mathCommand += sp + ",";
-		if (mathCommand.charAt(mathCommand.length() - 1) == ',')
-			mathCommand = mathCommand.substring(0, mathCommand.lastIndexOf(","));
-		mathCommand += "}";
-		bufferCommand(mathCommand);
-
-		mathCommand = "IndVarVals={";
-		for (String sp : m.getAllSpeciesConstant().keySet())
-			mathCommand += sp + "->" + m.getAllSpecies().get(sp).getConcentration() + ",";
-		if (mathCommand.charAt(mathCommand.length() - 1) == ',')
-			mathCommand = mathCommand.substring(0, mathCommand.lastIndexOf(","));
-		mathCommand += "}";
-		bufferCommand(mathCommand);
-
-		mathCommand = "RateEqs = SM.(Rates/. Join[SubsFormVars,ParVarVals,ParArrayInVars])";
-		bufferCommand(mathCommand);
-		mathCommand = "RateEqs = ReleaseHold[" + "RateEqs]";
-		bufferCommand(mathCommand);
-		mathCommand = "RateEqsWithT = " + "RateEqs/." + "SubsDepVarsWithT";
-		bufferCommand(mathCommand);
-		mathCommand = "RateEqsAllSubs = " + "RateEqsWithT /." + "ParNumVals/." + "IndVarVals";
-		bufferCommand(mathCommand);
-		// mathCommand = "RateEqsAllSubs = ReleaseHold[" +
-		// "RateEqsAllSubs]";
-		// executeMathCommand(mathCommand);
-		mathCommand = "Jac = Outer[D, RateEqsWithT, DepVarsWithT]";
-		bufferCommand(mathCommand);
-		mathCommand = "EqsToSolve = Join[Table[((" + "DepVars[[i]]))'[" + timeVar + "] == "
-				+ "RateEqsAllSubs[[i]], {i, 1, Length[" + "DepVars]}], " + "DepVarsConc]";
 		bufferCommand(mathCommand);
 	}
 
 	@SuppressWarnings("unchecked")
 	private void plotDynamicSim(String ndSolveVar) throws MathLinkException {
 		outVL.resetGrid();
-		for (Map<String, Object> plotViewMap : simConfig.getPlotViews()) {
-			mathCommand = "plotVars = {";
-			mathCommand2 = "plotLegends = {";
-			for (String dvToShow : (ArrayList<String>) plotViewMap.get("DepVarsToShow")) {
-				mathCommand += dvToShow + "[" + timeVar + "],";
-				mathCommand2 += dvToShow + ",";
+		for (SimConfigArray plotView : simConfig.getPlotViews()) {
+			mathCommand = genContext + "plotVars = {";
+			mathCommand2 = genContext + "plotLegends = {";
+			for (String dvToShow : (ArrayList<String>) plotView.get("DepVarsToShow").getValue()) {
+				mathCommand += modelContext + dvToShow + "[" + timeVar + "],";
+				mathCommand2 += "ToString[" + dvToShow + "],";
 			}
 			mathCommand = removeLastComma(mathCommand);
 			mathCommand += "}";
@@ -622,15 +684,15 @@ public class SimulationCtrlImpl implements SimulationCtrl {
 			bufferCommand(mathCommand);
 			bufferCommand(mathCommand2);
 			executeMathBuffer();
-			executeFunctionGraphicGrid("plotVars", "plotLegends", ndSolveVar, "t", "Concentration", true,
-					"dyn" + m.getName() + ".gif", smallSize, bigSize);
+			executeFunctionGraphicGrid(genContext + "plotVars", genContext + "plotLegends", ndSolveVar, "t",
+					"Concentration", true, "dyn" + m.getName() + ".gif", smallSize, bigSize);
 		}
 		outVL.outGrid();
 
-		mathCommand = "Join[{Join[{" + timeVar + "}," + "DepVars]}, Table[Join[{" + timeVar
-				+ "}, Table[FortranForm[Evaluate[" + "DepVars[[i]][" + timeVar + "] /. " + ndSolveVar
-				+ "][[1]]],{i,1,Length[" + "DepVars]}]], {" + timeVar + ", " + "ti, " + "tf, "
-				+ "tSteps}]] // TableForm";
+		mathCommand = "Join[{Join[{" + timeVar + "}," + genContext + "DepVars]}, Table[Join[{" + timeVar
+				+ "}, Table[FortranForm[Evaluate[" + genContext + "DepVars[[i]][" + timeVar + "] /. " + ndSolveVar
+				+ "][[1]]],{i,1,Length[" + genContext + "DepVars]}]], {" + timeVar + ", " + genContext + "ti, "
+				+ genContext + "tf, " + genContext + "tSteps}]] // TableForm";
 		executeDynamicDownloadButton(mathCommand, "Download Dynamic Simulation Table",
 				"dynamic" + m.getName() + ".txt");
 	}
@@ -638,31 +700,57 @@ public class SimulationCtrlImpl implements SimulationCtrl {
 	@SuppressWarnings("unchecked")
 	private void dynamicSimulation() throws CException, MathLinkException {
 		// model must have been checked before calling this function
-		outVL.out("Dynamic Simulation","textH2");
-		mathCommand = "ti = " + (String) simConfig.getDynamic().get("Ti");
+		outVL.out("Dynamic Simulation", "textH2");
+		mathCommand = genContext + "ti = " + (String) simConfig.getDynamic().get("Ti").getValue();
 		bufferCommand(mathCommand);
-		mathCommand = "tf = " + (String) simConfig.getDynamic().get("Tf");
+		mathCommand = genContext + "tf = " + (String) simConfig.getDynamic().get("Tf").getValue();
 		bufferCommand(mathCommand);
-		mathCommand = "tSteps = " + (String) simConfig.getDynamic().get("TSteps");
+		mathCommand = genContext + "tSteps = " + (String) simConfig.getDynamic().get("TSteps").getValue();
 		bufferCommand(mathCommand);
 
-		if (!((Boolean) simConfig.getDynamic().get("Sensitivities"))
-				&& !((Boolean) simConfig.getDynamic().get("Gains"))) {
-			mathCommand = "Sols = NDSolve[" + "EqsToSolve, " + "DepVars, {" + timeVar + ", " + "ti, " + "tf}]";
+		if (!((Boolean) simConfig.getDynamic().get("Sensitivities").getValue())
+				&& !((Boolean) simConfig.getDynamic().get("Gains").getValue())) {
+			mathCommand = genContext + "Sols = NDSolve[" + genContext + "EqsToSolve, " + genContext + "DepVars, {"
+					+ timeVar + ", " + genContext + "ti, " + genContext + "tf}]";
 			bufferCommand(mathCommand);
 			executeMathBuffer();
-			plotDynamicSim("Sols");
+			plotDynamicSim(genContext + "Sols");
 		}
-
 		// DYNAMIC GAINS
-		if ((Boolean) simConfig.getDynamic().get("Gains")) {
-			mathCommand = "DynGainVars = Table[ToExpression[ToString[" + "G] <> ToString["
-					+ "DepVars[[i]]] <> ToString[" + "IndVars[[j]]]][t], {i, 1, Dimensions["
-					+ "DepVarsWithT][[1]]}, {j, 1,Dimensions[" + "IndVars][[1]]}]";
+		if ((Boolean) simConfig.getDynamic().get("Gains").getValue()) {
+			mathCommand = "DynGainVars = {";
+			mathCommand2 = "DynGainVarsDiff = {";
+			for (String dep : m.getAllSpeciesTimeDependent().keySet()) {
+				mathCommand += "{";
+				mathCommand2 += "{";
+				for (String ind : m.getAllSpeciesConstant().keySet()) {
+					mathCommand += gainContext + dep + ind + "[" + timeVar + "],";
+					mathCommand2 += gainContext + dep + ind + "'[" + timeVar + "],";
+				}
+				mathCommand = removeLastComma(mathCommand);
+				mathCommand2 = removeLastComma(mathCommand2);
+				mathCommand += "},";
+				mathCommand2 += "},";
+			}
+			mathCommand = removeLastComma(mathCommand);
+			mathCommand2 = removeLastComma(mathCommand2);
+			mathCommand += "}";
+			mathCommand2 += "}";
 			bufferCommand(mathCommand);
-			mathCommand = "DynGainVarsDiff = Table[ToExpression[ToString[" + "G] <> ToString["
-					+ "DepVars[[i]]] <> ToString[" + "IndVars[[j]]]]'[t], {i, 1, Dimensions["
-					+ "DepVarsWithT][[1]]}, {j, 1, Dimensions[" + "IndVars][[1]]}]";
+			bufferCommand(mathCommand2);
+
+			mathCommand = "DynGainVarsDiff = {";
+			for (String dep : m.getAllSpeciesTimeDependent().keySet()) {
+				mathCommand += "{";
+				for (String ind : m.getAllSpeciesConstant().keySet())
+					mathCommand += gainContext + dep + ind + "'[" + timeVar + "],";
+				if (mathCommand.charAt(mathCommand.length() - 1) == ',')
+					mathCommand = mathCommand.substring(0, mathCommand.length() - 1);
+				mathCommand += "},";
+			}
+			if (mathCommand.charAt(mathCommand.length() - 1) == ',')
+				mathCommand = mathCommand.substring(0, mathCommand.length() - 1);
+			mathCommand += "}";
 			bufferCommand(mathCommand);
 			mathCommand = "JacIV = Outer[D, " + "RateEqsWithT, " + "IndVars]";
 			bufferCommand(mathCommand);
@@ -690,15 +778,14 @@ public class SimulationCtrlImpl implements SimulationCtrl {
 			bufferCommand(mathCommand);
 			executeMathBuffer();
 			plotDynamicSim("NAugSol");
-
-			outVL.out("Absolute Dynamic Gains","textH2");
+			outVL.out("Absolute Dynamic Gains", "textH2");
 			outVL.resetGrid();
-			for (Map<String, Object> plotViewMap : simConfig.getPlotViews()) {
+			for (SimConfigArray plotView : simConfig.getPlotViews()) {
 				mathCommand = "AG = {";
 				mathCommand2 = "plotLegends = {";
-				for (String dvToShow : (ArrayList<String>) plotViewMap.get("DepVarsToShow")) {
+				for (String dvToShow : (ArrayList<String>) plotView.get("DepVarsToShow").getValue()) {
 					for (String ind : m.getAllSpeciesConstant().keySet()) {
-						mathCommand += "G" + dvToShow + ind + "[" + timeVar + "],";
+						mathCommand += gainContext + dvToShow + ind + "[" + timeVar + "],";
 						mathCommand2 += "G" + dvToShow + ind + ",";
 					}
 				}
@@ -713,21 +800,20 @@ public class SimulationCtrlImpl implements SimulationCtrl {
 						"dynAG" + m.getName() + ".gif", smallSize, bigSize);
 			}
 			outVL.outGrid();
-
 			// mathCommand = "RG = Table[DynGainVars[[i]]*IndVars/DepVarsWithT[[i]], {i,
 			// 1,Length["
 			// + "DynGainVars]}] /. IndVarVals";
 
-			outVL.out("Relative Dynamic Gains","textH2");
+			outVL.out("Relative Dynamic Gains", "textH2");
 			outVL.resetGrid();
-			for (Map<String, Object> plotViewMap : simConfig.getPlotViews()) {
+			for (SimConfigArray plotView : simConfig.getPlotViews()) {
 				mathCommand = "RG = {";
 				mathCommand2 = "plotLegends = {";
-				for (String dvToShow : (ArrayList<String>) plotViewMap.get("DepVarsToShow")) {
+				for (String dvToShow : (ArrayList<String>) plotView.get("DepVarsToShow").getValue()) {
 					for (String ind : m.getAllSpeciesConstant().keySet()) {
-						mathCommand += "G" + dvToShow + ind + "[" + timeVar + "]*"
-								+ m.getAllSpecies().get(ind).getConcentration() + " / " + dvToShow + "[" + timeVar
-								+ "],";
+						mathCommand += gainContext + dvToShow + ind + "[" + timeVar + "]*"
+								+ m.getAllSpecies().get(ind).getConcentration() + " / " + modelContext + dvToShow + "["
+								+ timeVar + "],";
 						mathCommand2 += "G" + dvToShow + ind + ",";
 					}
 				}
@@ -744,15 +830,61 @@ public class SimulationCtrlImpl implements SimulationCtrl {
 			outVL.outGrid();
 		}
 		// DYNAMIC SENSITIVITIES
-		if (((Boolean) simConfig.getDynamic().get("Sensitivities"))) {
-			mathCommand = "DynSensiVars = Table[ToExpression[ToString[S] <> ToString["
-					+ "DepVars[[i]]] <> ToString[Pars[[j]]]][t], {i, 1, Length[" + "DepVars]}, {j, 1,Dimensions["
-					+ "Pars][[1]]}]";
+		if (((Boolean) simConfig.getDynamic().get("Sensitivities").getValue())) {
+			mathCommand = "DynSensiVars = {";
+			mathCommand2 = "DynSensiVarsDiff = {";
+			for (String dep : m.getAllSpeciesTimeDependent().keySet()) {
+				mathCommand += "{";
+				mathCommand2 += "{";
+				for (Reaction r : m) {
+					for (String parName : r.getFormulaValues().keySet()) {
+						if (r.getFormulaValues().get(parName) != null && r.getFormulaValues().get(parName).isFilled()
+								&& r.getFormulaValues().get(parName).getType() == FormulaValueType.CONSTANT) {
+							mathCommand += sensContext + dep + r.getMathematicaContext() + parName + "[" + timeVar
+									+ "],";
+							mathCommand2 += sensContext + dep + r.getMathematicaContext() + parName + "'[" + timeVar
+									+ "],";
+						}
+					}
+					for (String parName : r.getFormulaSubstratesArrayParameters().keySet()) {
+						for (String sp : r.getFormulaSubstratesArrayParameters().get(parName).keySet()) {
+							if (r.getFormulaSubstratesArrayParameters().get(parName).get(sp) != null
+									&& r.getFormulaSubstratesArrayParameters().get(parName).get(sp).isFilled()) {
+								mathCommand += sensContext + dep + r.getMathematicaContext() + ContextUtils.arrayContext
+										+ parName + "`" + ContextUtils.substrateContext + sp + "[" + timeVar + "],";
+								mathCommand2 += sensContext + dep + r.getMathematicaContext()
+										+ ContextUtils.arrayContext + parName + "`" + ContextUtils.substrateContext + sp
+										+ "'[" + timeVar + "],";
+							}
+						}
+						for (String sp : r.getFormulaModifiersArrayParameters().get(parName).keySet()) {
+							if (r.getFormulaModifiersArrayParameters().get(parName).get(sp) != null
+									&& r.getFormulaModifiersArrayParameters().get(parName).get(sp).isFilled()) {
+								mathCommand += sensContext + dep + r.getMathematicaContext() + ContextUtils.arrayContext
+										+ parName + "`" + ContextUtils.modifierContext + sp + "[" + timeVar + "],";
+								mathCommand2 += sensContext + dep + r.getMathematicaContext()
+										+ ContextUtils.arrayContext + parName + "`" + ContextUtils.modifierContext + sp
+										+ "[" + timeVar + "],";
+							}
+						}
+					}
+				}
+				mathCommand = removeLastComma(mathCommand);
+				mathCommand2 = removeLastComma(mathCommand2);
+				mathCommand += "},";
+				mathCommand2 += "},";
+			}
+			mathCommand = removeLastComma(mathCommand);
+			mathCommand2 = removeLastComma(mathCommand2);
+			mathCommand += "}";
+			mathCommand2 += "}";
 			bufferCommand(mathCommand);
-			mathCommand = "DynSensiVarsDiff = Table[ToExpression[ToString[S] <> ToString["
-					+ "DepVars[[i]]] <> ToString[" + "Pars[[j]]]]'[t], {i, 1, Dimensions["
-					+ "DepVars][[1]]}, {j, 1, Dimensions[" + "Pars][[1]]}]";
-			bufferCommand(mathCommand);
+			bufferCommand(mathCommand2);
+
+//			mathCommand = "DynSensiVarsDiff = Table[ToExpression[ToString[S] <> ToString["
+//					+ "DepVars[[i]]] <> ToString[" + "Pars[[j]]]]'[t], {i, 1, Dimensions["
+//					+ "DepVars][[1]]}, {j, 1, Dimensions[" + "Pars][[1]]}]";
+//			bufferCommand(mathCommand);
 			mathCommand = "JacPars = Outer[D, " + "RateEqsWithT, " + "Pars]";
 			bufferCommand(mathCommand);
 			mathCommand = "EqSensis = Flatten[" + "Jac." + "DynSensiVars+" + "JacPars]";
@@ -778,19 +910,48 @@ public class SimulationCtrlImpl implements SimulationCtrl {
 			mathCommand = "NAugSol = NDSolve[" + "NumAugFullS, " + "AugVNS, {" + timeVar + "," + "ti," + "tf}]";
 			bufferCommand(mathCommand);
 			executeMathBuffer();
-			if (!((Boolean) simConfig.getDynamic().get("Gains"))) {
+			if (!((Boolean) simConfig.getDynamic().get("Gains").getValue())) {
 				plotDynamicSim("NAugSol");
 			}
 
-			outVL.out("Absolute Dynamic Sensitivities","textH2");
+			outVL.out("Absolute Dynamic Sensitivities", "textH2");
 			outVL.resetGrid();
-			for (Map<String, Object> plotViewMap : simConfig.getPlotViews()) {
+			for (SimConfigArray plotView : simConfig.getPlotViews()) {
 				mathCommand = "AS = {";
 				mathCommand2 = "plotLegends = {";
-				for (String dvToShow : (ArrayList<String>) plotViewMap.get("DepVarsToShow")) {
-					for (String par : m.getAllFormulaParameters().keySet()) {
-						mathCommand += "S" + dvToShow + par + "[" + timeVar + "],";
-						mathCommand2 += "S" + dvToShow + par + ",";
+				for (String dvToShow : (ArrayList<String>) plotView.get("DepVarsToShow").getValue()) {
+					for (Reaction r : m) {
+						for (String parName : r.getFormulaValues().keySet()) {
+							if (r.getFormulaValues().get(parName) != null
+									&& r.getFormulaValues().get(parName).isFilled()
+									&& r.getFormulaValues().get(parName).getType() == FormulaValueType.CONSTANT) {
+								mathCommand += sensContext + dvToShow + r.getMathematicaContext() + parName + "["
+										+ timeVar + "],";
+								mathCommand2 += "ToString[S" + dvToShow + r.getIdJavaStr() + parName + "],";
+							}
+						}
+						for (String parName : r.getFormulaSubstratesArrayParameters().keySet()) {
+							for (String sp : r.getFormulaSubstratesArrayParameters().get(parName).keySet()) {
+								if (r.getFormulaSubstratesArrayParameters().get(parName).get(sp) != null
+										&& r.getFormulaSubstratesArrayParameters().get(parName).get(sp).isFilled()) {
+									mathCommand += sensContext + dvToShow + r.getMathematicaContext()
+											+ ContextUtils.arrayContext + parName + "`" + ContextUtils.substrateContext
+											+ sp + "[" + timeVar + "],";
+									mathCommand2 += "ToString[S" + dvToShow + r.getIdJavaStr() + parName + "Sub" + sp
+											+ "],";
+								}
+							}
+							for (String sp : r.getFormulaModifiersArrayParameters().get(parName).keySet()) {
+								if (r.getFormulaModifiersArrayParameters().get(parName).get(sp) != null
+										&& r.getFormulaModifiersArrayParameters().get(parName).get(sp).isFilled()) {
+									mathCommand += sensContext + dvToShow + r.getMathematicaContext()
+											+ ContextUtils.arrayContext + parName + "`" + ContextUtils.modifierContext
+											+ sp + "[" + timeVar + "],";
+									mathCommand2 += "ToString[S" + dvToShow + r.getIdJavaStr() + parName + "Mod" + sp
+											+ "],";
+								}
+							}
+						}
 					}
 				}
 				mathCommand = removeLastComma(mathCommand);
@@ -810,17 +971,48 @@ public class SimulationCtrlImpl implements SimulationCtrl {
 			// + "DynSensiVars]}] /.ParNumVals";
 			// bufferCommand(mathCommand);
 			// executeMathBuffer();
-			outVL.out("Relative Dynamic Sensitivities","textH2");
+			outVL.out("Relative Dynamic Sensitivities", "textH2");
 			outVL.resetGrid();
-			for (Map<String, Object> plotViewMap : simConfig.getPlotViews()) {
+			for (SimConfigArray plotView : simConfig.getPlotViews()) {
 				mathCommand = "RS = {";
 				mathCommand2 = "plotLegends = {";
-				for (String dvToShow : (ArrayList<String>) plotViewMap.get("DepVarsToShow")) {
-					for (String par : m.getAllFormulaParameters().keySet()) {
-						mathCommand += "S" + dvToShow + par + "[" + timeVar + "]*"
-								+ m.getAllFormulaParameters().get(par).getStringValue() + "/" + dvToShow + "[" + timeVar
-								+ "],";
-						mathCommand2 += "S" + dvToShow + par + ",";
+				for (String dvToShow : (ArrayList<String>) plotView.get("DepVarsToShow").getValue()) {
+					for (Reaction r : m) {
+						for (String par : r.getFormulaValues().keySet()) {
+							if (r.getFormulaValues().get(par) != null && r.getFormulaValues().get(par).isFilled()
+									&& r.getFormulaValues().get(par).getType() == FormulaValueType.CONSTANT) {
+								mathCommand += sensContext + dvToShow + r.getMathematicaContext() + par + "[" + timeVar
+										+ "]*" + r.getFormulaValues().get(par).getStringValue() + "/" + modelContext
+										+ dvToShow + "[" + timeVar + "],";
+								mathCommand2 += "ToString[S" + dvToShow + par + "],";
+							}
+						}
+						for (String parName : r.getFormulaSubstratesArrayParameters().keySet()) {
+							for (String sp : r.getFormulaSubstratesArrayParameters().get(parName).keySet()) {
+								if (r.getFormulaSubstratesArrayParameters().get(parName).get(sp) != null
+										&& r.getFormulaSubstratesArrayParameters().get(parName).get(sp).isFilled()) {
+									mathCommand += sensContext + dvToShow + r.getMathematicaContext()
+											+ ContextUtils.arrayContext + parName + "`" + ContextUtils.substrateContext
+											+ sp + "[" + timeVar + "]*"
+											+ r.getFormulaSubstratesArrayParameters().get(parName).get(sp).getValue()
+											+ "/" + modelContext + dvToShow + "[" + timeVar + "],";
+									mathCommand2 += "ToString[S" + dvToShow + r.getIdJavaStr() + parName + "Sub" + sp
+											+ "],";
+								}
+							}
+							for (String sp : r.getFormulaModifiersArrayParameters().get(parName).keySet()) {
+								if (r.getFormulaModifiersArrayParameters().get(parName).get(sp) != null
+										&& r.getFormulaModifiersArrayParameters().get(parName).get(sp).isFilled()) {
+									mathCommand += sensContext + dvToShow + r.getMathematicaContext()
+											+ ContextUtils.arrayContext + parName + "`" + ContextUtils.modifierContext
+											+ sp + "[" + timeVar + "]*"
+											+ r.getFormulaModifiersArrayParameters().get(parName).get(sp).getValue()
+											+ "/" + modelContext + dvToShow + "[" + timeVar + "],";
+									mathCommand2 += "ToString[S" + dvToShow + r.getIdJavaStr() + parName + "Mod" + sp
+											+ "],";
+								}
+							}
+						}
 					}
 				}
 				mathCommand = removeLastComma(mathCommand);
@@ -839,12 +1031,13 @@ public class SimulationCtrlImpl implements SimulationCtrl {
 
 	private String removeLastComma(String str) {
 		if (str.charAt(str.length() - 1) == ',')
-			str = str.substring(0, str.lastIndexOf(","));
+			str = str.substring(0, str.length() - 1);
 		return str;
 	}
 
 	@SuppressWarnings("unchecked")
-	private Map<String, String> getDepVarsToShowDynGain(Map<String, Object> map, String dynGainVars) throws MathLinkException {
+	private Map<String, String> getDepVarsToShowDynGain(Map<String, Object> map, String dynGainVars)
+			throws MathLinkException {
 		Map<String, String> resMap = new HashMap<>();
 		String plotList = "{";
 		String list = executeMathCommandString("Flatten[" + dynGainVars + "]").replaceAll("\\{", "")
@@ -871,28 +1064,40 @@ public class SimulationCtrlImpl implements SimulationCtrl {
 		executeMathBuffer();
 		outVL.out("Steady State Simulation", "textH2");
 
-		mathCommand = "ssri = 10^-32;\n" + "ssrf = 1;\n" + "thresholdCondition=10^-30;\n" + "isSteadyState = 0;\n"
-				+ "SSSol=FindRoot[RateEqsAllSubs == 0, Table[{DepVarsWithT[[k1]], Random[Real, {ssri,ssrf}]}, {k1, 1, Length[DepVarsWithT]}]];\n"
-				+ "If[Select[RateEqsAllSubs /. SSSol, (Abs[#] > thresholdCondition) &] == {},\n" + "isSteadyState =1\n"
-				+ ",(*else*)\n" + "newTime = 500000;\n" + "timesTried = 0;\n"
-				+ "While[timesTried < 2 && isSteadyState == 0,\n"
-				+ "  SSSolN = NDSolve[EqsToSolve, DepVars, {t, newTime-1, newTime+1}];\n"
-				+ "  TestVar1 = (Select[Flatten[RateEqsAllSubs /. SSSolN /. {t->newTime}], (Abs[#] > thresholdCondition) &] == {});\n"
-				+ "  If[TestVar1 == True,\n"
-				+ "SSSol = FindRoot[RateEqsAllSubs == 0, Table[{DepVarsWithT[[k1]], (DepVars[[k1]][newTime] /. SSSolN)[[1]]}, {k1, 1, Length[DepVarsWithT]}]];\n"
-				+ "       TestVar2 = (Select[RateEqsAllSubs /. SSSol, (Abs[#] > thresholdCondition) &] == {});\n"
-				+ "       If[TestVar2 == True, isSteadyState = 1];\n" + "  ];\n" + "  newTime = newTime*2;\n"
-				+ "  timesTried++;\n" + "];\n" + "];\n" + "If[isSteadyState==1,\n" + "Evaluate[true];\n"
-				+ "If[Select[Re[Eigenvalues[Jac /. Join[ParNumVals, IndVarVals, SSSol]]], (# >= 0) &] != {},\n"
-				+ "	Print[\""+SharedData.mathPrintPrefix+"WARNING: Unstable Steady State!\"]; Return[\"unstable\"]\n" + ",\n"
-				+ "Print[\""+SharedData.mathPrintPrefix+"Stable Steady State\"]; Return[\"stable\"]\n" + "];\n" + ",\n"
-				+ "Print[\""+SharedData.mathPrintPrefix+"System doesn't reach Steady State\"]; Return[\"notFound\"];\n" + "];";
+		mathCommand = genContext + "ssri = 10^-32;\n" + genContext + "ssrf = 1;\n" + genContext + "thresholdCondition="
+				+ simConfig.getSteadyState().get("Threshold") + ";\n" + genContext + "isSteadyState = 0;\n" + genContext
+				+ "SSSol=FindRoot[" + genContext + "RateEqsAllSubs == 0, Table[{" + genContext
+				+ "DepVarsWithT[[k1]], Random[Real, {" + genContext + "ssri," + genContext + "ssrf}]}, {k1, 1, Length["
+				+ genContext + "DepVarsWithT]}]];\n" + "If[Select[" + genContext + "RateEqsAllSubs /. " + genContext
+				+ "SSSol, (Abs[#] > " + genContext + "thresholdCondition) &] == {},\n" + genContext
+				+ "isSteadyState =1\n" + ",(*else*)\n" + "" + genContext + "newTime = 500000;\n" + "" + genContext
+				+ "timesTried = 0;\n" + "While[" + genContext + "timesTried < 2 && " + genContext
+				+ "isSteadyState == 0,\n" + "  " + genContext + "SSSolN = NDSolve[" + genContext + "EqsToSolve, "
+				+ genContext + "DepVars, {" + timeVar + ", " + genContext + "newTime-1, " + genContext
+				+ "newTime+1}];\n" + "  " + genContext + "TestVar1 = (Select[Flatten[" + genContext
+				+ "RateEqsAllSubs /. " + genContext + "SSSolN /. {" + timeVar + "->" + genContext
+				+ "newTime}], (Abs[#] > " + genContext + "thresholdCondition) &] == {});\n" + "  If[" + genContext
+				+ "TestVar1 == True,\n" + "" + genContext + "SSSol = FindRoot[" + genContext
+				+ "RateEqsAllSubs == 0, Table[{" + genContext + "DepVarsWithT[[k1]], (" + genContext + "DepVars[[k1]]["
+				+ genContext + "newTime] /. " + genContext + "SSSolN)[[1]]}, {k1, 1, Length[" + genContext
+				+ "DepVarsWithT]}]];\n" + "       " + genContext + "TestVar2 = (Select[" + genContext
+				+ "RateEqsAllSubs /. " + genContext + "SSSol, (Abs[#] > " + genContext
+				+ "thresholdCondition) &] == {});\n" + "       If[" + genContext + "TestVar2 == True, " + genContext
+				+ "isSteadyState = 1];\n" + "  ];\n" + "  " + genContext + "newTime = " + genContext + "newTime*2;\n"
+				+ "  " + genContext + "timesTried++;\n" + "];\n" + "];\n" + "If[" + genContext + "isSteadyState==1,\n"
+				+ "Evaluate[true];\n" + "If[Select[Re[Eigenvalues[" + genContext + "Jac /. Join[" + genContext
+				+ "ParNumVals, " + genContext + "IndVarVals, " + genContext + "SSSol]]], (# >= 0) &] != {},\n"
+				+ "	Print[\"" + SharedData.mathPrintPrefix
+				+ "WARNING: Unstable Steady State!\"]; Return[\"unstable\"]\n" + ",\n" + "Print[\""
+				+ SharedData.mathPrintPrefix + "Stable Steady State\"]; Return[\"stable\"]\n" + "];\n" + ",\n"
+				+ "Print[\"" + SharedData.mathPrintPrefix
+				+ "System doesn't reach Steady State\"]; Return[\"notFound\"];\n" + "];";
 		String mathRes = executeMathCommandString(mathCommand);
 		if (mathRes.equals("Return[stable]") || mathRes.equals("Return[unstable]")) {
-			fillSteadyStateSimulationMap("SSSol", ssMap);
+			fillSteadyStateSimulationMap(genContext + "SSSol", ssMap);
 			showSteadyStateSimulationGridAndButton("Download Steady State Simulation",
 					"steadystate" + m.getName() + ".txt", ssMap);
-			if (((Boolean) simConfig.getSteadyState().get("Stability"))) {
+			if (((Boolean) simConfig.getSteadyState().get("Stability").getValue())) {
 				outVL.out("Stability Analysis", "textH2");
 				if (mathRes.equals("Return[stable]")) {
 					outVL.out("Stable: All real parts are negative");
@@ -900,14 +1105,16 @@ public class SimulationCtrlImpl implements SimulationCtrl {
 					outVL.out("Unstable: At least one real part is non-negative");
 				}
 
-				mathCommand = "eigenValues = Eigenvalues[Jac /. Join[ParNumVals, IndVarVals, SSSol]]";
+				mathCommand = "" + genContext + "eigenValues = Eigenvalues[" + genContext + "Jac /. Join[" + genContext
+						+ "ParNumVals, " + genContext + "IndVarVals, " + genContext + "SSSol]]";
 				bufferCommand(mathCommand);
 				// String eigenValues = executeMathCommandString(mathCommand);
-				mathCommand = "eigenValues=Table[Join[{Re[eigenValues[[i]]]},{Im[eigenValues[[i]]]}], {i,1,Length[eigenValues]}]";
+				mathCommand = "" + genContext + "eigenValues=Table[Join[{Re[" + genContext + "eigenValues[[i]]]},{Im["
+						+ genContext + "eigenValues[[i]]]}], {i,1,Length[" + genContext + "eigenValues]}]";
 				bufferCommand(mathCommand);
 				executeMathBuffer();
-				executeMathTable("eigenValues", "{ToString[Real],ToString[Im]}",
-						"Table[ToString[Eigenvalue]<>ToString[i], {i,1,Length[DepVars]}]", false);
+				executeMathTable("" + genContext + "eigenValues", "{ToString[Real],ToString[Im]}",
+						"Table[ToString[Eigenvalue]<>ToString[i], {i,1,Length[" + genContext + "DepVars]}]", false);
 			}
 		}
 
@@ -919,7 +1126,7 @@ public class SimulationCtrlImpl implements SimulationCtrl {
 
 		if (mathRes.equals("Return[stable]")) {
 			// Steady State Gains (D=>derivative)
-			if (((Boolean) simConfig.getSteadyState().get("Gains"))) {
+			if (((Boolean) simConfig.getSteadyState().get("Gains").getValue())) {
 				mathCommand = "JacIV = Outer[D, " + "RateEqsWithT, " + "IndVars]";
 				bufferCommand(mathCommand);
 				mathCommand = "NJacIV = Chop[" + "JacIV /. Join[" + "ParNumVals, " + "IndVarVals, " + "SSSol]"
@@ -928,11 +1135,11 @@ public class SimulationCtrlImpl implements SimulationCtrl {
 				mathCommand = "GA = -Inverse[" + "Jac /. Join[" + "ParNumVals, " + "IndVarVals, " + "SSSol]]."
 						+ "NJacIV";
 				bufferCommand(mathCommand);
-				outVL.out("Absolute Steady State Gains","textH2");
+				outVL.out("Absolute Steady State Gains", "textH2");
 				// outVL.resetGrid();
-				// for (Map<String, Object> plotViewMap : simConfig.getPlotViews()) {
+				// for (Map<String, Object> plotView : simConfig.getPlotViews()) {
 				// mathCommand = "DepVarsToShow = {";
-				// for (String dvToShow : (ArrayList<String>) plotViewMap.get("DepVarsToShow"))
+				// for (String dvToShow : (ArrayList<String>) plotView.get("DepVarsToShow"))
 				// mathCommand += dvToShow+",";
 				// mathCommand = removeLastComma(mathCommand);
 				// mathCommand += "}";
@@ -947,23 +1154,23 @@ public class SimulationCtrlImpl implements SimulationCtrl {
 				mathCommand = removeLastComma(mathCommand);
 				mathCommand += "}";
 				bufferCommand(mathCommand);
-				executeMathTable("GA", "IndVars", "DepVarsToShow", true);
+				executeMathTable("GA", "IndVarsString", "DepVarsToShow", true);
 
 				mathCommand = "GR = Table[" + "GA[[i, j]]*(" + "IndVars[[j]]/"
 						+ "DepVarsWithT[[i]]), {i, 1, Dimensions[" + "DepVarsWithT][[1]]}, {j, 1, Dimensions["
 						+ "IndVars][[1]]}] /. Join[" + "ParNumVals, " + "IndVarVals, " + "SSSol]";
 				bufferCommand(mathCommand);
-				outVL.out("Relative Steady State Gains","textH2");
+				outVL.out("Relative Steady State Gains", "textH2");
 //				mathCommand = "DepVarsToShow = {";
 //				for (String dv : simConfig.getUnifiedDepVarsFromPlotViews().keySet())
 //					mathCommand += dv + ",";
 //				mathCommand = removeLastComma(mathCommand);
 //				mathCommand += "}";
 //				bufferCommand(mathCommand);
-				executeMathTable("GR", "IndVars", "DepVarsToShow", true);
+				executeMathTable("GR", "IndVarsString", "DepVarsToShow", true);
 			}
 			// Steady State Sensitivities
-			if (((Boolean) simConfig.getSteadyState().get("Sensitivities"))) {
+			if (((Boolean) simConfig.getSteadyState().get("Sensitivities").getValue())) {
 				mathCommand = "JacP = Outer[D, " + "RateEqsWithT, " + "Pars]";
 				bufferCommand(mathCommand);
 				mathCommand = "NJacP = Chop[" + "JacP /. Join[" + "ParNumVals, " + "IndVarVals, " + "SSSol]"
@@ -972,21 +1179,21 @@ public class SimulationCtrlImpl implements SimulationCtrl {
 				mathCommand = "SSSA = -Inverse[" + "Jac /. Join[" + "ParNumVals, " + "IndVarVals, " + "SSSol]]."
 						+ "NJacP";
 				bufferCommand(mathCommand);
-				outVL.out("Absolute Steady State Sensitivities","textH2");
+				outVL.out("Absolute Steady State Sensitivities", "textH2");
 				mathCommand = "DepVarsToShow = {";
 				for (String dv : simConfig.getUnifiedDepVarsFromPlotViews().keySet())
 					mathCommand += dv + ",";
 				mathCommand = removeLastComma(mathCommand);
 				mathCommand += "}";
 				bufferCommand(mathCommand);
-				executeMathTable("SSSA", "Pars", "DepVarsToShow", true);
+				executeMathTable("SSSA", "ParsString", "DepVarsToShow", true);
 
 				mathCommand = "SSSR = Table[" + "SSSA[[i, j]]*(" + "Pars[[j]]/"
 						+ "DepVarsWithT[[i]]), {i, 1, Dimensions[" + "DepVarsWithT][[1]]}, {j, 1, Dimensions["
 						+ "Pars][[1]]}] /. Join[" + "ParNumVals, " + "IndVarVals, " + "SSSol]";
 				bufferCommand(mathCommand);
-				outVL.out("Relative Steady State Sensitivities","textH2");
-				executeMathTable("SSSR", "Pars", "DepVarsToShow", true);
+				outVL.out("Relative Steady State Sensitivities", "textH2");
+				executeMathTable("SSSR", "ParsString", "DepVarsToShow", true);
 			}
 		}
 	}

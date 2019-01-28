@@ -7,11 +7,14 @@ import java.util.Map;
 import java.util.SortedMap;
 
 import com.vaadin.ui.GridLayout;
+import com.wolfram.jlink.MathLinkException;
 
 import cat.udl.easymodel.logic.formula.Formula;
+import cat.udl.easymodel.logic.formula.Formulas;
 import cat.udl.easymodel.logic.simconfig.SimConfig;
 import cat.udl.easymodel.logic.types.RepositoryType;
 import cat.udl.easymodel.logic.user.User;
+import cat.udl.easymodel.mathlink.MathLink;
 import cat.udl.easymodel.utils.CException;
 
 public interface Model extends List<Reaction> {
@@ -68,7 +71,7 @@ public interface Model extends List<Reaction> {
 	
 	String getNameShort();
 
-	void checkModel() throws Exception;
+	void checkValidModel() throws Exception;
 
 	RepositoryType getRepositoryType();
 
@@ -88,7 +91,7 @@ public interface Model extends List<Reaction> {
 
 	void reset();
 
-	ArrayList<String> getAllUsedFormulaStrings();
+	ArrayList<String> getAllUsedFormulaStringsWithContext();
 
 	SimConfig getSimConfig();
 
@@ -97,4 +100,15 @@ public interface Model extends List<Reaction> {
 	void deleteDB() throws SQLException;
 
 	String getUserName();
+
+	void checkMathExpressions(MathLink mathLinkOp) throws MathLinkException, CException;
+
+	Map<String, SortedMap<String, FormulaArrayValue>> getAllFormulaSubstratesArrayValues();
+
+	Map<String, SortedMap<String, FormulaArrayValue>> getAllFormulaModifiersArrayValues();
+
+	boolean isStochastic();
+
+	public abstract Formulas getAllUsedFormulas();
+
 }

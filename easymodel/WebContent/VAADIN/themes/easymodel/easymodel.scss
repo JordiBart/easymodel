@@ -69,6 +69,9 @@
   	.v-verticallayout.formulasVL {
   		padding: 5px 5px 5px 5px;
   	}
+  	.v-verticallayout-loginView {
+  		padding: 10px 10px 10px 10px;
+  	}
 	.v-verticallayout#outPanelConsoleVL {
 		padding: 0px 5px 5px 5px;
 	}
@@ -103,6 +106,24 @@
 		background-repeat: no-repeat;
 		background-position: center;
 	}
+	.v-button-exportMathematicaBtn {
+		background-color: #fafafa;
+		background-image: url("img/mathematica_logo-96.png");
+		//background-image: linear-gradient(#fafafa,#efefef);
+		background-size: 34px;
+		background-repeat: no-repeat;
+		background-position: center;
+		font-weight: bold;
+	}
+	.v-button-exportSbmlBtn {
+		background-color: #fafafa;
+		background-image: url("img/sbml-logo-32.png");
+		//background-image: linear-gradient(#fafafa,#efefef);
+		background-size: 72px;
+		background-repeat: no-repeat;
+		background-position: center;
+		font-weight: bold;
+	}
 	.v-button-eachBtn {
 		background-color: #fafafa;
 		background-image: url("img/each.png");
@@ -130,6 +151,14 @@
 		background: center url(img/info.png) no-repeat;
 		background-size: 28px;
 		border: none;
+	}
+	.v-button-renderHtmlBtn {
+		background-color: #fafafa;
+		background-image: url("img/html.png");
+		background-image: linear-gradient(#fafafa,#efefef);
+		background-size: 32px;
+		background-repeat: no-repeat;
+		background-position: center;
 	}
 	.v-nativebutton-eyeBtn {
 		background: center url(img/eye.png) no-repeat;

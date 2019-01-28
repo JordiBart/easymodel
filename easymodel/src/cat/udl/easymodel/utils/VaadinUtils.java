@@ -7,6 +7,10 @@ import com.vaadin.ui.Layout;
 import com.vaadin.ui.VerticalLayout;
 
 public class VaadinUtils {
+	public static final String passwordRegex = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d\\.!$%@#£€*?&_]{8,50}$";
+	public static final String passwordRegexInfo = "Password: 8-50 characters, at least one letter and one number";
+	public static final String usernameRegex = "^(?=.*[A-Za-z])[a-zA-Z0-9]{3,20}$";
+	public static final String usernameRegexInfo = "Username: 3-20 alphanumeric characters, at least one letter";
 	
 	private VaadinUtils() {}
 	
@@ -27,5 +31,12 @@ public class VaadinUtils {
 				lab.setStyleName(style);
 		}
 		return lab;
+	}
+	
+	public static String sanitizeHTML(String rawHtml) {
+		if (rawHtml !=null)
+			return rawHtml.replaceAll("\\s*<notes.*>\\s*", "").replaceAll("\\s*<\\/notes>\\s*", "").replaceAll("\\s*<body.*>\\s*", "").replaceAll("\\s*<\\/body>\\s*", "").replaceAll("<.*script.*>", "").replaceAll("<\\/script>", "").replaceAll("on(l|L)oad=", "");
+		else
+			return null;
 	}
 }

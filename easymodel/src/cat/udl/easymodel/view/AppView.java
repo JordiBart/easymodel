@@ -10,7 +10,7 @@ import com.vaadin.ui.Notification.Type;
 
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
-import cat.udl.easymodel.vcomponent.AppPanel;
+import cat.udl.easymodel.vcomponent.app.AppPanel;
 
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;

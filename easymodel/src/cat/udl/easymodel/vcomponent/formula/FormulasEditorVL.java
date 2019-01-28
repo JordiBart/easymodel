@@ -100,13 +100,13 @@ public class FormulasEditorVL extends VerticalLayout {
 		VerticalLayout vl11 = new VerticalLayout();
 		vlt.addComponent(new Label("i - How to define rate expressions"));
 		vl11.addComponents(new Label(
-				"Mathematica functions: Sum, Product, Length, Sin, Cos, Tan, ArcSin, ArcCos, ArcTan, Exp, Log, UnitStep"),
-				new Label("Usable Mathematica function indexes: i, j, l"), new Label("Mathematica constants: E, Pi"),
-				new Label("Special variables: t (time)"), new Label("X[]: Mathematica substrate list"),
-				new Label("A[]: Mathematica substrate coefficient list"), new Label("M[]: Mathematica modifier list"),
-				new Label("XF: first substrate"), new Label("MF: first modifier"));
+				"Mathematica functions/constants: "+FormulaUtils.mathematicaSymbolPrefix+"<Mathematica function>"),
+				new Label("Mathematica function indexes: "+FormulaUtils.mathematicaIndexPrefix+"<index>"),
+				new Label("Special variables: "+FormulaUtils.mathematicaBuiltInPrefix+"t (time)"), new Label(FormulaUtils.mathematicaBuiltInPrefix+"X[]: Mathematica substrate list"),
+				new Label(FormulaUtils.mathematicaBuiltInPrefix+"A[]: Mathematica substrate coefficient list"), new Label(FormulaUtils.mathematicaBuiltInPrefix+"M[]: Mathematica modifier list"),
+				new Label(FormulaUtils.mathematicaBuiltInPrefix+"XF: first substrate"), new Label(FormulaUtils.mathematicaBuiltInPrefix+"MF: first modifier"));
 		vl1.addComponents(new Label("Usable operators: +-/*^()"), new Label("Reserved symbols:"),
-				VaadinUtils.getIndentedVLLayout(vl11), new Label("Example: Product[X[[j]]^g[[j]],{j,1,Length[X]}]"));
+				VaadinUtils.getIndentedVLLayout(vl11), new Label("Example: "+FormulaUtils.mathematicaSymbolPrefix+"Product["+FormulaUtils.mathematicaBuiltInPrefix+"X[["+FormulaUtils.mathematicaIndexPrefix+"j]]^g[["+FormulaUtils.mathematicaIndexPrefix+"j]],{"+FormulaUtils.mathematicaIndexPrefix+"j,1,"+FormulaUtils.mathematicaSymbolPrefix+"Length["+FormulaUtils.mathematicaBuiltInPrefix+"X]}]"));
 		vlt.addComponent(VaadinUtils.getIndentedVLLayout(vl1));
 		vlt.addComponent(new Label("ii - Defining a new Rate expression"));
 		VerticalLayout vl2 = new VerticalLayout();
@@ -118,7 +118,7 @@ public class FormulasEditorVL extends VerticalLayout {
 		hl3.setSpacing(true);
 		Button setBtn = new Button();
 		setBtn.setWidth("37px");
-		setBtn.setStyleName("restriction");
+		setBtn.setStyleName("editBtn");
 		hl3.addComponents(new Label("Press"), setBtn);
 		vlt.addComponent(VaadinUtils.getIndentedVLLayout(hl3));
 
@@ -134,17 +134,17 @@ public class FormulasEditorVL extends VerticalLayout {
 		table.setHeight("100%");
 		table.addContainerProperty("Name", TextField.class, null);
 		table.addContainerProperty("Rate Definition", TextField.class, null);
-		table.addContainerProperty("Private", Label.class, null);
+		table.addContainerProperty("Repository", Label.class, null);
 		table.addContainerProperty("Edit", Button.class, null);
 		table.addContainerProperty("Rem.", Button.class, null);
 		table.setColumnAlignments(Align.CENTER,Align.CENTER,Align.CENTER,Align.CENTER,Align.CENTER);
-		for (Formula f : sessionData.getCustomFormulas()) {
-			Label privLabel = new Label(f.getRepositoryType() == RepositoryType.PRIVATE && f.getUser() == sessionData.getUser() ? "YES" : "");
-			privLabel.setSizeUndefined();
+		for (Formula f : sessionData.getCustomAndTempFormulas()) {
+			Label repositoryLabel = new Label(f.getRepositoryType() == RepositoryType.PRIVATE && f.getUser() == sessionData.getUser() ? "Private" : "Public");
+			repositoryLabel.setSizeUndefined();
 			table.addItem(
 					new Object[] { getFormulaNameTextField(f),
 							getFormulaTextField(f),
-							privLabel,
+							repositoryLabel,
 							getEditButton(f),
 							getRemoveFormulaButton(f)
 							},
@@ -204,7 +204,7 @@ public class FormulasEditorVL extends VerticalLayout {
 	}
 
 	private Button getBackToModelBtn() {
-		Button btn = new Button("Back to Model editor");
+		Button btn = new Button("Back to Model Editor");
 		btn.setWidth("100%");
 		btn.addClickListener(new ClickListener() {
 			@Override
@@ -327,7 +327,7 @@ public class FormulasEditorVL extends VerticalLayout {
 								Type.WARNING_MESSAGE);
 					}
 					sessionData.getModels().removeFormulaFromReactions(f);
-					f.setFormula(newText);
+					f.setFormulaDef(newText);
 				}
 			}
 		};

@@ -12981,6 +12981,10 @@ div.v-layout.v-horizontal.v-widget {
 	padding: 5px 5px 5px 5px;
 }
 
+.easymodel .v-verticallayout-loginView {
+	padding: 10px 10px 10px 10px;
+}
+
 .easymodel .v-verticallayout#outPanelConsoleVL {
 	padding: 0px 5px 5px 5px;
 }
@@ -13020,6 +13024,24 @@ div.v-layout.v-horizontal.v-widget {
 	background-position: center;
 }
 
+.easymodel .v-button-exportMathematicaBtn {
+	background-color: #fafafa;
+	background-image: url("img/mathematica_logo-96.png");
+	background-size: 34px;
+	background-repeat: no-repeat;
+	background-position: center;
+	font-weight: bold;
+}
+
+.easymodel .v-button-exportSbmlBtn {
+	background-color: #fafafa;
+	background-image: url("img/sbml-logo-32.png");
+	background-size: 72px;
+	background-repeat: no-repeat;
+	background-position: center;
+	font-weight: bold;
+}
+
 .easymodel .v-button-eachBtn {
 	background-color: #fafafa;
 	background-image: url("img/each.png");
@@ -13050,6 +13072,15 @@ div.v-layout.v-horizontal.v-widget {
 	background: center url(img/info.png) no-repeat;
 	background-size: 28px;
 	border: none;
+}
+
+.easymodel .v-button-renderHtmlBtn {
+	background-color: #fafafa;
+	background-image: url("img/html.png");
+	background-image: linear, false, zip(#fafafa #efefef);
+	background-size: 32px;
+	background-repeat: no-repeat;
+	background-position: center;
 }
 
 .easymodel .v-nativebutton-eyeBtn {

@@ -14,6 +14,10 @@ import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
 import java.util.Properties;
 
+import javax.imageio.ImageIO;
+
+import com.vaadin.server.VaadinService;
+
 import cat.udl.easymodel.logic.types.UserType;
 import cat.udl.easymodel.logic.user.User;
 import cat.udl.easymodel.logic.user.UserImpl;
@@ -33,11 +37,12 @@ public class SharedData {
 	public static final String propertiesFilePath = appDir + "/" + propertiesFile;
 	public static final String tempDir = appDir + "/tmp";
 	public static final String appName = "EasyModel";
-	public static final String appVersion = "1.0b";
+	public static final String appVersion = "1.0";
 	public static final String fullAppName = appName + " " + appVersion;
 	public static final int privateWeeks = 2;
+	public static final long simulationTimeoutMinutes=10;
 	// public static final boolean enableMath = true;
-	public static final String dbError = "FATAL ERROR: DATABASE PROBLEM";
+	public static final String dbError = "DATABASE CONNECTION ERROR";
 	// mathLink
 	public static final String mathLinkError = "CAN'T OPEN MATHLINK, PLEASE TRY AGAIN LATER";
 	public static final String mathPrintPrefix = "MSG::";
@@ -49,7 +54,8 @@ public class SharedData {
 		createDir(appDir);
 		createDir(tempDir);
 		cleanTempDir();
-
+//		ImageIO.setCacheDirectory(new File(SharedData.tempDir));
+		
 		properties = new Properties();
 		try {
 			InputStream input = new FileInputStream(propertiesFilePath);
@@ -78,6 +84,11 @@ public class SharedData {
 		if (properties.getProperty("mySqlPass") == null)
 			properties.setProperty("mySqlPass", "");
 
+		if (properties.getProperty("reCaptcha-public-key") == null)
+			properties.setProperty("reCaptcha-public-key", "");
+		if (properties.getProperty("reCaptcha-private-key") == null)
+			properties.setProperty("reCaptcha-private-key", "");
+		
 		if (properties.getProperty("debugMode").equals("1"))
 			System.out.println("WARNING: DEBUG MODE ON");
 		// if (properties.getProperty("waitMathKernelSecs") == null)
@@ -159,8 +170,23 @@ public class SharedData {
 		return null;
 	}
 
+	public User getUserByName(String name) throws SQLException {
+		if (name != null) {
+			for (User u : getAllUsers()) {
+				if (name.equals(u.getName()))
+					return u;
+			}
+		}
+		return null;
+	}
+	
 	public boolean isDebug() {
 		return "1".equals(getProperties().getProperty("debugMode"));
+	}
+	
+	public void dbgPrint(String msg) {
+		if (isDebug())
+			System.out.println(msg);
 	}
 
 	private void updateUsers() throws SQLException {
@@ -202,7 +228,7 @@ public class SharedData {
 			}
 		}
 		if (guestUser == null)
-			guestUser = getDbManager().createGuestUserDB();
+			guestUser = getDbManager().insertGuestUserDB();
 	}
 
 	public User getGuestUser() {

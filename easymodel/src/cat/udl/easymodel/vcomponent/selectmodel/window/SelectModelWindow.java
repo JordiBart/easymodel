@@ -45,9 +45,9 @@ public class SelectModelWindow extends Window {
 
 		this.sessionData = (SessionData) UI.getCurrent().getData();
 		this.setCaption("Select " + sessionData.getRepository().getString().toLowerCase() + " model");
-		if (sessionData.getSelectedModel() == null)
-			this.setClosable(false);
-		else
+//		if (sessionData.getSelectedModel() == null)
+//			this.setClosable(false);
+//		else
 			this.setClosable(true);
 		this.setData(WStatusType.KO); // window closed by user
 		this.setModal(true);

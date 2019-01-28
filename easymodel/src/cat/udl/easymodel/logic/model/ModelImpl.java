@@ -1,9 +1,11 @@
 package cat.udl.easymodel.logic.model;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLType;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
@@ -18,18 +20,25 @@ import com.vaadin.ui.Alignment;
 import com.vaadin.ui.GridLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.UI;
+import com.wolfram.jlink.MathLinkException;
 
 import cat.udl.easymodel.logic.formula.Formula;
+import cat.udl.easymodel.logic.formula.Formulas;
+import cat.udl.easymodel.logic.formula.FormulasImpl;
 import cat.udl.easymodel.logic.simconfig.SimConfig;
-import cat.udl.easymodel.logic.simconfig.SimConfigImpl;
+import cat.udl.easymodel.logic.types.FormulaType;
 import cat.udl.easymodel.logic.types.FormulaValueType;
 import cat.udl.easymodel.logic.types.RepositoryType;
 import cat.udl.easymodel.logic.types.SpeciesVarTypeType;
 import cat.udl.easymodel.logic.user.User;
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
+import cat.udl.easymodel.mathlink.MathLink;
 import cat.udl.easymodel.utils.CException;
+import cat.udl.easymodel.utils.Utils;
+import cat.udl.easymodel.utils.p;
 import cat.udl.easymodel.vcomponent.common.SpacedLabel;
+import javafx.beans.binding.IntegerExpression;
 
 public class ModelImpl extends ArrayList<Reaction> implements Model {
 	private static final long serialVersionUID = 1L;
@@ -38,8 +47,8 @@ public class ModelImpl extends ArrayList<Reaction> implements Model {
 	private Integer id = null;
 	// private int reactionsAutoIncrement = 1;
 	// Species Values (concentrations)
-	private SortedMap<String, Species> speciesMap = new TreeMap<>();
-	private SimConfig simConfig = new SimConfigImpl();
+	private SortedMap<String, Species> speciesConfigMap = new TreeMap<>();
+	private SimConfig simConfig = new SimConfig();
 	private String name = "";
 	private String description = "";
 	private RepositoryType repositoryType = RepositoryType.PRIVATE;
@@ -65,7 +74,7 @@ public class ModelImpl extends ArrayList<Reaction> implements Model {
 			return "unknown";
 		}
 	}
-	
+
 	@Override
 	public boolean equals(Object in) {
 		if (in != null && in instanceof Model && System.identityHashCode(this) == System.identityHashCode(in))
@@ -76,7 +85,7 @@ public class ModelImpl extends ArrayList<Reaction> implements Model {
 	@Override
 	public void reset() {
 		this.clear();
-		speciesMap.clear();
+		speciesConfigMap.clear();
 		simConfig.reset();
 		name = "";
 		description = "";
@@ -89,12 +98,12 @@ public class ModelImpl extends ArrayList<Reaction> implements Model {
 	public String getName() {
 		return name;
 	}
-	
+
 	@Override
 	public String getNameShort() {
-		int numChars= 8;
+		int numChars = 8;
 		if (getName().length() >= numChars)
-			return getName().replaceAll("\\s", "_").substring(0,numChars);
+			return getName().replaceAll("\\s", "_").substring(0, numChars);
 		else
 			return getName().replaceAll("\\s", "_");
 	}
@@ -177,11 +186,11 @@ public class ModelImpl extends ArrayList<Reaction> implements Model {
 	}
 
 	@Override
-	public ArrayList<String> getAllUsedFormulaStrings() {
+	public ArrayList<String> getAllUsedFormulaStringsWithContext() {
 		ArrayList<String> res = new ArrayList<>();
 		for (Reaction r : this) {
 			if (r.getFormula() != null)
-				res.add(r.getFormula().getFormulaDef());
+				res.add(r.getFormula().getMathematicaReadyFormula(r.getMathematicaContext(), this));
 		}
 		return res;
 	}
@@ -258,7 +267,7 @@ public class ModelImpl extends ArrayList<Reaction> implements Model {
 		// Update concentrations species
 		// Delete unused values
 		List<String> speciesToDelete = new ArrayList<>();
-		for (String sp : speciesMap.keySet()) {
+		for (String sp : speciesConfigMap.keySet()) {
 			boolean found = false;
 			for (Reaction react : this) {
 				if (react.getBothSides().containsKey(sp) || react.getModifiers().containsKey(sp)) {
@@ -270,18 +279,18 @@ public class ModelImpl extends ArrayList<Reaction> implements Model {
 				speciesToDelete.add(sp);
 		}
 		for (String sp : speciesToDelete)
-			speciesMap.remove(sp);
+			speciesConfigMap.remove(sp);
 		// Put new species
 		for (Reaction react : this) {
 			for (String sp : react.getBothSides().keySet())
-				if (!speciesMap.containsKey(sp))
-					speciesMap.put(sp, new SpeciesImpl());
+				if (!speciesConfigMap.containsKey(sp))
+					speciesConfigMap.put(sp, new SpeciesImpl());
 			for (String sp : react.getModifiers().keySet())
-				if (!speciesMap.containsKey(sp))
-					speciesMap.put(sp, new SpeciesImpl());
+				if (!speciesConfigMap.containsKey(sp))
+					speciesConfigMap.put(sp, new SpeciesImpl());
 		}
 		// Old species values are still there
-		return speciesMap;
+		return speciesConfigMap;
 	}
 
 	@Override
@@ -476,7 +485,7 @@ public class ModelImpl extends ArrayList<Reaction> implements Model {
 	@Override
 	public void checkIfReadyToSimulate() throws CException {
 		try {
-			checkModel();
+			checkValidModel();
 			simConfig.checkSimConfigs();
 		} catch (Exception e) {
 			throw new CException(e.getMessage());
@@ -484,7 +493,7 @@ public class ModelImpl extends ArrayList<Reaction> implements Model {
 	}
 
 	@Override
-	public void checkModel() throws Exception {
+	public void checkValidModel() throws Exception {
 		cleanModel();
 		String err = "";
 		int numErr = 0;
@@ -492,7 +501,7 @@ public class ModelImpl extends ArrayList<Reaction> implements Model {
 			err += "Model must have a name\n";
 			numErr++;
 		}
-		if (this.getRepositoryType() != RepositoryType.SBML && sessionData.getModels().getModelByName(this.name) != null
+		if (this.getRepositoryType() != RepositoryType.TEMP && sessionData.getModels().getModelByName(this.name) != null
 				&& sessionData.getModels().getModelByName(this.name) != this) {
 			err += "Model name is already in use\n";
 			numErr++;
@@ -593,9 +602,13 @@ public class ModelImpl extends ArrayList<Reaction> implements Model {
 			// insert to model table
 			table = "model";
 			preparedStatement = conn.prepareStatement("insert into " + table
-					+ " (id, id_user, name, description, repositorytype, modified) values (NULL, ?, ?, ?, ?, DATE(NOW()))",
+					+ " (id, id_user, name, description, repositorytype, modified) values (?, ?, ?, ?, ?, DATE(NOW()))",
 					Statement.RETURN_GENERATED_KEYS);
 			int p = 1;
+			if (this.id != null)
+				preparedStatement.setInt(p++, this.id);
+			else
+				preparedStatement.setNull(p++, java.sql.Types.INTEGER);
 			preparedStatement.setInt(p++, user.getId());
 			preparedStatement.setString(p++, getName());
 			preparedStatement.setString(p++, getDescription());
@@ -612,16 +625,18 @@ public class ModelImpl extends ArrayList<Reaction> implements Model {
 			}
 			preparedStatement.close();
 			// save to species table
-			for (String sp : speciesMap.keySet()) {
+			for (String sp : speciesConfigMap.keySet()) {
 				table = "species";
 				preparedStatement = conn.prepareStatement("insert into " + table
-						+ " (`id`, `id_model`, `species`, `concentration`, `vartype`) values (NULL, ?, ?, ?, ?)",
+						+ " (`id`, `id_model`, `species`, `concentration`, `vartype`, `stochastic`, `amount`) values (NULL, ?, ?, ?, ?, ?, ?)",
 						Statement.RETURN_GENERATED_KEYS);
 				p = 1;
 				preparedStatement.setInt(p++, this.getId());
 				preparedStatement.setString(p++, sp);
-				preparedStatement.setString(p++, speciesMap.get(sp).getConcentration());
-				preparedStatement.setInt(p++, speciesMap.get(sp).getVarType().getValue());
+				preparedStatement.setString(p++, speciesConfigMap.get(sp).getConcentration());
+				preparedStatement.setInt(p++, speciesConfigMap.get(sp).getVarType().getValue());
+				preparedStatement.setInt(p++, Utils.boolToInt(speciesConfigMap.get(sp).isStochastic()));
+				preparedStatement.setString(p++, speciesConfigMap.get(sp).getAmount());
 				affectedRows = preparedStatement.executeUpdate();
 				if (affectedRows == 0)
 					throw new SQLException("Creating " + table + " failed, no rows affected.");
@@ -679,7 +694,8 @@ public class ModelImpl extends ArrayList<Reaction> implements Model {
 				}
 				// save to formulasubstratesarray/value table
 				for (String constName : r.getFormulaSubstratesArrayParameters().keySet()) {
-					SortedMap<String, String> valuesMap = r.getFormulaSubstratesArrayParameters().get(constName);
+					SortedMap<String, FormulaArrayValue> valuesMap = r.getFormulaSubstratesArrayParameters()
+							.get(constName);
 					table = "formulasubstratesarray";
 					preparedStatement = conn.prepareStatement(
 							"insert into " + table + " (`id`, `id_reaction`, `constant`) values (NULL, ?, ?)",
@@ -700,7 +716,7 @@ public class ModelImpl extends ArrayList<Reaction> implements Model {
 					preparedStatement.close();
 					for (String sp : valuesMap.keySet()) {
 						table = "formulasubstratesarrayvalue";
-						String val = valuesMap.get(sp);
+						String val = valuesMap.get(sp).getValue();
 						preparedStatement = conn.prepareStatement("insert into " + table
 								+ " (`id`, `id_formulasubstratesarray`, `species`, `value`) values (NULL, ?, ?,?)",
 								Statement.RETURN_GENERATED_KEYS);
@@ -716,7 +732,8 @@ public class ModelImpl extends ArrayList<Reaction> implements Model {
 				}
 				// save to formulamodifiersarray/value table
 				for (String constName : r.getFormulaModifiersArrayParameters().keySet()) {
-					SortedMap<String, String> valuesMap = r.getFormulaModifiersArrayParameters().get(constName);
+					SortedMap<String, FormulaArrayValue> valuesMap = r.getFormulaModifiersArrayParameters()
+							.get(constName);
 					table = "formulamodifiersarray";
 					preparedStatement = conn.prepareStatement(
 							"insert into " + table + " (`id`, `id_reaction`, `constant`) values (NULL, ?, ?)",
@@ -737,7 +754,7 @@ public class ModelImpl extends ArrayList<Reaction> implements Model {
 					preparedStatement.close();
 					for (String mod : valuesMap.keySet()) {
 						table = "formulamodifiersarrayvalue";
-						String val = valuesMap.get(mod);
+						String val = valuesMap.get(mod).getValue();
 						preparedStatement = conn.prepareStatement("insert into " + table
 								+ " (`id`, `id_formulamodifiersarray`, `modifier`, `value`) values (NULL, ?, ?,?)",
 								Statement.RETURN_GENERATED_KEYS);
@@ -789,15 +806,16 @@ public class ModelImpl extends ArrayList<Reaction> implements Model {
 			pre.close();
 			// species table
 			table = "species";
-			pre = conn.prepareStatement("SELECT `id`, `id_model`, `species`, `concentration`, `vartype` FROM " + table
-					+ " WHERE id_model=?");
+			pre = conn.prepareStatement("SELECT `id`, `id_model`, `species`, `concentration`, `vartype`, `stochastic`, `amount` FROM "+table+" WHERE id_model=?");
 			pre.setInt(1, this.id);
 			rs = pre.executeQuery();
 			while (rs.next()) {
 				Species spObj = new SpeciesImpl();
 				spObj.setConcentration(rs.getString("concentration"));
 				spObj.setVarType(SpeciesVarTypeType.fromInt(rs.getInt("vartype")));
-				this.speciesMap.put(rs.getString("species"), spObj);
+				spObj.setStochastic(Utils.intToBool(rs.getInt("stochastic")));
+				spObj.setAmount(rs.getString("amount"));
+				this.speciesConfigMap.put(rs.getString("species"), spObj);
 			}
 			rs.close();
 			pre.close();
@@ -826,7 +844,7 @@ public class ModelImpl extends ArrayList<Reaction> implements Model {
 					fv.setConstantValue(rs2.getString("constantvalue"));
 					fv.setSubstrateValue(rs2.getString("substratevalue"));
 					fv.setModifierValue(rs2.getString("modifiervalue"));
-					r.getFormulaValuesNative().put(rs2.getString("constant"), fv);
+					r.getFormulaValuesRAW().put(rs2.getString("constant"), fv);
 				}
 				rs2.close();
 				pre2.close();
@@ -843,13 +861,13 @@ public class ModelImpl extends ArrayList<Reaction> implements Model {
 							+ table + " WHERE id_formulasubstratesarray=?");
 					pre3.setInt(1, tmpId);
 					rs3 = pre3.executeQuery();
-					SortedMap<String, String> arrVals = new TreeMap<>();
+					SortedMap<String, FormulaArrayValue> arrVals = new TreeMap<>();
 					while (rs3.next()) {
-						arrVals.put(rs3.getString("species"), rs3.getString("value"));
+						arrVals.put(rs3.getString("species"), new FormulaArrayValue(rs3.getString("value")));
 					}
 					rs3.close();
 					pre3.close();
-					r.getFormulaSubstratesArrayParametersNative().put(rs2.getString("constant"), arrVals);
+					r.getFormulaSubstratesArrayParametersRAW().put(rs2.getString("constant"), arrVals);
 				}
 				rs2.close();
 				pre2.close();
@@ -866,13 +884,13 @@ public class ModelImpl extends ArrayList<Reaction> implements Model {
 							+ table + " WHERE id_formulamodifiersarray=?");
 					pre3.setInt(1, tmpId);
 					rs3 = pre3.executeQuery();
-					SortedMap<String, String> arrVals = new TreeMap<>();
+					SortedMap<String, FormulaArrayValue> arrVals = new TreeMap<>();
 					while (rs3.next()) {
-						arrVals.put(rs3.getString("modifier"), rs3.getString("value"));
+						arrVals.put(rs3.getString("modifier"), new FormulaArrayValue(rs3.getString("value")));
 					}
 					rs3.close();
 					pre3.close();
-					r.getFormulaModifiersArrayParametersNative().put(rs2.getString("constant"), arrVals);
+					r.getFormulaModifiersArrayParametersRAW().put(rs2.getString("constant"), arrVals);
 				}
 				rs2.close();
 				pre2.close();
@@ -908,8 +926,8 @@ public class ModelImpl extends ArrayList<Reaction> implements Model {
 	}
 
 	@Override
-	public Map<String, FormulaValue> getAllFormulaParameters() {
-		Map<String, FormulaValue> res = new HashMap<>();
+	public SortedMap<String, FormulaValue> getAllFormulaParameters() {
+		SortedMap<String, FormulaValue> res = new TreeMap<>();
 		for (Reaction r : this) {
 			for (String parName : r.getFormulaValues().keySet()) {
 				if (r.getFormulaValues().get(parName) != null && r.getFormulaValues().get(parName).isFilled()) {
@@ -920,4 +938,124 @@ public class ModelImpl extends ArrayList<Reaction> implements Model {
 		return res;
 	}
 
+	@Override
+	public Map<String, SortedMap<String, FormulaArrayValue>> getAllFormulaSubstratesArrayValues() {
+		Map<String, SortedMap<String, FormulaArrayValue>> res = new HashMap<>();
+		for (Reaction r : this) {
+			for (String parName : r.getFormulaSubstratesArrayParameters().keySet()) {
+				for (String sp : r.getFormulaSubstratesArrayParameters().get(parName).keySet()) {
+					if (r.getFormulaSubstratesArrayParameters().get(parName).get(sp).isFilled()) {
+						res.put(r.getIdJavaStr() + parName, r.getFormulaSubstratesArrayParameters().get(parName));
+					}
+				}
+			}
+		}
+		return res;
+	}
+
+	@Override
+	public Map<String, SortedMap<String, FormulaArrayValue>> getAllFormulaModifiersArrayValues() {
+		Map<String, SortedMap<String, FormulaArrayValue>> res = new HashMap<>();
+		for (Reaction r : this) {
+			for (String parName : r.getFormulaModifiersArrayParameters().keySet()) {
+				for (String sp : r.getFormulaModifiersArrayParameters().get(parName).keySet()) {
+					if (r.getFormulaModifiersArrayParameters().get(parName).get(sp).isFilled()) {
+						res.put(r.getIdJavaStr() + parName, r.getFormulaModifiersArrayParameters().get(parName));
+					}
+				}
+			}
+		}
+		return res;
+	}
+
+	@Override
+	public void checkMathExpressions(MathLink mathLinkOp) throws MathLinkException, CException {
+		String newVal = null;
+		mathLinkOp.checkMultiMathCommands(this.getAllUsedFormulaStringsWithContext());
+		mathLinkOp.checkMultiMathCommands(this.simConfig.getAllMathExpressions());
+//		for (String name : speciesConfigMap.keySet()) {
+//			Species sp = speciesConfigMap.get(name);
+//			newVal = mathLinkOp.checkMathCommand(sp.getConcentration());
+//			if (newVal!=null)
+//				sp.setCalculatedConcentration(newVal);
+//			else
+//				throw new CException("Error: Initial concentration of species " + name + " : " + newVal);
+//		}
+//		for (Reaction r : this) {
+//			for (String key : r.getFormulaValues().keySet()) {
+//				FormulaValue fv = r.getFormulaValues().get(key);
+//				if (fv != null && fv.isFilled() && fv.getType() == FormulaValueType.CONSTANT) {
+//					newVal = mathLinkOp.checkMathCommand(fv.getConstantValue());
+//					if (newVal !=null)
+//						fv.setCalculatedConstantValue(newVal);
+//					else
+//						throw new CException("Error: Reaction " + r.getIdJavaStr() + " formula paremeter " + key
+//								+ " in " + r.getFormula().getFormulaDef() + " : treated val " + newVal + " raw val "+fv.getConstantValue());
+//				}
+//			}
+//		}
+
+//		for (Reaction r : this) {
+//			for (String parName : r.getFormulaSubstratesArrayParameters().keySet()) {
+//				for (String sp : r.getFormulaSubstratesArrayParameters().get(parName).keySet()) {
+//					FormulaArrayValue fav = r.getFormulaSubstratesArrayParameters().get(parName).get(sp);
+//					if (fav != null && fav.isFilled()) {
+//						newVal = mathLinkOp.checkMathCommand(fav.getValue());
+//						if (newVal != null)
+//							fav.setCalculatedValue(newVal);
+//						else
+//							throw new CException("Error: Reaction " + r.getIdJavaStr() + " formula parameter array "
+//									+ parName + " substrate " + sp + " in " + r.getFormula().getFormulaDef() + " : "
+//									+ newVal);
+//					}
+//				}
+//			}
+//		}
+//		for (Reaction r : this) {
+//			for (String parName : r.getFormulaModifiersArrayParameters().keySet()) {
+//				for (String sp : r.getFormulaModifiersArrayParameters().get(parName).keySet()) {
+//					FormulaArrayValue fav = r.getFormulaModifiersArrayParameters().get(parName).get(sp);
+//					if (fav != null && fav.isFilled()) {
+//						newVal = mathLinkOp.checkMathCommand(fav.getValue());
+//						if (newVal != null)
+//							fav.setCalculatedValue(newVal);
+//						else
+//							throw new CException("Error: Reaction " + r.getIdJavaStr() + " formula parameter array "
+//									+ parName + " modifier " + sp + " in " + r.getFormula().getFormulaDef() + " : "
+//									+ newVal);
+//					}
+//				}
+//			}
+//		}
+	}
+	@Override
+	public boolean isStochastic() {
+		for (Species sp : speciesConfigMap.values()) {
+			if (sp.isStochastic())
+				return true;
+		}
+		return false;
+	}
+//	private String fixStringNumber(String newVal) {
+//		if (newVal.endsWith("."))
+//			newVal += "0";
+//		String res=newVal;
+//		try {
+//			@SuppressWarnings("unused")
+//			BigDecimal bigDec = new BigDecimal(newVal);
+//		} catch (Exception e) {
+//			return null;
+//		}
+//		return res;
+//	}
+
+	@Override
+	public Formulas getAllUsedFormulas() {
+		Formulas res = new FormulasImpl();
+		for (Reaction r: this) {
+			if (r.getFormula() != null)
+				res.addFormula(r.getFormula());
+		}
+		return res;
+	}
 }

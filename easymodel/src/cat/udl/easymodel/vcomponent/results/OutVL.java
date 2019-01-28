@@ -150,12 +150,20 @@ public class OutVL extends VerticalLayout {
 		return img;
 	}
 
-	public void outFile(String captionButton, String tooltipButton, String filename, String fileString, boolean addToHorizontal) {
+	public void outFile(String caption, String tooltipButton, String filename, String fileString, String style, boolean addToHorizontal) {
 		if (fileString != null) {
 			FileDownloader fileDown = new FileDownloader(
 					new StreamResource(new DownFileStreamSource(fileString), filename));
-			Button downBtn = new Button(captionButton);
+			Button downBtn = new Button();
+			if (caption.equals("Mathematica"))
+				downBtn.setWidth("78px");
+			else if (caption.equals("SBML"))
+				downBtn.setWidth("78px");
+			else
+				downBtn.setCaption(caption);
 			downBtn.setDescription(tooltipButton);
+			if (style != null)
+				downBtn.setStyleName(style);
 			fileDown.extend(downBtn);
 			if (addToHorizontal)
 				addToHorizontalLayout(downBtn);

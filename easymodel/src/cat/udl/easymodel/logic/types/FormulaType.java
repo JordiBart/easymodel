@@ -1,7 +1,7 @@
 package cat.udl.easymodel.logic.types;
 
 public enum FormulaType {
-	 PREDEFINED(0), CUSTOM(1);
+	 PREDEFINED(0), CUSTOM(1),TEMP(2);
      private int value;
 
      private FormulaType(int value) {
@@ -14,21 +14,22 @@ public enum FormulaType {
              return FormulaType.PREDEFINED;
          case 1:
              return CUSTOM;
+         case 2:
+             return TEMP;
          }
          return null;
      }
      
      public String getString() {
-     	String type = "";
      	switch (value) {
      	case 0:
-     		type = "Predefined";
-     		break;
+     		return "Predefined";
      	case 1:
-     		type = "Custom";
-     		break;
+     		return "Custom";
+     	case 2:
+     		return "Temp";
      	}
-     	return type;
+     	return "err";
      }
 
  	public int getValue() {

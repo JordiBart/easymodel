@@ -247,7 +247,7 @@ public class FormulaEditWindow extends Window {
 						"WARNING: Rate " + formula.getNameToShow() + " has been unlinked from all reactions",
 						Type.TRAY_NOTIFICATION);
 			}
-			formula.setFormula(definitionTF.getValue());
+			formula.setFormulaDef(definitionTF.getValue());
 		}
 		formula.setOneSubstrateOnly(cbOneReactiveOnly.getValue());
 		formula.setNoProducts(cbNoProductives.getValue());

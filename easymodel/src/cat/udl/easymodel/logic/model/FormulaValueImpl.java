@@ -9,9 +9,8 @@ public class FormulaValueImpl implements FormulaValue {
 	private String constantValue = null;
 	private String substrateValue = null;
 	private String modifierValue = null;
-
+	
 	public FormulaValueImpl() {
-
 	}
 
 	public FormulaValueImpl(FormulaValueType fvt, Object value) {
@@ -70,7 +69,7 @@ public class FormulaValueImpl implements FormulaValue {
 		switch (getType()) {
 		case CONSTANT:
 			if (getConstantValue() != null) {
-				return getConstantValue();
+				return constantValue;
 			}
 			break;
 		case SUBSTRATE:

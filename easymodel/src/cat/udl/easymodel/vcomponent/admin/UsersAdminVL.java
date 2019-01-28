@@ -20,6 +20,7 @@ import cat.udl.easymodel.logic.types.UserType;
 import cat.udl.easymodel.logic.user.User;
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
+import cat.udl.easymodel.utils.VaadinUtils;
 
 import com.vaadin.ui.Panel;
 import com.vaadin.ui.Table;
@@ -116,35 +117,43 @@ public class UsersAdminVL extends VerticalLayout {
 		tf.setData(name);
 		tf.setInputPrompt(prompt);
 		tf.setValue(val);
+		if (name.equals("name"))
+			tf.setDescription(VaadinUtils.usernameRegexInfo);
+		else if (name.equals("password"))
+			tf.setDescription(VaadinUtils.passwordRegexInfo);
 		tf.addBlurListener(new BlurListener() {
 			@Override
 			public void blur(com.vaadin.event.FieldEvents.BlurEvent event) {
 				String newVal = ((TextField) event.getSource()).getValue();
 				if (name.equals("password")) {
-					if (!newVal.matches("^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d\\.!$%@#£€*?&]{8,}$")) {
+					if (!newVal.matches(VaadinUtils.passwordRegex)) {
 						((TextField) event.getSource()).setValue("");
 						valuesToSave.get(arrIndex).put(name, "");
-						Notification.show(
-								"Password: Minimum eight characters, at least one letter and one number",
-								Type.WARNING_MESSAGE);
+						Notification.show(VaadinUtils.passwordRegexInfo, Type.WARNING_MESSAGE);
 					} else
 						valuesToSave.get(arrIndex).put(name, newVal);
 				} else if (name.equals("name")) {
-					boolean found = false;
-					if (!newVal.equals("")) {
-						for (HashMap<String, Object> hm : valuesToSave) {
-							if (hm.get("name").equals(newVal)) {
-								found = true;
-								break;
-							}
-						}
-					}
-					if (!found)
-						valuesToSave.get(arrIndex).put(name, newVal);
-					else {
+					if (!newVal.matches(VaadinUtils.usernameRegex)) {
 						((TextField) event.getSource()).setValue("");
 						valuesToSave.get(arrIndex).put(name, "");
-						Notification.show("User name already exists!!", Type.WARNING_MESSAGE);
+						Notification.show(VaadinUtils.usernameRegexInfo, Type.WARNING_MESSAGE);
+					} else {
+						boolean found = false;
+						if (!newVal.equals("")) {
+							for (HashMap<String, Object> hm : valuesToSave) {
+								if (hm.get("name").equals(newVal)) {
+									found = true;
+									break;
+								}
+							}
+						}
+						if (!found)
+							valuesToSave.get(arrIndex).put(name, newVal);
+						else {
+							((TextField) event.getSource()).setValue("");
+							valuesToSave.get(arrIndex).put(name, "");
+							Notification.show("Duplicated username: " + newVal, Type.WARNING_MESSAGE);
+						}
 					}
 				}
 			}

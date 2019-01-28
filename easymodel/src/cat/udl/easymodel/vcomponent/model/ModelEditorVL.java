@@ -1,11 +1,16 @@
 package cat.udl.easymodel.vcomponent.model;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 
 import com.vaadin.event.FieldEvents.BlurEvent;
 import com.vaadin.event.FieldEvents.BlurListener;
 import com.vaadin.event.FieldEvents.TextChangeEvent;
 import com.vaadin.event.FieldEvents.TextChangeListener;
+import com.vaadin.server.FileResource;
+import com.vaadin.server.VaadinService;
 import com.vaadin.event.ShortcutAction;
 import com.vaadin.event.ShortcutListener;
 import com.vaadin.ui.AbstractTextField.TextChangeEventMode;
@@ -14,12 +19,15 @@ import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.ui.Component;
+import com.vaadin.ui.CustomLayout;
 import com.vaadin.ui.HorizontalLayout;
+import com.vaadin.ui.Image;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.Panel;
 import com.vaadin.ui.PopupView;
+import com.vaadin.ui.PopupView.Content;
 import com.vaadin.ui.TextField;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
@@ -33,9 +41,11 @@ import cat.udl.easymodel.logic.model.ReactionUtils;
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.utils.VaadinUtils;
-import cat.udl.easymodel.vcomponent.AppPanel;
+import cat.udl.easymodel.utils.p;
+import cat.udl.easymodel.vcomponent.app.AppPanel;
 import cat.udl.easymodel.vcomponent.formula.FormulasEditorVL;
 import cat.udl.easymodel.vcomponent.model.window.LinkReactionFormulaWindow;
+import cat.udl.easymodel.vcomponent.model.window.RenderDescriptionHTMLWindow;
 import cat.udl.easymodel.vcomponent.model.window.SpeciesWindow;
 
 public class ModelEditorVL extends VerticalLayout {
@@ -96,9 +106,17 @@ public class ModelEditorVL extends VerticalLayout {
 	private HorizontalLayout getHeaderHL() {
 		HorizontalLayout hl = new HorizontalLayout();
 		hl.setWidth("100%");
-		HorizontalLayout spacer = new HorizontalLayout();
-		hl.addComponents(spacer, infoPopup, getInfoButton());
-		hl.setExpandRatio(spacer, 1f);
+		hl.setHeight("37px");
+		FileResource resource = new FileResource(
+				new File(VaadinService.getCurrent()
+						.getBaseDirectory().getAbsolutePath() + "/VAADIN/themes/easymodel/img/easymodel-logo-36.png"));
+		Image image = new Image(null, resource);
+		HorizontalLayout head = new HorizontalLayout();
+		head.setWidth("100%");
+		head.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
+		head.addComponent(image);
+		hl.addComponents(head, infoPopup, getInfoButton());
+		hl.setExpandRatio(head, 1f);
 		return hl;
 	}
 
@@ -202,6 +220,22 @@ public class ModelEditorVL extends VerticalLayout {
 		return btn;
 	}
 
+	private Button getDescriptionHtmlButton() {
+		Button btn = new Button();
+		btn.setDescription("Render model description as HTML (be aware of malicious HTML code)");
+		btn.setWidth("36px");
+		btn.setStyleName("renderHtmlBtn");
+		btn.addClickListener(new ClickListener() {
+			private static final long serialVersionUID = 1L;
+
+			public void buttonClick(ClickEvent event) {
+				RenderDescriptionHTMLWindow window = new RenderDescriptionHTMLWindow();
+				UI.getCurrent().addWindow(window);
+			}
+		});
+		return btn;
+	}
+	
 	private Button getAddReactionButton() {
 		Button btn = new Button("Add Reaction");
 		btn.setDescription("Add a new Reaction or Process");
@@ -357,6 +391,18 @@ public class ModelEditorVL extends VerticalLayout {
 		return tf;
 	}
 
+	private CustomLayout getDescriptionHtmlLayout() {
+		return new CustomLayout();
+//		try {
+//			String html = VaadinUtils.sanitizeHTML(selectedModel.getDescription());
+//			cl = new CustomLayout(new ByteArrayInputStream(html.getBytes()));
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//			cl = new CustomLayout();
+//		}
+//		return cl;
+	}
+	
 	private VerticalLayout getInfoLayout() {
 		VerticalLayout vlt = new VerticalLayout();
 		vlt.addComponent(new Label("How to use " + SharedData.appName));
@@ -395,6 +441,15 @@ public class ModelEditorVL extends VerticalLayout {
 				selectedModel.setName(event.getText());
 			}
 		});
+		
+		vl.addComponents(nameTF, getDescriptionHL());
+		return vl;
+	}
+
+	private Component getDescriptionHL() {
+		HorizontalLayout hl = new HorizontalLayout();
+		hl.setDefaultComponentAlignment(Alignment.BOTTOM_LEFT);
+		hl.setWidth("100%");
 		TextField descTF = new TextField();
 		descTF.setValue(selectedModel.getDescription());
 		descTF.setCaption("Description");
@@ -405,12 +460,14 @@ public class ModelEditorVL extends VerticalLayout {
 				selectedModel.setDescription(event.getText());
 			}
 		});
-		vl.addComponents(nameTF, descTF);
-		return vl;
+		Button renderBtn = getDescriptionHtmlButton();
+		hl.addComponents(descTF,renderBtn);
+		hl.setExpandRatio(descTF, 1f);
+		return hl;
 	}
 
 	private void openLinkFormulaWindow(Reaction react, Button btn) {
-		if (sessionData.getCustomFormulas().isEmpty() && sessionData.getPredefinedFormulas().isEmpty()) {
+		if (sessionData.getAllFormulas().isEmpty()) {
 			Notification.show("No rate found", Type.WARNING_MESSAGE);
 			return;
 		}

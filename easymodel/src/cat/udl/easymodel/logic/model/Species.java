@@ -16,4 +16,12 @@ public interface Species {
 
 	public abstract Species getCopy();
 
+	String getAmount();
+
+	boolean isStochastic();
+
+	void setStochastic(boolean isStochastic);
+
+	void setAmount(String amount);
+
 }

@@ -29,5 +29,4 @@ public interface Formulas extends List<Formula> {
 	String getNextFormulaNameByModelShortName(String modelShortName);
 
 	void reset();
-	
 }

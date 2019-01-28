@@ -24,7 +24,13 @@ public class FormulasImpl extends ArrayList<Formula> implements Formulas {
 
 	private FormulaType formulaType;
 	private SessionData sessionData;
+	private ArrayList<Integer> formulaIdsToDelete = new ArrayList<>();
 
+	public FormulasImpl() {
+		super();
+		this.sessionData = (SessionData) UI.getCurrent().getData();
+	}
+	
 	public FormulasImpl(FormulaType fType) {
 		super();
 		this.sessionData = (SessionData) UI.getCurrent().getData();
@@ -33,7 +39,10 @@ public class FormulasImpl extends ArrayList<Formula> implements Formulas {
 
 	@Override
 	public void reset() {
-		clear();
+		for (Formula f: this)
+			f.clear();
+		this.clear();
+		formulaIdsToDelete.clear();
 	}
 	
 	@Override
@@ -48,6 +57,8 @@ public class FormulasImpl extends ArrayList<Formula> implements Formulas {
 	@Override
 	public boolean removeFormula(Formula f) {
 		if (f != null && remove(f)) {
+			if (f.getId() != null)
+				formulaIdsToDelete.add(f.getId());
 			int i = 1;
 			for (Formula f2 : this)
 				f2.setIdJava(i++);
@@ -121,37 +132,19 @@ public class FormulasImpl extends ArrayList<Formula> implements Formulas {
 		Connection con = sharedData.getDbManager().getCon();
 		PreparedStatement preparedStatement, pre2;
 		int p;
-		boolean found;
 		try {
 			// DELETE USER DELETED FORMULAS
-			preparedStatement = con
-					.prepareStatement("SELECT id FROM formula WHERE formulatype=? AND repositorytype=? AND id_user=?");
-			p = 1;
-			preparedStatement.setInt(p++, FormulaType.CUSTOM.getValue());
-			preparedStatement.setInt(p++, RepositoryType.PRIVATE.getValue());
-			preparedStatement.setInt(p++, sessionData.getUser().getId());
-			ResultSet rs = preparedStatement.executeQuery();
-			while (rs.next()) {
-				found = false;
-				for (Formula f : this) {
-					if (f.getId() != null && f.getId() == rs.getInt("id")) {
-						found = true;
-						break;
-					}
-				}
-				if (!found) {
-					pre2 = con.prepareStatement("DELETE FROM formula WHERE id=?");
-					pre2.setInt(1, rs.getInt("id"));
-					pre2.executeUpdate();
-					pre2.close();
-				}
+			for (Integer idDel : formulaIdsToDelete) {
+				pre2 = con.prepareStatement("DELETE FROM formula WHERE id=?");
+				pre2.setInt(1, idDel);
+				pre2.executeUpdate();
+				pre2.close();
 			}
-			rs.close();
-			preparedStatement.close();
 			// UPDATE/INSERT
 			for (Formula f : this) {
-				if (!f.isValid())
+				if (!f.isValid() || !f.isDirty()) {
 					continue;
+				}
 				if (f.getFormulaType() == FormulaType.PREDEFINED || f.getFormulaType() == FormulaType.CUSTOM
 						&& f.getUser() == sessionData.getUser() && f.getRepositoryType() == RepositoryType.PRIVATE) {
 					p = 1;
@@ -218,6 +211,7 @@ public class FormulasImpl extends ArrayList<Formula> implements Formulas {
 						}
 					}
 				}
+				f.setDirty(false);
 			}
 		} catch (SQLException e) {
 			System.err.println(e.getMessage());
@@ -266,6 +260,7 @@ public class FormulasImpl extends ArrayList<Formula> implements Formulas {
 				rs2.close();
 				pre2.close();
 				
+				f.setDirty(false);
 				this.addFormula(f);
 			}
 			rs.close();

@@ -2,6 +2,7 @@ package cat.udl.easymodel.thread;
 
 import com.vaadin.ui.Panel;
 
+//does not work, unused
 public class WaitAndScrollThread extends Thread {
 	private Panel outPanelConsole = null;
 

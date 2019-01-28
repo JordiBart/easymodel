@@ -26,7 +26,7 @@ import com.vaadin.ui.Upload.SucceededListener;
 import cat.udl.easymodel.logic.model.Model;
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
-import cat.udl.easymodel.sbml.SBMLTools;
+import cat.udl.easymodel.sbml.SBMLMan;
 
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.Window;
@@ -152,13 +152,17 @@ public class ImportSBMLWindow extends Window {
 
 			public void uploadSucceeded(SucceededEvent event) {
 				try {
-					Model m = SBMLTools.importSBML(new ByteArrayInputStream(baos.toByteArray()));
+					StringBuilder report = new StringBuilder();
+					Model m = SBMLMan.getInstance().importSBML(new ByteArrayInputStream(baos.toByteArray()), report, null);
 					sessionData.setSelectedModel(m);
 					thisClass.setData(true);
 					thisClass.close();
+					if (report.length() > 0)
+						Notification.show("SBML import report:\n"+report.toString(), Type.WARNING_MESSAGE);	
 				} catch (Exception e) {
-					Notification.show("SBML file contains errors", Type.WARNING_MESSAGE);
+					Notification.show("SBML file contains errors: "+e.getMessage(), Type.WARNING_MESSAGE);
 					e.printStackTrace();
+					progressBar.setValue(0.0f);
 				}
 			}
 		};
@@ -169,8 +173,9 @@ public class ImportSBMLWindow extends Window {
 
 			@Override
 			public void uploadFailed(FailedEvent event) {
-				new Notification("Upload failed (is file an SBML/XML?)", Notification.Type.WARNING_MESSAGE)
+				new Notification("Importing SBML/XML failed", Notification.Type.WARNING_MESSAGE)
 						.show(Page.getCurrent());
+				progressBar.setValue(0.0f);
 			}
 		};
 	}

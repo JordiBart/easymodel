@@ -11,6 +11,7 @@ import cat.udl.easymodel.logic.formula.Formula;
 import cat.udl.easymodel.logic.formula.FormulaImpl;
 import cat.udl.easymodel.logic.formula.FormulaUtils;
 import cat.udl.easymodel.logic.types.FormulaValueType;
+import cat.udl.easymodel.utils.p;
 
 public class ReactionImpl implements Comparable<Reaction>, Reaction {
 	enum SpeciesType {
@@ -25,7 +26,7 @@ public class ReactionImpl implements Comparable<Reaction>, Reaction {
 	private SortedMap<String, Integer> leftPartSpecies = new TreeMap<>();
 	private SortedMap<String, Integer> rightPartSpecies = new TreeMap<>();
 	private SortedMap<String, Integer> modifiers = new TreeMap<>();
-	// map with only keys
+	// map with only keys, no values
 	private SortedMap<String, Integer> bothSidesSpecies = new TreeMap<>();
 
 	// FORMULA
@@ -34,9 +35,9 @@ public class ReactionImpl implements Comparable<Reaction>, Reaction {
 	// <constant, constantValue>>
 	private SortedMap<String, FormulaValue> formulaValues = new TreeMap<>();
 	// <constant, <species, constantValue>>
-	private SortedMap<String, SortedMap<String, String>> formulaSubstratesArrayParameters = new TreeMap<>();
+	private SortedMap<String, SortedMap<String, FormulaArrayValue>> formulaSubstratesArrayParameters = new TreeMap<>();
 	// <constant, <modifier, constantValue>>
-	private SortedMap<String, SortedMap<String, String>> formulaModifiersArrayParameters = new TreeMap<>();
+	private SortedMap<String, SortedMap<String, FormulaArrayValue>> formulaModifiersArrayParameters = new TreeMap<>();
 
 	public ReactionImpl() {
 	}
@@ -46,7 +47,7 @@ public class ReactionImpl implements Comparable<Reaction>, Reaction {
 	}
 
 	@Override
-	public SortedMap<String, FormulaValue> getFormulaValuesNative() {
+	public SortedMap<String, FormulaValue> getFormulaValuesRAW() {
 		return formulaValues;
 	}
 
@@ -75,6 +76,11 @@ public class ReactionImpl implements Comparable<Reaction>, Reaction {
 		this.idJava = idJava;
 	}
 
+	@Override
+	public String getMathematicaContext() {
+		return "r" + idJava + "`";
+	}
+	
 	@Override
 	public String getReactionStr() {
 		return reactionStr;
@@ -251,12 +257,12 @@ public class ReactionImpl implements Comparable<Reaction>, Reaction {
 	}
 
 	@Override
-	public SortedMap<String, SortedMap<String, String>> getFormulaSubstratesArrayParametersNative() {
+	public SortedMap<String, SortedMap<String, FormulaArrayValue>> getFormulaSubstratesArrayParametersRAW() {
 		return formulaSubstratesArrayParameters;
 	}
 
 	@Override
-	public SortedMap<String, SortedMap<String, String>> getFormulaSubstratesArrayParameters() {
+	public SortedMap<String, SortedMap<String, FormulaArrayValue>> getFormulaSubstratesArrayParameters() {
 		if (formula == null)
 			formulaSubstratesArrayParameters.clear();
 		else {
@@ -268,20 +274,20 @@ public class ReactionImpl implements Comparable<Reaction>, Reaction {
 			for (String key : keysToRemove)
 				formulaSubstratesArrayParameters.remove(key);
 			// add missing keys
-			SortedMap<String, String> mapBySpecies = null;
+			SortedMap<String, FormulaArrayValue> mapBySpecies = null;
 			for (String constantKey : formula.getParametersBySubsAndModif()) {
 				if (!formulaSubstratesArrayParameters.containsKey(constantKey))
 					mapBySpecies = new TreeMap<>();
 				else
 					mapBySpecies = formulaSubstratesArrayParameters.get(constantKey);
-				// remove unused modifiers
+				// remove unused substrates
 				keysToRemove.clear();
 				for (String key : mapBySpecies.keySet())
 					if (!getLeftPartSpecies().containsKey(key))
 						keysToRemove.add(key);
 				for (String key : keysToRemove)
 					mapBySpecies.remove(key);
-				// add missing modifiers
+				// add missing substrates
 				for (String key : getLeftPartSpecies().keySet()) {
 					if (!mapBySpecies.containsKey(key))
 						mapBySpecies.put(key, null);
@@ -293,12 +299,12 @@ public class ReactionImpl implements Comparable<Reaction>, Reaction {
 	}
 
 	@Override
-	public SortedMap<String, SortedMap<String, String>> getFormulaModifiersArrayParametersNative() {
+	public SortedMap<String, SortedMap<String, FormulaArrayValue>> getFormulaModifiersArrayParametersRAW() {
 		return formulaModifiersArrayParameters;
 	}
 
 	@Override
-	public SortedMap<String, SortedMap<String, String>> getFormulaModifiersArrayParameters() {
+	public SortedMap<String, SortedMap<String, FormulaArrayValue>> getFormulaModifiersArrayParameters() {
 		if (formula == null)
 			formulaModifiersArrayParameters.clear();
 		else {
@@ -310,7 +316,7 @@ public class ReactionImpl implements Comparable<Reaction>, Reaction {
 			for (String key : keysToRemove)
 				formulaModifiersArrayParameters.remove(key);
 			// add missing keys
-			SortedMap<String, String> mapByModifiers = null;
+			SortedMap<String, FormulaArrayValue> mapByModifiers = null;
 			for (String constantKey : formula.getParametersBySubsAndModif()) {
 				if (!formulaModifiersArrayParameters.containsKey(constantKey))
 					mapByModifiers = new TreeMap<>();
@@ -368,10 +374,10 @@ public class ReactionImpl implements Comparable<Reaction>, Reaction {
 	}
 
 	@Override
-	public SortedMap<String, SortedMap<String, String>> getFormulaModifiersArrayParametersForFormula(Formula f) {
-		SortedMap<String, SortedMap<String, String>> parameters = new TreeMap<>();
+	public SortedMap<String, SortedMap<String, FormulaArrayValue>> getFormulaModifiersArrayParametersForFormula(Formula f) {
+		SortedMap<String, SortedMap<String, FormulaArrayValue>> parameters = new TreeMap<>();
 		if (f != null) {
-			SortedMap<String, String> mapByModifiers = null;
+			SortedMap<String, FormulaArrayValue> mapByModifiers = null;
 			for (String constantKey : f.getParametersBySubsAndModif()) {
 				mapByModifiers = new TreeMap<>();
 				for (String key : modifiers.keySet()) {
@@ -384,10 +390,10 @@ public class ReactionImpl implements Comparable<Reaction>, Reaction {
 	}
 
 	@Override
-	public SortedMap<String, SortedMap<String, String>> getFormulaSubstratesArrayParametersForFormula(Formula f) {
-		SortedMap<String, SortedMap<String, String>> parameters = new TreeMap<>();
+	public SortedMap<String, SortedMap<String, FormulaArrayValue>> getFormulaSubstratesArrayParametersForFormula(Formula f) {
+		SortedMap<String, SortedMap<String, FormulaArrayValue>> parameters = new TreeMap<>();
 		if (f != null) {
-			SortedMap<String, String> mapBySpecies = null;
+			SortedMap<String, FormulaArrayValue> mapBySpecies = null;
 			for (String constantKey : f.getParametersBySubsAndModif()) {
 				mapBySpecies = new TreeMap<>();
 				for (String key : this.getLeftPartSpecies().keySet()) {
@@ -419,12 +425,12 @@ public class ReactionImpl implements Comparable<Reaction>, Reaction {
 		for (FormulaValue co : formulaValues.values())
 			if (co == null || !co.isFilled() || co.getType() == FormulaValueType.SUBSTRATE && !leftPartSpecies.containsKey(co.getSubstrateValue()) || co.getType() == FormulaValueType.MODIFIER && !modifiers.containsKey(co.getModifierValue()))
 				return false;
-		for (Map<String, String> constMap : getFormulaSubstratesArrayParameters().values())
-			for (String co : constMap.values())
+		for (Map<String, FormulaArrayValue> constMap : getFormulaSubstratesArrayParameters().values())
+			for (FormulaArrayValue co : constMap.values())
 				if (co == null)
 					return false;
-		for (Map<String, String> constMap : getFormulaModifiersArrayParameters().values())
-			for (String co : constMap.values())
+		for (Map<String, FormulaArrayValue> constMap : getFormulaModifiersArrayParameters().values())
+			for (FormulaArrayValue co : constMap.values())
 				if (co == null)
 					return false;
 		return true;
@@ -467,4 +473,5 @@ public class ReactionImpl implements Comparable<Reaction>, Reaction {
 	public int compareTo(Reaction react2) {
 		return Integer.valueOf(this.idJava).compareTo(Integer.valueOf(((Reaction) react2).getIdJava()));
 	}
+
 }

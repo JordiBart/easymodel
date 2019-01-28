@@ -1,7 +1,7 @@
 package cat.udl.easymodel.logic.types;
 
 public enum RepositoryType {
-	PUBLIC(0), PRIVATE(1), SBML(2);
+	PUBLIC(0), PRIVATE(1), TEMP(2);
     private int value;
 
     private RepositoryType(int value) {
@@ -15,7 +15,7 @@ public enum RepositoryType {
         case 1:
             return PRIVATE;
         case 2:
-            return SBML;
+            return TEMP;
         }
         return null;
     }
@@ -30,7 +30,7 @@ public enum RepositoryType {
     		type = "Private";
     		break;
     	case 2:
-    		type = "SBML";
+    		type = "TEMP";
     		break;
     	}
     	return type;

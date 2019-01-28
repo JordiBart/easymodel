@@ -18,6 +18,7 @@ import cat.udl.easymodel.logic.types.UserType;
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.vcomponent.model.window.ValidateModelWindow;
+import cat.udl.easymodel.view.AdminView;
 import cat.udl.easymodel.view.AppView;
 import cat.udl.easymodel.view.LoginView;
 
@@ -154,7 +155,7 @@ public class AdminPanel extends Panel {
 
 	private Button getSwitchAdminAppButton() {
 		Button btn = new Button();
-		btn.setCaption("App");
+		btn.setCaption("Go App");
 		btn.setHeight("30px");
 		btn.setStyleName("stepNotSelected");
 		btn.addClickListener(new ClickListener() {
@@ -162,6 +163,8 @@ public class AdminPanel extends Panel {
 
 			@Override
 			public void buttonClick(ClickEvent event) {
+				UI.getCurrent().getNavigator().removeView(AdminView.NAME);
+				UI.getCurrent().getNavigator().addView(AppView.NAME, AppView.class);
 				UI.getCurrent().getNavigator().navigateTo(AppView.NAME);
 			}
 
@@ -178,6 +181,7 @@ public class AdminPanel extends Panel {
 			@Override
 			public void buttonClick(ClickEvent event) {
 				sessionData.setUser(null);
+				UI.getCurrent().getNavigator().removeView(AdminView.NAME);
 				UI.getCurrent().getNavigator().navigateTo(LoginView.NAME);
 			}
 		});
