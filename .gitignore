@@ -1,3 +1,6 @@
 /easymodel/build/*
 /easymodel/.settings/*
+/easymodel/target/*
+/easymodel/easymodel-appdata/*
+/easymodel/.classpath
 /easymodel/.project

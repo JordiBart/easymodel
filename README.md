@@ -1,30 +1,33 @@
-# easymodel
-Public repository for EasyModel (kinetic modeling of biological systems)
+# EasyModel v1.0 RC2
+Official public repository
 
-Project is written in Java EE using Eclipse IDE
+EasyModel is a web application for kinetic modeling of biological systems.
+
+Project is written in Java EE using the Eclipse IDE.
+Dependencies: Java JDK, Vaadin 8, Apache Tomcat, MySQL, Wolfram Mathematica.
 
 HOW TO IMPORT PROJECT INTO ECLIPSE
 
-1. Download the "easymodel" Java project directory
-2. File>Import...>General>Projects from Folder or Archive>Select the "easymodel" folder
-3. Right click on project>Ivy>Resolve
+1. Download the "easymodel" Java project directory.
+2. File>Import...>General>Projects from Folder or Archive>Select the "easymodel" folder.
+3. Right click on project>Maven>Update Project...
 
 HOW TO RUN PROJECT IN ECLIPSE
 
 1. Add an Apache Tomcat Server to Eclipse: Window>Preferences>Server>Runtime Environments>Add...
 2. Right click on project>Run As>Run configurations...>Create a new Apache Tomcat configuration and add an External JAR to the Classpath: $ProgramsDirectory$/Wolfram Research/Mathematica/$Version$/SystemFiles/Links/JLink/JLink.jar
 3. Right click on project>Run As>Run on Server
-4. Check console messages to see if project has been sucessfully deployed and edit properties file if necessary (easymodel/easymodel.properties)
+4. Check console messages to see if project has been sucessfully deployed and edit properties file if necessary (easymodel/easymodel.properties).
 
 HOW TO RUN PROJECT ON A STANDALONE APACHE TOMCAT SERVER
 
 1. Export project to WAR file in $TomcatDir$/webapps: Right click project>Export>WAR file
-2. Copy the file TomcatConfig/setenv.sh (linux) or setenv.bat (windows) to $TomcatDir$/bin and edit the file to fit your system
-3. Run tomcat by executing $TomcatDir$/bin/startup.sh (linux) or startup.bat (windows)
-(NOTE: in UNIX server systems you may need to create a virtual screen with "Xvfb -shmem -screen 0 1280x1024x24 &" in order to allow Mathematica generate image files)
+2. Copy the file TomcatConfig/setenv.sh (linux) or setenv.bat (windows) to $TomcatDir$/bin and edit the file to fit your system.
+3. Run tomcat by executing $TomcatDir$/bin/startup.sh (linux) or startup.bat (windows).
+(NOTE: in UNIX server systems you may need to create a virtual screen with the command "Xvfb :0 -screen 0 1280x1024x24 &" in order to allow Mathematica generate image files)
 
 HOW TO SET UP THE MYSQL SERVER
 
-1. Create a database called "easymodel" in the MySQL server
-2. Execute the file MySQL_DB_easymodel/easymodel.sql in the MySQL server to set up the database tables etc. (in phpmyadmin: select the easymodel database and import the .sql file)
-3. Edit MySQL configuration in EasyModel properties file (easymodel/easymodel.properties) to match your MySQL server and restart application
+1. Create a database called "easymodel" in the MySQL server.
+2. Execute the file MySQL_DB_easymodel/easymodel.sql in the MySQL server to set up the database tables etc. (in phpmyadmin: select the easymodel database and import the .sql file).
+3. Edit MySQL configuration in EasyModel properties file (easymodel/easymodel.properties) to match your MySQL server configuration and restart Tomcat.
