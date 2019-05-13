@@ -7,7 +7,7 @@
 	<groupId>cat.udl</groupId>
 	<artifactId>easymodel</artifactId>
 	<packaging>war</packaging>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0-SNAPSHOT</version>
 	<name>easymodel</name>
 
 	<prerequisites>
@@ -15,8 +15,8 @@
 	</prerequisites>
 
 	<properties>
-		<vaadin.version>8.7.2</vaadin.version>
-		<vaadin.plugin.version>8.7.2</vaadin.plugin.version>
+		<vaadin.version>8.8.0</vaadin.version>
+		<vaadin.plugin.version>8.8.0</vaadin.plugin.version>
 		<jetty.plugin.version>9.3.9.v20160517</jetty.plugin.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>1.8</maven.compiler.source>
@@ -46,61 +46,54 @@
 	</dependencyManagement>
 
 	<dependencies>
-		<!-- PROJECT DEPENDENCIES -->
-		<dependency>
-			<groupId>repo</groupId>
-			<artifactId>JLink</artifactId>
-			<version>1.0</version>
-			<scope>system</scope>
-			<systemPath>C:\Program Files\Wolfram Research\Mathematica\9.0\SystemFiles\Links\JLink\JLink.jar</systemPath>
-		</dependency>
-		<dependency>
-			<groupId>repo</groupId>
-			<artifactId>jsbml-1.3.1-javadoc</artifactId>
-			<version>1.0</version>
-			<scope>system</scope>
-			<systemPath>${basedir}/src/main/webapp/WEB-INF/lib/jsbml-1.3.1-javadoc.jar</systemPath>
-		</dependency>
-		<dependency>
-			<groupId>repo</groupId>
-			<artifactId>jsbml-1.3.1-with-dependencies</artifactId>
-			<version>1.0</version>
-			<scope>system</scope>
-			<systemPath>${basedir}/src/main/webapp/WEB-INF/lib/jsbml-1.3.1-with-dependencies.jar</systemPath>
-		</dependency>
-		<dependency>
-			<groupId>repo</groupId>
-			<artifactId>mysql-connector-java-5.1.45-bin</artifactId>
-			<version>1.0</version>
-			<scope>system</scope>
-			<systemPath>${basedir}/src/main/webapp/WEB-INF/lib/mysql-connector-java-5.1.45-bin.jar</systemPath>
-		</dependency>
-		<dependency>
-			<groupId>repo</groupId>
-			<artifactId>wcslib-vaadin-widget-recaptcha-2.0.3</artifactId>
-			<version>1.0</version>
-			<scope>system</scope>
-			<systemPath>${basedir}/src/main/webapp/WEB-INF/lib/wcslib-vaadin-widget-recaptcha-2.0.3.jar</systemPath>
-		</dependency>
-		<dependency>
-			<groupId>repo</groupId>
-			<artifactId>wcslib-vaadin-widget-recaptcha-2.0.3-javadoc</artifactId>
-			<version>1.0</version>
-			<scope>system</scope>
-			<systemPath>${basedir}/src/main/webapp/WEB-INF/lib/wcslib-vaadin-widget-recaptcha-2.0.3-javadoc.jar</systemPath>
-		</dependency>
-<!-- 		<dependency> -->
-<!-- 			<groupId>javax.mail</groupId> -->
-<!-- 			<artifactId>javax.mail-api</artifactId> -->
-<!-- 			<version>1.6.2</version> -->
-<!-- 		</dependency> -->
+		<!-- ADDED DEPENDENCIES -->
 		<dependency>
 			<groupId>com.sun.mail</groupId>
 			<artifactId>javax.mail</artifactId>
 			<version>1.6.2</version>
 		</dependency>
-
-		<!-- DEFAULT DEPENDENCIES -->
+		<dependency>
+			<groupId>org.json</groupId>
+			<artifactId>json</artifactId>
+			<version>20180813</version>
+		</dependency>
+		<dependency>
+			<groupId>org.sbml.jsbml</groupId>
+			<artifactId>jsbml</artifactId>
+			<version>1.4</version>
+		</dependency>
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<version>8.0.16</version>
+		</dependency>
+		<!-- SYSTEM PATH DEPENDENCIES -->
+		<!-- TRIED 'ALL' OTHER MAVEN OPTIONS TO AVOID SYSTEM SCOPE. EASIEST SOLUTION: SWITCH TO IVY, ETC -->
+<!-- 		<dependency> -->
+<!-- 			<groupId>repo</groupId> -->
+<!-- 			<artifactId>JLink</artifactId> -->
+<!-- 			<version>0</version> -->
+<!-- 			<type>jar</type> -->
+<!-- 			<scope>system</scope> -->
+<!-- 			<systemPath>C:\Program Files\Wolfram Research\Mathematica\9.0\SystemFiles\Links\JLink\JLink.jar</systemPath> -->
+<!-- 		</dependency> -->
+<!-- 		<dependency> -->
+<!-- 			<groupId>repo</groupId> -->
+<!-- 			<artifactId>wcslib-vaadin-widget-recaptcha-2.0.3</artifactId> -->
+<!-- 			<version>0</version> -->
+<!-- 			<type>jar</type> -->
+<!-- 			<scope>system</scope> -->
+<!-- 			<systemPath>${basedir}/src/main/webapp/WEB-INF/lib/wcslib-vaadin-widget-recaptcha-2.0.3.jar</systemPath> -->
+<!-- 		</dependency> -->
+<!-- 		<dependency> -->
+<!-- 			<groupId>repo</groupId> -->
+<!-- 			<artifactId>wcslib-vaadin-widget-recaptcha-2.0.3-javadoc</artifactId> -->
+<!-- 			<version>0</version> -->
+<!-- 			<type>jar</type> -->
+<!-- 			<scope>system</scope> -->
+<!-- 			<systemPath>${basedir}/src/main/webapp/WEB-INF/lib/wcslib-vaadin-widget-recaptcha-2.0.3-javadoc.jar</systemPath> -->
+<!-- 		</dependency> -->
+		<!-- DEFAULT DEPENDECIES -->
 		<dependency>
 			<groupId>javax.servlet</groupId>
 			<artifactId>javax.servlet-api</artifactId>
@@ -122,11 +115,6 @@
 		<dependency>
 			<groupId>com.vaadin</groupId>
 			<artifactId>vaadin-themes</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.json</groupId>
-			<artifactId>json</artifactId>
-			<version>20180813</version>
 		</dependency>
 	</dependencies>
 

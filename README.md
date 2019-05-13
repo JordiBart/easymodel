@@ -4,13 +4,15 @@ Official public repository
 EasyModel is a web application for kinetic modeling of biological systems.
 
 Project is written in Java EE using the Eclipse IDE.
-Dependencies: Java JDK, Vaadin 8, Apache Tomcat, MySQL, Wolfram Mathematica.
+Dependencies: Wolfram Mathematica, MySQL, Java JDK, Vaadin 8 and Apache Tomcat.
 
 HOW TO IMPORT PROJECT INTO ECLIPSE
 
-1. Download the "easymodel" Java project directory.
-2. File>Import...>General>Projects from Folder or Archive>Select the "easymodel" folder.
-3. Right click on project>Maven>Update Project...
+1. Download the "easymodel" Java project directory it into your workspace.
+2. In Eclipse: File>Import...>Maven>Existing Maven Projects>select the "easymodel" folder.
+3. Right click on the project>Maven>Update Project...
+4. Right click on the project>Properties>Java Build Path>Libraries>Add JARs>add the jars located in $project.basedir/src/main/webapp/WEB-INF/lib
+5. Right click on easymodel project>Properties>Java Build Path>Libraries>Add External JARs>select the file $ProgramsDirectory$/Wolfram Research/Mathematica/$Version$/SystemFiles/Links/JLink/JLink.jar
 
 HOW TO RUN PROJECT IN ECLIPSE
 

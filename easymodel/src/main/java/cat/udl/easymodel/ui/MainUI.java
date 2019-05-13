@@ -40,6 +40,13 @@ public class MainUI extends UI {
 	private SessionData sessionData;
 	private SharedData sharedData;
 
+	@WebServlet(urlPatterns = "/*", name = "MainUIServlet", asyncSupported = true)
+	@VaadinServletConfiguration(ui = MainUI.class, productionMode = true)
+	// XXX WHEN USING TOMCAT FROM ECLIPSE: PRODUCTION=TRUE MAY PREVENT COMPILATION OF CSS
+	
+	public static class MainUIServlet extends VaadinServlet {
+	}
+	
 	@Override
 	protected void init(VaadinRequest vaadinRequest) {
 //		System.load(System.getProperty("user.dir")+"\\JLinkNativeLibrary.dll");
@@ -104,10 +111,5 @@ public class MainUI extends UI {
 			}
 		});
 		this.getNavigator().setErrorView(ErrorView.class);
-	}
-
-	@WebServlet(urlPatterns = "/*", name = "MainUIServlet", asyncSupported = true)
-	@VaadinServletConfiguration(ui = MainUI.class, productionMode = true)
-	public static class MainUIServlet extends VaadinServlet {
 	}
 }
