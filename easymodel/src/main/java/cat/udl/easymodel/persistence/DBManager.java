@@ -22,7 +22,7 @@ public interface DBManager {
 	void autoConvertPrivateToPublic() throws SQLException;
 
 	ArrayList<Formula> getAllFormulas() throws SQLException;
-	
+
 //	void saveUsersAdmin(ArrayList<HashMap<String, Object>> values) throws SQLException;
 
 //	void saveModelsAdmin(ArrayList<HashMap<String, Object>> valuesToSave) throws SQLException;

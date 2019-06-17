@@ -1,6 +1,7 @@
 package cat.udl.easymodel.persistence;
 
 import java.sql.Connection;
+import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -9,16 +10,16 @@ import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.Properties;
+
+import com.mysql.cj.jdbc.AbandonedConnectionCleanupThread;
 
 import cat.udl.easymodel.logic.formula.Formula;
 import cat.udl.easymodel.logic.model.Model;
 import cat.udl.easymodel.logic.types.FormulaType;
 import cat.udl.easymodel.logic.types.FormulaValueType;
 import cat.udl.easymodel.logic.types.RepositoryType;
-import cat.udl.easymodel.logic.types.UserType;
-import cat.udl.easymodel.logic.user.User;
-import cat.udl.easymodel.logic.user.Users;
 import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.utils.Utils;
 
@@ -34,7 +35,7 @@ public class DBManagerImpl implements DBManager {
 			if (con == null || con.isClosed() || !con.isValid(3)) {
 				SharedData sharedData = SharedData.getInstance();
 				Properties properties = sharedData.getProperties();
-				Class.forName("com.mysql.jdbc.Driver");
+				Class.forName("com.mysql.cj.jdbc.Driver"); //load driver in current thread ClassLoader
 				con = DriverManager.getConnection("jdbc:mysql://" + properties.getProperty("mySqlHost") + "/"
 						+ properties.getProperty("mySqlDb") + "?" + "user=" + properties.getProperty("mySqlUser")
 						+ "&password=" + properties.getProperty("mySqlPass"));
@@ -50,6 +51,15 @@ public class DBManagerImpl implements DBManager {
 		try {
 			if (con != null && !con.isClosed()) {
 				con.close();
+				// Deregister jdbc driver
+				AbandonedConnectionCleanupThread.checkedShutdown();
+				ClassLoader cl = Thread.currentThread().getContextClassLoader();
+				Enumeration<Driver> drivers = DriverManager.getDrivers();
+				while (drivers.hasMoreElements()) {
+					Driver driver = drivers.nextElement();
+					if (driver.getClass().getClassLoader() == cl)
+						DriverManager.deregisterDriver(driver);
+				}
 				System.out.println("MYSQL CLOSED!");
 			}
 		} catch (SQLException e) {
@@ -127,14 +137,14 @@ public class DBManagerImpl implements DBManager {
 	@Override
 	public void autoConvertPrivateToPublic() throws SQLException {
 		Connection con = this.getCon();
-		LocalDate limitDate = LocalDate.now().minus(SharedData.privateWeeks, ChronoUnit.WEEKS);
+		LocalDate limitDate = LocalDate.now().minus(Integer.valueOf(SharedData.getInstance().getProperties().getProperty("privateWeeks")), ChronoUnit.WEEKS);
 		PreparedStatement ps, ps2;
 		SharedData sharedData = SharedData.getInstance();
 		int p;
 		try {
 			// PUBLISH PRIVATE MODELS WITH ITS NEW GENERIC FORMULAS
 			ps = con.prepareStatement("SELECT `id` FROM `model` WHERE repositorytype=? AND modified < ?");
-			p=1;
+			p = 1;
 			ps.setInt(p++, RepositoryType.PRIVATE.getValue());
 			ps.setString(p++, limitDate.toString());
 			ResultSet rs = ps.executeQuery();
@@ -143,10 +153,9 @@ public class DBManagerImpl implements DBManager {
 				m.setId(rs.getInt("id"));
 				m.loadDB();
 				sharedData.getPredefinedFormulas().mergeGenericFormulasFrom(m.getFormulas());
-				//PUBLISH MODEL
-				ps2 = con
-						.prepareStatement("UPDATE model SET repositorytype=? WHERE id=?");
-				p=1;
+				// PUBLISH MODEL
+				ps2 = con.prepareStatement("UPDATE model SET repositorytype=? WHERE id=?");
+				p = 1;
 				ps2.setInt(p++, RepositoryType.PUBLIC.getValue());
 				ps2.setInt(p++, rs.getInt("id"));
 				ps2.executeUpdate();

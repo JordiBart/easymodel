@@ -9,12 +9,13 @@
 	.v-verticallayout-tutorialMain {
 		border: 2px solid #c5c5c5;
 		border-radius:5px;
+		overflow: hidden;
 	}
 	.v-button-tutorialSkip {
 		background-color: #ffffff;
     	background-image: none;
-    	color: #0057fb;
-    	font-weight: 800;
+    	color: #00a3eb;
+    	font-weight: bold;
     	font-size: 20px;
     	padding: 4px 9px;
     	-webkit-box-shadow: none;
@@ -124,6 +125,32 @@
 		background-repeat: no-repeat;
     	background-size: contain;
     	background-position: center;
+	}
+	.v-label.tutorialTitle { //more priority
+		color: #535353;
+    	font-weight: bold;
+    	font-size: 24px;
+	}
+	.v-horizontallayout-tutorialFooter {
+		vertical-align: top;
+	}
+	.v-horizontallayout-tutorialProgress {
+		//background-image: url("tutorial/tutorialProgress.png");
+		//background-repeat: repeat-x;
+		background: #00a3eb;
+		-webkit-transition: width 0.3s; /* Safari */
+  		transition: width 0.3s;
+	}
+	.v-label.tutorialNumSlide {
+		font-size: 15px;
+		color: #575757;
+		font-weight: bold;
+		position: absolute;
+		right: 20px;
+		bottom: 15px;
+	}
+	.v-image.tutorialLogo {
+		margin-left: 3px;
 	}
 }
 

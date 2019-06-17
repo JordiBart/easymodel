@@ -8,7 +8,7 @@ import cat.udl.easymodel.logic.model.Models;
 import cat.udl.easymodel.logic.types.RepositoryType;
 import cat.udl.easymodel.logic.user.User;
 import cat.udl.easymodel.mathlink.MathLinkOp;
-import cat.udl.easymodel.thread.SimulationThread;
+import cat.udl.easymodel.thread.SimulationManagerThread;
 import cat.udl.easymodel.vcomponent.results.OutVL;
 import cat.udl.easymodel.vcomponent.results.SimStatusHL;
 
@@ -22,7 +22,7 @@ public class SessionData {
 	private BioModelsLogs bioModelsLogs = null;
 	private OutVL outVL = null;
 	private SimStatusHL simStatusHL = null;
-	private SimulationThread simulationThread = null;
+	private SimulationManagerThread simulationManager = null;
 
 	public SessionData(UI ui) {
 		this.ui = ui;
@@ -159,12 +159,12 @@ public class SessionData {
 		return ui;
 	}
 
-	public SimulationThread getSimulationThread() {
-		return simulationThread;
+	public SimulationManagerThread getSimulationManager() {
+		return simulationManager;
 	}
 
-	public void setSimulationThread(SimulationThread simulationThread) {
-		this.simulationThread = simulationThread;
+	public void setSimulationManager(SimulationManagerThread simulationManager) {
+		this.simulationManager = simulationManager;
 	}
 
 	public SimStatusHL getSimStatusHL() {

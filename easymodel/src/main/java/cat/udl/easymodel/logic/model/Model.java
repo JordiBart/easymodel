@@ -48,10 +48,21 @@ public class Model extends ArrayList<Reaction> {
 	private String description = "";
 	private RepositoryType repositoryType = RepositoryType.PRIVATE;
 	private boolean isDBDelete = false;
+	private Model parent=null;
 
 	public Model() {
 		super();
 		this.reset();
+	}
+	
+	public Model(Model parent) {
+		super();
+		this.parent=parent;
+		setId(parent.getId());
+		setUser(parent.getUser());
+		setName(parent.getName());
+		setDescription(parent.getDescription());
+		setRepositoryType(parent.getRepositoryType());
 	}
 
 	//
@@ -1012,5 +1023,13 @@ public class Model extends ArrayList<Reaction> {
 
 	public Formulas getFormulas() {
 		return formulas;
+	}
+
+	public Model getParent() {
+		return parent;
+	}
+
+	public void setParent(Model parent) {
+		this.parent=parent;
 	}
 }

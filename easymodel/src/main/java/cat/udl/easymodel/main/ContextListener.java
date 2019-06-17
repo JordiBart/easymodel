@@ -6,9 +6,6 @@ import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 import javax.servlet.annotation.WebListener;
 
-import cat.udl.easymodel.logic.formula.Formula;
-import cat.udl.easymodel.utils.p;
-
 // MathLink open/close
 @WebListener
 public class ContextListener implements ServletContextListener {
@@ -17,7 +14,7 @@ public class ContextListener implements ServletContextListener {
 	public void contextInitialized(ServletContextEvent arg0) {
 		SharedData sharedData = SharedData.getInstance(); // read/create .properties file
 		System.out.println("STARTING WEBAPP " + SharedData.appName + " v" + SharedData.appVersion);
-		//MYSQL CREATE CONNECTION
+		// MYSQL CREATE CONNECTION
 		try {
 			sharedData.getDbManager().open();
 			System.out.println("MYSQL CONNECTION CREATED SUCCESSFULLY!");
@@ -25,7 +22,7 @@ public class ContextListener implements ServletContextListener {
 			sharedData.getPredefinedFormulas().loadDB();
 			sharedData.getGenericFormulas().loadDB();
 			sharedData.tryDailyTask();
-		} catch(Exception e) {
+		} catch (Exception e) {
 			System.err.println("MYSQL CONNECT ERROR!");
 			e.printStackTrace();
 		}

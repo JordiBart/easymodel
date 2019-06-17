@@ -1,15 +1,18 @@
 package cat.udl.easymodel.mathlink;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 
 import com.wolfram.jlink.KernelLink;
+import com.wolfram.jlink.MathLink;
 import com.wolfram.jlink.MathLinkException;
 import com.wolfram.jlink.MathLinkFactory;
 
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.utils.CException;
+import cat.udl.easymodel.utils.p;
 
 public class MathLinkOp {
 	private KernelLink ml = null;
@@ -19,7 +22,7 @@ public class MathLinkOp {
 		this.sessionData = sessionData;
 //		System.setProperty("com.wolfram.jlink.libdir", System.getProperty("user.dir") + "/" + SharedData.jLinkLibDir);
 	}
-	
+
 	public void openMathLink() throws MathLinkException {
 		if (isOpen())
 			return;
@@ -59,10 +62,12 @@ public class MathLinkOp {
 			ml.addPacketListener(new MathPacketListener(this.sessionData));
 	}
 
-	
 	public void closeMathLink() {
 		if (isOpen()) {
-			ml.abandonEvaluation();
+			ml.abortEvaluation();
+//			ml.interruptEvaluation();
+//			ml.abandonEvaluation();
+			
 			ml.terminateKernel();
 			ml.close();
 			ml = null;
@@ -70,21 +75,25 @@ public class MathLinkOp {
 		}
 	}
 
-	
 	public boolean isOpen() {
-		if (ml != null) {
-			try {
-				ml.connect();
-				return true;
-			} catch (MathLinkException e) {
-				ml = null;
-				return false;
-			}
+		if (ml == null)
+			return false;
+		try {
+			ml.connect();
+			return true;
+		} catch (MathLinkException e) {
+			return false;
 		}
-		return false;
 	}
 
-	
+//	public void abandonEvaluation() {
+//		if (isOpen()) {
+//			ml.abortEvaluation();
+//			ml.interruptEvaluation();
+//			ml.abandonEvaluation();
+//		}
+//	}
+
 	public void evaluate(String mlCmd) throws MathLinkException {
 		if (mlCmd != null) {
 			ml.connect();
@@ -93,7 +102,6 @@ public class MathLinkOp {
 		}
 	}
 
-	
 	public Integer evaluateToInt(String mlCmd) throws MathLinkException {
 		Integer result = 0;
 		if (mlCmd != null) {
@@ -107,7 +115,6 @@ public class MathLinkOp {
 		return result;
 	}
 
-	
 	public Boolean evaluateToBoolean(String mlCmd) throws MathLinkException {
 		Boolean result = false;
 		if (mlCmd != null) {
@@ -120,23 +127,17 @@ public class MathLinkOp {
 		return result;
 	}
 
-	
 	public String evaluateToString(String mlCmd) throws MathLinkException {
 		String result = "";
 		if (mlCmd != null) {
 			ml.connect();
-			try {
-				result = ml.evaluateToOutputForm(mlCmd, 0);
-				if (ml.getLastError() != null)
-					throw ml.getLastError();
-			} catch (Throwable e) {
-				throw new MathLinkException(e);
-			}
+			result = ml.evaluateToOutputForm(mlCmd, 0);
+			if (ml.getLastError() != null)
+				throw new MathLinkException(ml.getLastError());
 		}
 		return result;
 	}
 
-	
 	public String checkMathCommand(String mlCmd) throws CException, MathLinkException {
 		try {
 			BigDecimal bigDec = new BigDecimal(mlCmd);
@@ -158,25 +159,36 @@ public class MathLinkOp {
 		}
 	}
 
-	
 	public void checkMultiMathCommands(ArrayList<String> cmds) throws CException, MathLinkException {
 		for (String cmd : cmds)
 			checkMathCommand(cmd);
 	}
 
-	
 	public byte[] evaluateToImage(String mlCmd) throws MathLinkException {
 		byte[] result = new byte[] { 0 };
 		if (mlCmd != null) {
 			ml.connect();
-			try {
-				result = ml.evaluateToImage(mlCmd, 0, 0, 72, false); // 72 dpi
-				if (ml.getLastError() != null)
-					throw new MathLinkException(ml.getLastError());
-			} catch (Throwable e) {
-				throw new MathLinkException(e);
-			}
+			result = ml.evaluateToImage(mlCmd, 0, 0, 0, true); // width, height, dpi, use front end
+			if (ml.getLastError() != null)
+				throw new MathLinkException(ml.getLastError());
 		}
 		return result;
+	}
+
+	// not used
+	public void killAllMathematica() {
+		ml=null;
+		System.gc();
+		try {
+			Runtime rt = Runtime.getRuntime();
+			if (SharedData.isWindowsSystem()) {
+				rt.exec("taskkill /F /IM MathKernel.exe");
+				rt.exec("taskkill /F /IM Mathematica.exe");
+			} else {
+				rt.exec("killall -9 WolframKernel | killall -9 Mathematica");
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 }

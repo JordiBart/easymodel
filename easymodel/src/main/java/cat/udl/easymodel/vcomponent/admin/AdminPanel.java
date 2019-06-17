@@ -2,19 +2,16 @@ package cat.udl.easymodel.vcomponent.admin;
 
 import java.util.HashMap;
 
-import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.ui.HorizontalLayout;
-import com.vaadin.ui.Label;
 import com.vaadin.ui.Panel;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.Window.CloseEvent;
 import com.vaadin.ui.Window.CloseListener;
 
-import cat.udl.easymodel.logic.types.UserType;
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.vcomponent.model.window.ValidateModelWindow;
@@ -36,28 +33,17 @@ public class AdminPanel extends Panel {
 	private SessionData sessionData = null;
 	private SharedData sharedData = SharedData.getInstance();
 
-	private HorizontalLayout inputTitleHL = new HorizontalLayout();
-
 	public AdminPanel() {
 		super();
 
 		this.sessionData = (SessionData) UI.getCurrent().getData();
 
-		HorizontalLayout headerHL = new HorizontalLayout();
-		headerHL.setMargin(false);
-		headerHL.setSpacing(true);
-		headerHL.setWidth("100%");
-		headerHL.setHeight("35px");
-		headerHL.setStyleName("panelHeader");
-		headerHL.setDefaultComponentAlignment(Alignment.MIDDLE_LEFT);
-		setInputTitle("Editor - Models");
-
 		HorizontalLayout allButtonsHL = new HorizontalLayout();
 		allButtonsHL.setMargin(false);
 		allButtonsHL.setSpacing(false);
-		allButtonsHL.setHeight("30px");
+		allButtonsHL.setHeight("32px");
 		allButtonsHL.setWidth("100%");
-		allButtonsHL.setStyleName("panelButtons");
+		allButtonsHL.setStyleName("topButtons");
 		// allButtonsHL.setDefaultComponentAlignment(Alignment.MIDDLE_LEFT);
 		allButtons.put("Users", getUsersButton());
 		allButtons.put("Models", getModelsButton());
@@ -69,6 +55,7 @@ public class AdminPanel extends Panel {
 		allButtonsHL.addComponent(spacer);
 		allButtonsHL.setExpandRatio(spacer, 1);
 		allButtonsHL.addComponent(getSwitchAdminAppButton());
+		allButtonsHL.addComponent(getUserButton());
 		allButtonsHL.addComponent(getExitButton());
 
 		conPanel = new Panel();
@@ -104,7 +91,7 @@ public class AdminPanel extends Panel {
 	private Button getUsersButton() {
 		Button btn = new Button();
 		btn.setCaption("Users");
-		btn.setHeight("30px");
+		btn.setHeight("100%");
 		btn.addClickListener(new ClickListener() {
 			private static final long serialVersionUID = 1L;
 
@@ -121,7 +108,7 @@ public class AdminPanel extends Panel {
 	private Button getModelsButton() {
 		Button btn = new Button();
 		btn.setCaption("Models");
-		btn.setHeight("30px");
+		btn.setHeight("100%");
 		btn.addClickListener(new ClickListener() {
 			private static final long serialVersionUID = 1L;
 
@@ -139,7 +126,7 @@ public class AdminPanel extends Panel {
 	private Button getFormulasButton() {
 		Button btn = new Button();
 		btn.setCaption("Formulas");
-		btn.setHeight("30px");
+		btn.setHeight("100%");
 		btn.addClickListener(new ClickListener() {
 			private static final long serialVersionUID = 1L;
 
@@ -155,9 +142,9 @@ public class AdminPanel extends Panel {
 
 	private Button getSwitchAdminAppButton() {
 		Button btn = new Button();
-		btn.setCaption("App Panel");
-		btn.setHeight("30px");
-		btn.setStyleName("stepNotSelected");
+		btn.setCaption("Use EasyModel");
+		btn.setHeight("100%");
+		btn.setStyleName("topButtonsRightPart");
 		btn.addClickListener(new ClickListener() {
 			private static final long serialVersionUID = 1L;
 
@@ -171,13 +158,15 @@ public class AdminPanel extends Panel {
 		});
 		return btn;
 	}
+
 	private Button getExitButton() {
 		Button btn = new Button();
 		btn.setStyleName("exitBtn");
-		btn.setHeight("30px");
-		btn.setWidth("30px");
+		btn.setHeight("100%");
+		btn.setWidth("32px");
 		btn.addClickListener(new ClickListener() {
 			private static final long serialVersionUID = 1L;
+
 			@Override
 			public void buttonClick(ClickEvent event) {
 				sessionData.setUser(null);
@@ -186,11 +175,6 @@ public class AdminPanel extends Panel {
 			}
 		});
 		return btn;
-	}
-	private void setInputTitle(String title) {
-		inputTitleHL.removeAllComponents();
-		inputTitleHL.addComponent(new Label(title));
-		inputTitleHL.markAsDirty();
 	}
 
 	public void validateModel() {
@@ -206,4 +190,18 @@ public class AdminPanel extends Panel {
 		UI.getCurrent().addWindow(vmw);
 	}
 
+	private Button getUserButton() {
+		Button btn = new Button();
+		btn.setCaption(sessionData.getUser().getName());
+		btn.setHeight("100%");
+		btn.setStyleName("topButtonsRightPart");
+		btn.addClickListener(new ClickListener() {
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public void buttonClick(ClickEvent event) {
+			}
+		});
+		return btn;
+	}
 }

@@ -21,7 +21,7 @@ import cat.udl.easymodel.logic.simconfig.SimConfigEntry;
 import cat.udl.easymodel.logic.simconfig.SimConfigSlider;
 import cat.udl.easymodel.logic.types.InputType;
 import cat.udl.easymodel.utils.Utils;
-import cat.udl.easymodel.utils.VaadinUtils;
+import cat.udl.easymodel.utils.ToolboxVaadin;
 
 public class SimConfigToComponent {
 

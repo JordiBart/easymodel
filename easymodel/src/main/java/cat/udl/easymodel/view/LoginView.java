@@ -14,9 +14,10 @@ import java.util.ArrayList;
 import com.vaadin.event.ShortcutAction.KeyCode;
 import com.vaadin.navigator.View;
 import com.vaadin.navigator.ViewChangeListener.ViewChangeEvent;
+import com.vaadin.server.ExternalResource;
 import com.vaadin.server.FileResource;
+import com.vaadin.server.ThemeResource;
 import com.vaadin.server.VaadinService;
-import com.vaadin.shared.ui.ContentMode;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
@@ -26,7 +27,9 @@ import com.vaadin.ui.CustomComponent;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Image;
 import com.vaadin.ui.Label;
+import com.vaadin.ui.Link;
 import com.vaadin.ui.Notification;
+import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.PasswordField;
 import com.vaadin.ui.TextField;
 import com.vaadin.ui.UI;
@@ -36,7 +39,6 @@ import com.vaadin.ui.Window.CloseListener;
 
 import cat.udl.easymodel.controller.BioModelsLogs;
 import cat.udl.easymodel.controller.SimulationCtrl;
-import cat.udl.easymodel.controller.SimulationCtrlImpl;
 import cat.udl.easymodel.logic.formula.Formula;
 import cat.udl.easymodel.logic.formula.Formulas;
 import cat.udl.easymodel.logic.model.Model;
@@ -49,8 +51,8 @@ import cat.udl.easymodel.logic.user.User;
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.sbml.SBMLMan;
+import cat.udl.easymodel.utils.ToolboxVaadin;
 import cat.udl.easymodel.utils.Utils;
-import cat.udl.easymodel.utils.VaadinUtils;
 import cat.udl.easymodel.utils.p;
 import cat.udl.easymodel.vcomponent.login.ContactWindow;
 import cat.udl.easymodel.vcomponent.login.RegisterWindow;
@@ -83,7 +85,7 @@ public class LoginView extends CustomComponent implements View {
 						+ "/VAADIN/themes/easymodel/img/easymodel-logo-120.png"));
 		Image emLogo = new Image(null, resource);
 
-		Button guestBtn = new Button("Enter as guest");
+		Button guestBtn = new Button("Enter as Guest");
 		guestBtn.setStyleName("enterGuest");
 		guestBtn.setWidth("100%");
 		guestBtn.addClickListener(new ClickListener() {
@@ -94,9 +96,6 @@ public class LoginView extends CustomComponent implements View {
 			}
 		});
 
-		Label hr = new Label("<hr />", ContentMode.HTML);
-		hr.setWidth("100%");
-
 		user = new TextField();
 		user.setWidth("100%");
 		user.setPlaceholder("Username");
@@ -105,11 +104,11 @@ public class LoginView extends CustomComponent implements View {
 		password.setWidth("100%");
 		password.setPlaceholder("Password");
 
-		loginBtn = new Button("Log in", getLoginButtonClickListener());
+		loginBtn = new Button("Log In", getLoginButtonClickListener());
 		loginBtn.setWidth("100%");
 		loginBtn.setClickShortcut(KeyCode.ENTER);
 
-		Button regBtn = new Button("Create user account");
+		Button regBtn = new Button("Create User Account");
 		regBtn.setWidth("100%");
 		regBtn.addClickListener(new ClickListener() {
 			@Override
@@ -120,8 +119,6 @@ public class LoginView extends CustomComponent implements View {
 		});
 
 		VerticalLayout pushVL = new VerticalLayout();
-		pushVL.setMargin(false);
-		pushVL.setSpacing(false);
 
 		VerticalLayout loginVL = new VerticalLayout();
 		loginVL.setDefaultComponentAlignment(Alignment.TOP_CENTER);
@@ -130,7 +127,7 @@ public class LoginView extends CustomComponent implements View {
 		loginVL.setWidth("400px");
 		loginVL.setHeight("450px");
 		loginVL.setStyleName("login");
-		loginVL.addComponents(emLogo, guestBtn, hr, user, password, loginBtn, regBtn, pushVL);
+		loginVL.addComponents(emLogo, guestBtn, ToolboxVaadin.getHR(), user, password, loginBtn, regBtn, pushVL);
 		loginVL.setExpandRatio(pushVL, 1.0f);
 
 		VerticalLayout footerVL = getFooterVL();
@@ -158,10 +155,13 @@ public class LoginView extends CustomComponent implements View {
 	private void accessAsGuest() {
 		if (sharedData.getGuestUser() != null) {
 			sessionData.setUser(sharedData.getGuestUser());
-			getUI().getNavigator().addView(TutorialView.NAME, TutorialView.class);
-			getUI().getNavigator().navigateTo(TutorialView.NAME);
-//			getUI().getNavigator().addView(AppView.NAME, AppView.class);
-//			getUI().getNavigator().navigateTo(AppView.NAME);
+			try {
+				checkOkToChangeView();
+				getUI().getNavigator().addView(TutorialView.NAME, TutorialView.class);
+				getUI().getNavigator().navigateTo(TutorialView.NAME);
+			} catch (Exception e) {
+				Notification.show(e.getMessage(), Type.WARNING_MESSAGE);
+			}
 		}
 	}
 
@@ -171,14 +171,25 @@ public class LoginView extends CustomComponent implements View {
 			private static final long serialVersionUID = 1L;
 
 			@Override
-			public void windowClose(CloseEvent e) {//
-				if ((boolean) e.getWindow().getData() && sessionData.getUser() != null) {
-					getUI().getNavigator().addView(AppView.NAME, AppView.class);
-					getUI().getNavigator().navigateTo(AppView.NAME);
+			public void windowClose(CloseEvent e) {
+				if ((boolean) e.getWindow().getData()) {
+					try {
+						checkOkToChangeView();
+						getUI().getNavigator().addView(AppView.NAME, AppView.class);
+						getUI().getNavigator().navigateTo(AppView.NAME);
+					} catch (Exception e1) {
+						Notification.show(e1.getMessage(), Type.WARNING_MESSAGE);
+					}
 				}
 			}
+
 		});
 		return regWindow;
+	}
+
+	private void checkOkToChangeView() throws Exception {
+		if (sessionData.getUser() == null)
+			throw new Exception("Invalid user/password");
 	}
 
 	private ClickListener getLoginButtonClickListener() {
@@ -189,7 +200,11 @@ public class LoginView extends CustomComponent implements View {
 			public void buttonClick(ClickEvent event) {
 				String userStr = user.getValue();
 				String passwordStr = password.getValue();
-
+				if (!userStr.matches(ToolboxVaadin.usernameCharRegex + "*")
+						|| !passwordStr.matches(ToolboxVaadin.passwordCharRegex + "*")) {
+					Notification.show("Username/Password contains invalid character/s", Type.WARNING_MESSAGE);
+					return;
+				}
 				if (sharedData.isDebug()) {
 					if (userStr.equals(""))
 						userStr = "test";
@@ -200,34 +215,32 @@ public class LoginView extends CustomComponent implements View {
 					if ("admin".equals(userStr))
 						passwordStr = "control7";
 				}
-				if (userStr.matches(VaadinUtils.usernameCharRegex + "+")
-						&& passwordStr.matches(VaadinUtils.passwordCharRegex + "+")) {
-					for (User u : sharedData.getUsers()) {
-						if (u.matchLogin(userStr, passwordStr)) {
-							sessionData.setUser(u);
-							break;
-						}
-					}
-					if (sessionData.getUser() != null) {
-						if (sessionData.getUser().getUserType() == UserType.USER) {
-							getUI().getNavigator().addView(AppView.NAME, AppView.class);
-							getUI().getNavigator().navigateTo(AppView.NAME);
-						} else if (sessionData.getUser().getUserType() == UserType.ADMIN) {
-							getUI().getNavigator().addView(AdminView.NAME, AdminView.class);
-//							getUI().getNavigator().addView(AppView.NAME, AppView.class);
-							getUI().getNavigator().navigateTo(AdminView.NAME);
-						}
-						return;
+				for (User u : sharedData.getUsers()) {
+					if (u.matchLogin(userStr, passwordStr)) {
+						sessionData.setUser(u);
+						break;
 					}
 				}
-				Notification.show("Invalid user/password", "", Notification.Type.WARNING_MESSAGE);
-				if (!userStr.equals("")) {
-					password.focus();
-				} else {
-					user.focus();
+				try {
+					checkOkToChangeView();
+					if (sessionData.getUser().getUserType() == UserType.USER) {
+						getUI().getNavigator().addView(AppView.NAME, AppView.class);
+						getUI().getNavigator().navigateTo(AppView.NAME);
+					} else if (sessionData.getUser().getUserType() == UserType.ADMIN) {
+						getUI().getNavigator().addView(AdminView.NAME, AdminView.class);
+						getUI().getNavigator().navigateTo(AdminView.NAME);
+					}
+				} catch (Exception e) {
+					Notification.show(e.getMessage(), Type.WARNING_MESSAGE);
+					if (!userStr.equals("")) {
+						password.focus();
+					} else {
+						user.focus();
+					}
 				}
 			}
 		};
+
 	}
 
 	private VerticalLayout getFooterVL() {
@@ -252,10 +265,10 @@ public class LoginView extends CustomComponent implements View {
 		HorizontalLayout hl = new HorizontalLayout();
 		hl.setWidthUndefined();
 		hl.setMargin(false);
-		hl.setSpacing(true);
+		hl.setSpacing(false);
 		hl.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
-		
-		hl.addComponents(getUdlLogoButton(), getSBMLogoButton(), getContactButton(), getCounterVL());
+
+		hl.addComponents(getUdlLink(), getWebMathematicaLink(), getSBMLLink(), getContactButton(), getCounterVL());
 		vl.addComponents(hl);
 		return vl;
 	}
@@ -273,29 +286,28 @@ public class LoginView extends CustomComponent implements View {
 		return counterVL;
 	}
 
-	private Component getUdlLogoButton() {
-		Button btn = new Button();
-		btn.setStyleName("udlLogo");
-		btn.addClickListener(new ClickListener() {
-			@Override
-			public void buttonClick(ClickEvent event) {
-				getUI().getPage().setLocation("http://www.udl.cat/ca/en/");
-			}
-		});
-		return btn;
+	private Link getUdlLink() {
+		Link link = new Link("", new ExternalResource("http://www.udl.cat/ca/en/"));
+		link.setIcon(new ThemeResource("img/udl-logo.jpg"));
+		//link.setTargetName("_blank");
+		link.setStyleName("udlLogo");
+		return link;
+	}
+
+	private Link getSBMLLink() {
+		Link link = new Link("", new ExternalResource("http://sbml.org/"));
+		link.setIcon(new ThemeResource("img/sbml-logo-70.png"));
+		//link.setTargetName("_blank");
+		link.setStyleName("sbmlLogo");
+		return link;
 	}
 	
-	private Component getSBMLogoButton() {
-		Button btn = new Button();
-		btn.setStyleName("sbmlLogo");
-		btn.addClickListener(new ClickListener() {
-			@Override
-			public void buttonClick(ClickEvent event) {
-				getUI().getPage().setLocation("http://sbml.org");
-//				getUI().getPage().open("http://sbml.org", "_blank", false);
-			}
-		});
-		return btn;
+	private Link getWebMathematicaLink() {
+		Link link = new Link("", new ExternalResource("http://www.wolfram.com/webmathematica/sitelink"));
+		link.setIcon(new ThemeResource("img/webm-white-plain-no-border.png"));
+		//link.setTargetName("_blank");
+		link.setStyleName("loginWebMLogo");
+		return link;
 	}
 	
 	private Component getContactButton() {
@@ -406,7 +418,7 @@ public class LoginView extends CustomComponent implements View {
 			public void buttonClick(ClickEvent event) {
 				p.p("Batch start!");
 				sessionData.setBioModelsLogs(new BioModelsLogs());
-				SimulationCtrl simCtrl = new SimulationCtrlImpl(sessionData);
+				SimulationCtrl simCtrl = new SimulationCtrl(sessionData);
 				int totalLoadOK = 0, totalLoadKO = 0;
 				sessionData.setUser(sharedData.getUsers().getUserByName("test"));
 				try {

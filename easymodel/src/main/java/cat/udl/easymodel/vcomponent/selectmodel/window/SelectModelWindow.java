@@ -2,21 +2,20 @@ package cat.udl.easymodel.vcomponent.selectmodel.window;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Set;
 
 import com.vaadin.data.HasValue.ValueChangeEvent;
 import com.vaadin.data.HasValue.ValueChangeListener;
-import com.vaadin.event.ContextClickEvent;
-import com.vaadin.event.ContextClickEvent.ContextClickListener;
+import com.vaadin.event.LayoutEvents.LayoutClickEvent;
+import com.vaadin.event.LayoutEvents.LayoutClickListener;
 import com.vaadin.event.ShortcutAction;
 import com.vaadin.event.ShortcutListener;
-import com.vaadin.shared.MouseEventDetails.MouseButton;
 import com.vaadin.shared.ui.window.WindowMode;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
+import com.vaadin.ui.Component;
 import com.vaadin.ui.HorizontalLayout;
-import com.vaadin.ui.ListSelect;
+import com.vaadin.ui.NativeSelect;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.Panel;
@@ -30,6 +29,7 @@ import cat.udl.easymodel.logic.model.Reaction;
 import cat.udl.easymodel.logic.types.RepositoryType;
 import cat.udl.easymodel.logic.types.WStatusType;
 import cat.udl.easymodel.main.SessionData;
+import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.utils.p;
 import cat.udl.easymodel.vcomponent.common.AreYouSureWindow;
 
@@ -38,12 +38,11 @@ public class SelectModelWindow extends Window {
 
 	private VerticalLayout windowVL;
 	private SessionData sessionData;
-	private ListSelect<Model> modelListSelect;
+	private NativeSelect<Model> modelListSelect;
 	private TextArea descTA;
 	private Button newModelButton;
 	private Button backButton;
 
-	@SuppressWarnings("unchecked")
 	public SelectModelWindow() {
 		super();
 
@@ -74,16 +73,9 @@ public class SelectModelWindow extends Window {
 			}
 		});
 		displayWindowContent();
-		if (((ArrayList<Model>) modelListSelect.getData()).size() > 0)
-			modelListSelect.select(((ArrayList<Model>) modelListSelect.getData()).get(0));
-		if (modelListSelect.getValue().size() > 0)
-			modelListSelect.focus();
-		else if (sessionData.getRepository() == RepositoryType.PRIVATE)
-			newModelButton.focus();
-		else
-			backButton.focus();
 	}
 
+	@SuppressWarnings("unchecked")
 	private void displayWindowContent() {
 		windowVL.removeAllComponents();
 
@@ -101,6 +93,14 @@ public class SelectModelWindow extends Window {
 		contentPanelVL.addComponents(modelListSelect, descTA);
 		contentPanelVL.setExpandRatio(modelListSelect, 0.70f);
 		contentPanelVL.setExpandRatio(descTA, 0.30f);
+		contentPanelVL.addLayoutClickListener(new LayoutClickListener() {
+
+			@Override
+			public void layoutClick(LayoutClickEvent event) {
+				if (event.getClickedComponent() == modelListSelect && event.isDoubleClick())
+					checkAndClose();
+			}
+		});
 
 		Panel conPanel = new Panel();
 		conPanel.setSizeFull();
@@ -110,18 +110,21 @@ public class SelectModelWindow extends Window {
 		windowVL.addComponent(contentPanelVL);
 		windowVL.addComponent(getFooterHL());
 		windowVL.setExpandRatio(contentPanelVL, 1.0f);
-	}
 
-	private Model getFirstSelectedItem(Set<Model> set) {
-		if (set != null && set.size() > 0)
-			return (Model) set.toArray()[0];
+		if (((ArrayList<Model>) modelListSelect.getData()).size() > 0)
+			modelListSelect.setSelectedItem(((ArrayList<Model>) modelListSelect.getData()).get(0));
+		if (modelListSelect.getValue() != null)
+			modelListSelect.focus();
+		else if (sessionData.getRepository() == RepositoryType.PRIVATE)
+			newModelButton.focus();
 		else
-			return null;
+			backButton.focus();
 	}
 
-	private ListSelect<Model> getModelListSelect() {
-		ListSelect<Model> select = new ListSelect<>();
+	private NativeSelect<Model> getModelListSelect() {
+		NativeSelect<Model> select = new NativeSelect<>();
 		ArrayList<Model> selectItems = new ArrayList<>();
+		select.setEmptySelectionAllowed(false);
 		select.setSizeFull();
 		for (Model m : sessionData.getModels()) {
 			if (m.getRepositoryType() == sessionData.getRepository() && (m.getRepositoryType() == RepositoryType.PUBLIC
@@ -132,25 +135,13 @@ public class SelectModelWindow extends Window {
 		select.setItems(selectItems);
 		select.setItemCaptionGenerator(Model::getName);
 		select.setData(selectItems);
-		select.setRows(10);
-		select.addContextClickListener(new ContextClickListener() {
-			private static final long serialVersionUID = 2885298494923728038L;
+		select.setVisibleItemCount(10);
+		select.addValueChangeListener(new ValueChangeListener<Model>() {
+			private static final long serialVersionUID = 96713853087046209L;
 
 			@Override
-			public void contextClick(ContextClickEvent event) {
-				// doesn't work
-				System.out.println("ContextClickEvent");
-				if (event.getButton() == MouseButton.LEFT && event.getMouseEventDetails().isDoubleClick()
-						&& modelListSelect.getValue().size() > 0)
-					checkAndClose();
-			}
-		});
-		select.addValueChangeListener(new ValueChangeListener<Set<Model>>() {
-			private static final long serialVersionUID = -7658446458315094477L;
-
-			@Override
-			public void valueChange(ValueChangeEvent<Set<Model>> event) {
-				Model selModel = getFirstSelectedItem(event.getValue());
+			public void valueChange(ValueChangeEvent<Model> event) {
+				Model selModel = event.getValue();
 				if (selModel != null) {
 					descTA.setReadOnly(false);
 					descTA.setValue(selModel.getDescription());
@@ -170,11 +161,59 @@ public class SelectModelWindow extends Window {
 		if (sessionData.getRepository() == RepositoryType.PRIVATE) {
 			newModelButton = getNewModelButton();
 			hl.addComponents(newModelButton, getDeleteModelButton());
+		} else {
+			hl.addComponents(getImportPublicModelToPrivateModels());
 		}
 		backButton = getBackButton();
 		hl.addComponents(spacer, backButton, getNextButton());
 		hl.setExpandRatio(spacer, 1.0f);
 		return hl;
+	}
+
+	private Component getImportPublicModelToPrivateModels() {
+		Button btn = new Button("Import");
+		btn.setDescription("Import a copy of the model to your private repository");
+		btn.addClickListener(new Button.ClickListener() {
+			private static final long serialVersionUID = 1L;
+
+			public void buttonClick(ClickEvent event) {
+				try {
+					if (sessionData.getUser().isGuest())
+						throw new Exception("Guest user cannot do this operation");
+					if (modelListSelect.getValue() == null)
+						throw new Exception("Please select a model");
+					Model m = modelListSelect.getValue();
+					AreYouSureWindow sureWin = getConfirmImportWindow(m);
+					UI.getCurrent().addWindow(sureWin);
+				} catch (Exception e) {
+					Notification.show(e.getMessage(), Type.WARNING_MESSAGE);
+				}
+			}
+		});
+		return btn;
+	}
+
+	private AreYouSureWindow getConfirmImportWindow(Model m) {
+		AreYouSureWindow win = new AreYouSureWindow("Confirmation",
+				"Are you sure to import a copy of the model \"" + m.getName() + "\" to your private repository?");
+		win.addCloseListener(new CloseListener() {
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public void windowClose(CloseEvent e) {
+				if ((WStatusType) e.getWindow().getData() == WStatusType.OK) {
+					try {
+						sessionData.setSelectedModel(sessionData.getModels().getPrivateModelCopy(m, sessionData.getUser()));
+						sessionData.setRepository(RepositoryType.PRIVATE);
+						setData(WStatusType.OK);
+						close();
+					} catch (SQLException e1) {
+						Notification.show("Import model error", Type.WARNING_MESSAGE);
+					}
+				}
+			}
+		});
+		return win;
 	}
 
 	private Button getNewModelButton() {
@@ -206,22 +245,25 @@ public class SelectModelWindow extends Window {
 			private static final long serialVersionUID = 1L;
 
 			public void buttonClick(ClickEvent event) {
-				// DEL MODEL
-				if (modelListSelect.getValue().size() > 0) {
-					Model mToDel = getFirstSelectedItem(modelListSelect.getValue());
-					AreYouSureWindow sureWin = getAreYouSureWindow(mToDel);
+				try {
+					if (sessionData.getUser().isGuest())
+						throw new Exception("Guest user cannot do this operation");
+					if (modelListSelect.getValue() == null)
+						throw new Exception("Please select a model");
+					Model m = modelListSelect.getValue();
+					AreYouSureWindow sureWin = getConfirmDeleteWindow(m);
 					UI.getCurrent().addWindow(sureWin);
-				} else {
-					Notification.show("Please select model to be deleted", Type.HUMANIZED_MESSAGE);
+				} catch (Exception e) {
+					Notification.show(e.getMessage(), Type.WARNING_MESSAGE);
 				}
 			}
 		});
 		return btn;
 	}
 
-	private AreYouSureWindow getAreYouSureWindow(Model m) {
+	private AreYouSureWindow getConfirmDeleteWindow(Model m) {
 		AreYouSureWindow win = new AreYouSureWindow("Confirmation",
-				"Are you sure to delete model " + m.getName() + "?");
+				"Are you sure to delete the model \"" + m.getName() + "\"?");
 		win.addCloseListener(new CloseListener() {
 			private static final long serialVersionUID = 1L;
 
@@ -269,17 +311,20 @@ public class SelectModelWindow extends Window {
 	}
 
 	private void checkAndClose() {
-		if (modelListSelect.getValue().size() > 0) {
-			sessionData.setSelectedModel(getFirstSelectedItem(modelListSelect.getValue()));
-			try {
-				sessionData.getSelectedModel().loadDB();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
+		if (modelListSelect.getValue() == null) {
+			Notification.show("Please select a model", Type.WARNING_MESSAGE);
+			return;
+		}
+		try {
+			Model copy = new Model(modelListSelect.getValue());
+			copy.loadDB();
+			sessionData.setSelectedModel(copy);
 			setData(WStatusType.OK);
 			close();
-		} else {
-			Notification.show("Please select a model");
+		} catch (SQLException e) {
+			sessionData.setSelectedModel(null);
+			Notification.show("Error could not load model", Type.ERROR_MESSAGE);
+			e.printStackTrace();
 		}
 	}
 }

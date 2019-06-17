@@ -1,8 +1,10 @@
 package cat.udl.easymodel.vcomponent.results;
 
 import com.vaadin.server.BrowserWindowOpener;
+import com.vaadin.server.ExternalResource;
 import com.vaadin.server.FileDownloader;
 import com.vaadin.server.StreamResource;
+import com.vaadin.server.ThemeResource;
 import com.vaadin.shared.ui.ContentMode;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
@@ -13,6 +15,7 @@ import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Image;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.Layout;
+import com.vaadin.ui.Link;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
 
@@ -20,7 +23,7 @@ import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.utils.ByteArrayStreamSource;
 import cat.udl.easymodel.utils.DownFileStreamSource;
-import cat.udl.easymodel.utils.VaadinUtils;
+import cat.udl.easymodel.utils.ToolboxVaadin;
 
 public class OutVL extends VerticalLayout {
 	private static final long serialVersionUID = 1L;
@@ -58,7 +61,7 @@ public class OutVL extends VerticalLayout {
 	public void out(String msg, String style) {
 		if (msg != null) {
 			for (String line : msg.split("\\n")) {
-				globalThis.addComponent(VaadinUtils.getStyledLabel(line, style));
+				globalThis.addComponent(ToolboxVaadin.getStyledLabel(line, style));
 			}
 		}
 		ui.push();
@@ -144,8 +147,7 @@ public class OutVL extends VerticalLayout {
 			FileDownloader fileDown = new FileDownloader(
 					new StreamResource(new DownFileStreamSource(fileString), filename));
 			Button downBtn = new Button();
-			if (!caption.equals("Mathematica") && !caption.equals("SBML"))
-				downBtn.setCaption(caption);
+			downBtn.setCaption(caption);
 			downBtn.setDescription(tooltipButton);
 			if (style != null)
 				downBtn.setStyleName(style);
@@ -160,5 +162,9 @@ public class OutVL extends VerticalLayout {
 
 	public void reset() {
 		this.removeAllComponents();
+	}
+
+	public void finish() {
+		globalThis.addComponent(ToolboxVaadin.getStandardWebMathematicaLink());
 	}
 }

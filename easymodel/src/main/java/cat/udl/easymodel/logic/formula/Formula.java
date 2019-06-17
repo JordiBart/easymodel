@@ -243,6 +243,20 @@ public class Formula {
 		return formula;
 	}
 
+	public String getFormulaImportDef() {
+		if (formulaType==FormulaType.PREDEFINED) {
+			if ("Power Laws".equals(name))
+				return "a X1^g11...Xn^g1n";
+			if ("Saturating Cooperative".equals(name))
+				return "v X1^g11...X2^g1n/((KX1+X1)^g11...(KXn+Xn)^g1n)";
+			if ("Saturating".equals(name))
+				return "v X1...X2/((KX1+X1)...(KXn+Xn))";
+			if ("Mass action".equals(name))
+				return "a X1^nX1...X2^nXn"; 
+		}
+		return formula;
+	}
+	
 	public void setFormulaDef(String formula) {
 		this.formula = formula;
 		this.parse();

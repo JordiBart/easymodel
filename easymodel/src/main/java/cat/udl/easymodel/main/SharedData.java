@@ -8,7 +8,6 @@ import java.io.OutputStream;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
-import java.util.Collection;
 import java.util.Properties;
 
 import com.vaadin.server.VaadinService;
@@ -43,12 +42,10 @@ public class SharedData {
 	public static final String appName = "EasyModel";
 	public static final String appVersion = "1.0";
 	public static final String fullAppName = appName + " " + appVersion;
-	public static final int privateWeeks = 2;
-	public static final long simulationTimeoutMinutes = 10;
 	// public static final boolean enableMath = true;
 	public static final String dbError = "DATABASE CONNECTION ERROR";
 	// mathLink
-	public static final String mathLinkError = "CAN'T OPEN MATHLINK, PLEASE TRY AGAIN LATER";
+	public static final String mathLinkError = "MATHEMATICA CONNECTION ERROR, PLEASE TRY AGAIN LATER";
 	public static final String mathPrintPrefix = "MSG::";
 	// SBML
 	public static final int sbmlLevel = 3;
@@ -68,14 +65,14 @@ public class SharedData {
 			InputStream input = new FileInputStream(propertiesFilePath);
 			properties.load(input);
 			input.close();
-			System.out.println("PROPERTIES FILE LOADED " + propertiesFilePath);
+			System.out.println("CONFIG FILE LOADED " + propertiesFilePath);
 		} catch (Exception e) {
 			System.out.println("COULDN'T READ PROPERTIES FILE " + propertiesFilePath);
 		}
 		if (properties.getProperty("mathKernelPath") == null) {
 			if (isWindowsSystem())
 				properties.setProperty("mathKernelPath",
-						"-linkmode launch -linkname 'C:\\Program Files\\Wolfram Research\\Mathematica\\9.0\\MathKernel.exe'");
+						"-linkmode launch -linkname 'C:\\Program Files\\Wolfram Research\\Mathematica\\11.3\\MathKernel.exe'");
 			else
 				properties.setProperty("mathKernelPath", "-linkmode launch -linkname 'math -mathlink'");
 		}
@@ -94,13 +91,18 @@ public class SharedData {
 		if (properties.getProperty("hostname") == null)
 			properties.setProperty("hostname", "");
 		if (properties.getProperty("contactMails") == null)
-			properties.setProperty("contactMails", ""); //separate fields with : char
-		
+			properties.setProperty("contactMails", ""); // separate fields with : char
+
 		if (properties.getProperty("reCaptcha-public-key") == null)
 			properties.setProperty("reCaptcha-public-key", "");
 		if (properties.getProperty("reCaptcha-private-key") == null)
 			properties.setProperty("reCaptcha-private-key", "");
 
+		if (properties.getProperty("privateWeeks") == null || !properties.getProperty("privateWeeks").matches("\\d+"))
+			properties.setProperty("privateWeeks", "2");
+		if (properties.getProperty("simulationTimeoutMinutes") == null || !properties.getProperty("simulationTimeoutMinutes").matches("\\d+"))
+			properties.setProperty("simulationTimeoutMinutes", "5");
+		
 		if (properties.getProperty("debugMode").equals("1")) {
 			System.out.println("WARNING: DEBUG MODE ON");
 //			properties.setProperty("mySqlHost", "127.0.0.1:3306");
@@ -113,14 +115,15 @@ public class SharedData {
 		try {
 			OutputStream out = new FileOutputStream(propertiesFilePath);
 			String propComments = appName
-					+ " CONFIG FILE\nWINDOWS mathKernelPath=-linkmode launch -linkname 'C\\:\\\\Program Files\\\\Wolfram Research\\\\Mathematica\\\\9.0\\\\MathKernel.exe'\n"
-					+ "LINUX mathKernelPath=-linkmode launch -linkname 'math -mathlink'";
+					+ " CONFIG FILE\nmathKernelPath\n  WINDOWS default: -linkmode launch -linkname 'C\\:\\\\Program Files\\\\Wolfram Research\\\\Mathematica\\\\11.3\\\\MathKernel.exe'\n"
+					+ "  LINUX default: -linkmode launch -linkname 'math -mathlink'\n"
+					+"contactMails are separated by a '\\:' character";
 			// \nwaitMathKernelSecs: time in seconds to wait until mathKernel is free again
 			// from doing tasks";
 			properties.store(out, propComments);
 			out.close();
 		} catch (Exception e) {
-			System.out.println("COULDN'T WRITE PROPERTIES FILE " + propertiesFilePath);
+			System.out.println("COULDN'T WRITE CONFIG FILE " + propertiesFilePath);
 		}
 
 		dbManager = new DBManagerImpl();
@@ -150,7 +153,7 @@ public class SharedData {
 		return thisSingleton;
 	}
 
-	public boolean isWindowsSystem() {
+	public static boolean isWindowsSystem() {
 		return System.getProperty("line.separator").equals("\r\n");
 	}
 
@@ -244,7 +247,7 @@ public class SharedData {
 	public Formulas getGenericFormulas() {
 		return genericFormulas;
 	}
-	
+
 	private boolean isOKToDoDailyTask() {
 		LocalDate localDate = LocalDate.now();
 		if (localDate.getDayOfMonth() != dayOfMonthOfLastDailyOpDone) {

@@ -79,32 +79,36 @@ public class ValidateModelWindow extends Window {
 		windowVL.setExpandRatio(conPanel, 1.0f);
 
 		try {
-			if (selectedModel.getRepositoryType() != RepositoryType.TEMP
+			if (selectedModel.getRepositoryType() == RepositoryType.PRIVATE
 					&& sessionData.getModels().getModelByName(selectedModel.getName()) != null
-					&& sessionData.getModels().getModelByName(selectedModel.getName()) != selectedModel) {
+					&& sessionData.getModels().getModelByName(selectedModel.getName()) != selectedModel.getParent()) {
 				throw new Exception("Model name \"" + selectedModel.getName() + "\" is already in use");
 			}
 			selectedModel.checkValidModel();
+			this.setData(new Boolean(true));
 			Label resLab = new Label("Validation: OK");
 			conPanelVL.addComponents(resLab);
+			if (sessionData.getRepository() == RepositoryType.PRIVATE && !sessionData.getUser().isGuest()) {
+				try {
+					boolean saveToModels = selectedModel.getId() == null;
+					selectedModel.saveDB();
+					Label lbl = new Label("MODEL SAVED (model will be published after " +
+						SharedData.getInstance().getProperties().getProperty("privateWeeks") + " weeks unless it's deleted)");
+					lbl.setWidth("450px");
+					conPanelVL.addComponent(lbl);
+					if (saveToModels) {
+						Model copy = new Model(selectedModel);
+						copy.setParent(null);
+						selectedModel.setParent(copy);
+						sessionData.getModels().addModel(copy);
+					}
+				} catch (Exception e2) {
+					conPanelVL.addComponents(new Label("ERROR: MODEL COULD NOT BE SAVED"));
+				}
+			}
 			conPanelVL.addComponents(new Label("Stoichiometric Matrix"),
 					selectedModel.getDisplayStoichiometricMatrix());
 			conPanelVL.addComponents(new Label("Regulatory Matrix"), selectedModel.getDisplayRegulatoryMatrix());
-			this.setData(new Boolean(true));
-			if (sessionData.getRepository() == RepositoryType.PRIVATE
-					&& sessionData.getUser() != SharedData.getInstance().getGuestUser()) {
-				try {
-					selectedModel.saveDB();
-					sessionData.getModels().addModel(selectedModel);
-					conPanelVL.addComponent(new Label("Model saved to database"));
-					Label lbl = new Label("NOTE: private models will be published and unmodifiable after "
-							+ SharedData.privateWeeks + " weeks since last modification");
-					lbl.setWidth("400px");
-					conPanelVL.addComponent(lbl);
-				} catch (Exception e2) {
-					conPanelVL.addComponents(new Label("ERROR: Model could not be saved to database"));
-				}
-			}
 		} catch (Exception e) {
 			Label resLab = new Label("Model errors found:");
 			TextArea ta = new TextArea();

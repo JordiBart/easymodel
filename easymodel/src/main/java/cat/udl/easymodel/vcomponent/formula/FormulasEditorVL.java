@@ -2,6 +2,9 @@ package cat.udl.easymodel.vcomponent.formula;
 
 import com.vaadin.event.FieldEvents.BlurEvent;
 import com.vaadin.event.FieldEvents.BlurListener;
+import com.vaadin.server.ExternalResource;
+import com.vaadin.server.ThemeResource;
+import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
@@ -10,6 +13,7 @@ import com.vaadin.ui.Grid;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.Layout;
+import com.vaadin.ui.Link;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.PopupView;
@@ -25,7 +29,7 @@ import cat.udl.easymodel.logic.model.Model;
 import cat.udl.easymodel.logic.types.FormulaType;
 import cat.udl.easymodel.logic.types.RepositoryType;
 import cat.udl.easymodel.main.SessionData;
-import cat.udl.easymodel.utils.VaadinUtils;
+import cat.udl.easymodel.utils.ToolboxVaadin;
 import cat.udl.easymodel.vcomponent.formula.window.FormulaEditWindow;
 import cat.udl.easymodel.vcomponent.formula.window.ImportPredefinedFormulasWindow;
 import cat.udl.easymodel.vcomponent.model.ModelEditorVL;
@@ -55,6 +59,7 @@ public class FormulasEditorVL extends VerticalLayout {
 		thisVL.setSpacing(true);
 		thisVL.setMargin(true);
 		thisVL.setSizeFull();
+		thisVL.setDefaultComponentAlignment(Alignment.BOTTOM_CENTER);
 		updateDisplayContent();
 	}
 
@@ -97,14 +102,14 @@ public class FormulasEditorVL extends VerticalLayout {
 				new Label(FormulaUtils.mathematicaBuiltInPrefix+"A[]: Mathematica substrate coefficient list"), new Label(FormulaUtils.mathematicaBuiltInPrefix+"M[]: Mathematica modifier list"),
 				new Label(FormulaUtils.mathematicaBuiltInPrefix+"XF: first substrate"), new Label(FormulaUtils.mathematicaBuiltInPrefix+"MF: first modifier"));
 		vl1.addComponents(new Label("Usable operators: +-/*^()"), new Label("Reserved symbols:"),
-				VaadinUtils.getIndentedVLLayout(vl11), new Label("Example: "+FormulaUtils.mathematicaSymbolPrefix+"Product["+FormulaUtils.mathematicaBuiltInPrefix+"X[["+FormulaUtils.mathematicaIndexPrefix+"j]]^g[["+FormulaUtils.mathematicaIndexPrefix+"j]],{"+FormulaUtils.mathematicaIndexPrefix+"j,1,"+FormulaUtils.mathematicaSymbolPrefix+"Length["+FormulaUtils.mathematicaBuiltInPrefix+"X]}]"));
-		vlt.addComponent(VaadinUtils.getIndentedVLLayout(vl1));
+				ToolboxVaadin.getIndentedVLLayout(vl11), new Label("Example: "+FormulaUtils.mathematicaSymbolPrefix+"Product["+FormulaUtils.mathematicaBuiltInPrefix+"X[["+FormulaUtils.mathematicaIndexPrefix+"j]]^g[["+FormulaUtils.mathematicaIndexPrefix+"j]],{"+FormulaUtils.mathematicaIndexPrefix+"j,1,"+FormulaUtils.mathematicaSymbolPrefix+"Length["+FormulaUtils.mathematicaBuiltInPrefix+"X]}]"));
+		vlt.addComponent(ToolboxVaadin.getIndentedVLLayout(vl1));
 		vlt.addComponent(new Label("ii - Defining a new Rate expression"));
 		VerticalLayout vl2 = new VerticalLayout();
 		vl2.setMargin(false);
 		vl2.addComponents(new Label("1. Press \"Add Rate\" button"),
 				new Label("2. Write the Mathematica expression for the Rate"));
-		vlt.addComponent(VaadinUtils.getIndentedVLLayout(vl2));
+		vlt.addComponent(ToolboxVaadin.getIndentedVLLayout(vl2));
 		vlt.addComponent(new Label("iii - Edit rate expressions"));
 		HorizontalLayout hl3 = new HorizontalLayout();
 		hl3.setMargin(false);
@@ -113,13 +118,13 @@ public class FormulasEditorVL extends VerticalLayout {
 		setBtn.setWidth("37px");
 		setBtn.setStyleName("editBtn");
 		hl3.addComponents(new Label("Press"), setBtn);
-		vlt.addComponent(VaadinUtils.getIndentedVLLayout(hl3));
+		vlt.addComponent(ToolboxVaadin.getIndentedVLLayout(hl3));
 		vlt.addComponent(new Label("iv - Importing predefined rate expressions"));
 		VerticalLayout vl3 = new VerticalLayout();
 		vl3.setMargin(false);
 		vl3.addComponents(new Label("1. Press \"Import Rates\" button"),
 				new Label("2. Select the rates to import into the model"));
-		vlt.addComponent(VaadinUtils.getIndentedVLLayout(vl3));
+		vlt.addComponent(ToolboxVaadin.getIndentedVLLayout(vl3));
 		return vlt;
 	}
 
@@ -143,10 +148,10 @@ public class FormulasEditorVL extends VerticalLayout {
 
 		createGrid();
 		thisVL.addComponent(getNavigationVL());
-		thisVL.addComponent(grid);
+		thisVL.addComponents(grid, ToolboxVaadin.getTinyWebMathematicaLink());
 		thisVL.setExpandRatio(grid, 1.0f);
 	}
-
+	
 	private VerticalLayout getNavigationVL() {
 		VerticalLayout vl = new VerticalLayout();
 		vl.setSpacing(false);

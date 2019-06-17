@@ -20,15 +20,16 @@ import com.vaadin.ui.Notification;
 import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.Panel;
 import com.vaadin.ui.PopupView;
-import com.vaadin.ui.TabSheet.Tab;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
+import com.wolfram.jlink.MathLinkException;
 
 import cat.udl.easymodel.logic.model.Model;
 import cat.udl.easymodel.logic.simconfig.SimConfig;
 import cat.udl.easymodel.logic.simconfig.SimConfigEntry;
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
+import cat.udl.easymodel.thread.SimulationManagerThread;
 import cat.udl.easymodel.vcomponent.app.AppPanel;
 
 public class SimulationVL extends VerticalLayout {
@@ -301,11 +302,23 @@ public class SimulationVL extends VerticalLayout {
 			@Override
 			public void buttonClick(ClickEvent event) {
 				try {
-					simConfig.checkSimConfigs();
-					plotViewsVL.updatePlotTabs();
-					mainPanel.showResults();
+					if (sessionData.getSimulationManager() == null) {
+						simConfig.checkSimConfigs();
+						plotViewsVL.updatePlotTabs();
+						selectedModel.checkIfReadyToSimulate();
+						sessionData.getMathLinkOp().openMathLink();
+						// launch sim threads
+						sessionData.setSimulationManager(new SimulationManagerThread(sessionData));
+						sessionData.getSimulationManager().start();
+						mainPanel.showResults();
+					}
+					else
+						Notification.show("Please wait for the previous simulation to finish", Type.WARNING_MESSAGE);
 				} catch (Exception e) {
-					Notification.show(e.getMessage(), Type.WARNING_MESSAGE);
+					if (e instanceof MathLinkException)
+						Notification.show("webMathematica error", Type.WARNING_MESSAGE);
+					else
+						Notification.show(e.getMessage(), Type.WARNING_MESSAGE);
 				}
 			}
 		});

@@ -37,7 +37,7 @@ import cat.udl.easymodel.logic.model.Reaction;
 import cat.udl.easymodel.logic.model.ReactionUtils;
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
-import cat.udl.easymodel.utils.VaadinUtils;
+import cat.udl.easymodel.utils.ToolboxVaadin;
 import cat.udl.easymodel.vcomponent.app.AppPanel;
 import cat.udl.easymodel.vcomponent.formula.FormulasEditorVL;
 import cat.udl.easymodel.vcomponent.model.window.DescriptionEditWindow;
@@ -420,7 +420,7 @@ public class ModelEditorVL extends VerticalLayout {
 		vl1.addComponents(new Label("Reaction definition: Substrates -> Products ; Modifiers"),
 				new Label("How to write: n1*A1+n2*A2+...->m1*B1+m2*B2+...;M1;M2;..."),
 				new Label("Legend: nX,mX: coefficient; AX,BX: species; MX: modifier"));
-		vlt.addComponent(VaadinUtils.getIndentedVLLayout(vl1));
+		vlt.addComponent(ToolboxVaadin.getIndentedVLLayout(vl1));
 		vlt.addComponent(new Label("2. Define model rates"));
 		vlt.addComponent(new Label("3. Select a rate for every reaction"));
 		HorizontalLayout hl2 = new HorizontalLayout();
@@ -430,7 +430,7 @@ public class ModelEditorVL extends VerticalLayout {
 		linkBtn.setWidth("50px");
 		linkBtn.setStyleName("linkFn");
 		hl2.addComponents(new Label("Press"), linkBtn);
-		vlt.addComponent(VaadinUtils.getIndentedVLLayout(hl2));
+		vlt.addComponent(ToolboxVaadin.getIndentedVLLayout(hl2));
 
 		vlt.addComponent(new Label("4. Define initial conditions (Species button)"));
 		vlt.addComponent(new Label("5. Validate model"));

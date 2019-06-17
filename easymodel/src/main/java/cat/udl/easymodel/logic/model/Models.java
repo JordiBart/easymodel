@@ -10,9 +10,12 @@ import java.util.Collections;
 import com.vaadin.ui.UI;
 
 import cat.udl.easymodel.logic.formula.Formula;
+import cat.udl.easymodel.logic.formula.FormulaUtils;
 import cat.udl.easymodel.logic.types.RepositoryType;
+import cat.udl.easymodel.logic.user.User;
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
+import cat.udl.easymodel.utils.p;
 
 public class Models extends ArrayList<Model> {
 	private static final long serialVersionUID = 1L;
@@ -111,5 +114,35 @@ public class Models extends ArrayList<Model> {
 			System.out.println(e.getMessage());
 			throw e;
 		}
+	}
+
+	public Model getPrivateModelCopy(Model m, User user) throws SQLException {
+		if (m == null || m.getId() == null || user == null)
+			return null;
+		Model copy = new Model(m);
+		copy.loadDB();
+		copy.setId(null);
+		copy.setParent(null);
+		copy.setName(getNextModelName(copy.getName(), user.getName()));
+		copy.setRepositoryType(RepositoryType.PRIVATE);
+		copy.setUser(user);
+		return copy;
+	}
+	
+	public String getNextModelName(String modelName, String userName) {
+		int nextNum=1;
+		String nextModelNameBase=modelName+" "+userName+"-variant#";
+		boolean found = true;
+		while (found) {
+			found = false;
+			for (Model m : this) {
+				if (m.getName() != null && m.getName().equals(nextModelNameBase+nextNum)) {
+					found = true;
+					nextNum++;
+					break;
+				}
+			}
+		}
+		return nextModelNameBase+nextNum;
 	}
 }

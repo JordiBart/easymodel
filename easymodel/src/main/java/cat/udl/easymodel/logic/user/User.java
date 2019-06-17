@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import cat.udl.easymodel.logic.types.UserType;
 import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.utils.BCrypt;
-import cat.udl.easymodel.utils.VaadinUtils;
+import cat.udl.easymodel.utils.ToolboxVaadin;
 
 public class User {
 	private Integer id = null;
@@ -76,7 +76,7 @@ public class User {
 	public void encryptPassword() {
 		// JBcrypt uses 2a prefix!!!
 		// gen: https://asecuritysite.com/encryption/bcrypt
-		if (pass != null && pass.matches(VaadinUtils.passwordRegex)) {
+		if (pass != null && pass.matches(ToolboxVaadin.passwordRegex)) {
 			this.encPassword = BCrypt.hashpw(pass, BCrypt.gensalt());
 			setPass(null);
 			setRetypePass(null);
@@ -241,26 +241,30 @@ public class User {
 	}
 
 	public void validateForRegister(ArrayList<User> allUsers) throws Exception {
-		if (name == null || !name.matches(VaadinUtils.usernameRegex)) {
-			throw new Exception("Invalid Username: " + VaadinUtils.usernameRegexInfo);
+		if (name == null || !name.matches(ToolboxVaadin.usernameRegex)) {
+			throw new Exception("Invalid Username: " + ToolboxVaadin.usernameRegexInfo);
 		}
 		if (allUsers != null) {
 			for (User u : allUsers)
 				if (u.getName().equals(name))
 					throw new Exception("Username " + name + " already exists");
 		}
-		if (pass == null || !pass.matches(VaadinUtils.passwordRegex))
-			throw new Exception("Invalid Password: " + VaadinUtils.passwordRegexInfo);
+		if (pass == null || !pass.matches(ToolboxVaadin.passwordRegex))
+			throw new Exception("Invalid Password: " + ToolboxVaadin.passwordRegexInfo);
 		if (retypePass == null || !retypePass.equals(pass))
 			throw new Exception("Password fields don't match");
 	}
 
 	public void validateForAdmin() throws Exception {
-		if (name == null || !name.matches(VaadinUtils.usernameRegex)) {
-			throw new Exception("Invalid Username: " + VaadinUtils.usernameRegexInfo);
+		if (name == null || !name.matches(ToolboxVaadin.usernameRegex)) {
+			throw new Exception("Invalid Username: " + ToolboxVaadin.usernameRegexInfo);
 		}
-		if ((id != null && pass != null && !pass.isEmpty() && !pass.matches(VaadinUtils.passwordRegex))
-				|| (id == null && (pass == null || !pass.matches(VaadinUtils.passwordRegex))))
-			throw new Exception("Invalid Password: " + VaadinUtils.passwordRegexInfo);
+		if ((id != null && pass != null && !pass.isEmpty() && !pass.matches(ToolboxVaadin.passwordRegex))
+				|| (id == null && (pass == null || !pass.matches(ToolboxVaadin.passwordRegex))))
+			throw new Exception("Invalid Password: " + ToolboxVaadin.passwordRegexInfo);
+	}
+	
+	public boolean isGuest() {
+		return this == SharedData.getInstance().getGuestUser();
 	}
 }

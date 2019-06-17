@@ -2,6 +2,7 @@ package cat.udl.easymodel.vcomponent.model.window;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 
 import com.vaadin.data.HasValue.ValueChangeEvent;
 import com.vaadin.data.HasValue.ValueChangeListener;
@@ -24,7 +25,7 @@ import com.vaadin.ui.Window;
 
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
-import cat.udl.easymodel.utils.VaadinUtils;
+import cat.udl.easymodel.utils.ToolboxVaadin;
 
 public class DescriptionEditWindow extends Window {
 	private static final long serialVersionUID = 1L;
@@ -56,6 +57,15 @@ public class DescriptionEditWindow extends Window {
 		windowVL.setDefaultComponentAlignment(Alignment.TOP_LEFT);
 		this.setContent(windowVL);
 
+		desc = desc.replaceAll("\u00A0", ""); //removes null char
+//		desc = desc.replaceAll("\u00C2", "");
+//		byte[] xxx;
+//		xxx = desc.getBytes();
+//		for (byte x : xxx) {
+//			System.out.println(Integer.toHexString(x & 0xFF));
+//		}
+
+		isRenderHTML = desc.contains("</div>");
 		updateWindowContent();
 	}
 
@@ -117,7 +127,7 @@ public class DescriptionEditWindow extends Window {
 		Button renderBtn = new Button();
 		renderBtn.setWidth("36px");
 		renderBtn.setStyleName("renderHtmlBtn");
-		hl1.addComponents(new Label("2. Press "), renderBtn,
+		hl1.addComponents(new Label("Optional: Press "), renderBtn,
 				new Label(" to render the description as HTML (be aware of malicious HTML code)"));
 		vlt.addComponent(hl1);
 		return vlt;
@@ -125,7 +135,7 @@ public class DescriptionEditWindow extends Window {
 
 	private Button getRenderHtmlButton() {
 		Button btn = new Button();
-		btn.setDescription("Render model description as HTML (be aware of malicious HTML code)");
+		btn.setDescription("Switch between editor and HTML renderer");
 		btn.setWidth("36px");
 		btn.setStyleName("renderHtmlBtn");
 		btn.addClickListener(new ClickListener() {
@@ -142,7 +152,7 @@ public class DescriptionEditWindow extends Window {
 	private Panel getRenderedPanel() {
 		CustomLayout cl = new CustomLayout();
 		try {
-			String html = VaadinUtils.sanitizeHTML(desc);
+			String html = ToolboxVaadin.sanitizeHTML(desc);
 			cl = new CustomLayout(new ByteArrayInputStream(html.getBytes()));
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -171,6 +181,7 @@ public class DescriptionEditWindow extends Window {
 			}
 		});
 		vl.addComponent(ta);
+		ta.focus();
 		return vl;
 	}
 

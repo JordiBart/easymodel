@@ -171,11 +171,11 @@ public class LinkReactionFormulaWindow extends Window {
 			genParamPanelVL.setDefaultComponentAlignment(Alignment.TOP_LEFT);
 			genParamPanelVL.addComponent(new Label("Generic parameter values"));
 			genParamPanelVL.addComponent(getFormulaParsVL());
-			if (formulaSubstratesArrayParametersMap.size() != 0) {
+			if (formulaSubstratesArrayParametersMap.size() != 0 && reaction.getLeftPartSpecies().size() > 0) {
 				genParamPanelVL.addComponent(new Label("Numeric parameters by substrates"));
 				genParamPanelVL.addComponent(getConstantsBySubstratesVL());
 			}
-			if (formulaModifiersArrayParametersMap.size() != 0) {
+			if (formulaModifiersArrayParametersMap.size() != 0 && reaction.getModifiers().size() > 0) {
 				genParamPanelVL.addComponent(new Label("Numeric parameters by modifiers"));
 				genParamPanelVL.addComponent(getConstantsByModifiersVL());
 			}

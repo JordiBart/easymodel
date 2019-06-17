@@ -66,7 +66,7 @@ public class ImportPredefinedFormulasWindow extends Window {
 		grid.setSizeFull();
 		grid.setItems(sharedData.getPredefinedPlusGenericFormulas());
 		grid.addColumn(Formula::getNameToShow).setCaption("Name");//.setWidth(250);//.setExpandRatio(1).setMaximumWidth(50);
-		grid.addColumn(Formula::getFormulaDef).setCaption("Rate Definition");//.setWidth(1000);
+		grid.addColumn(Formula::getFormulaImportDef).setCaption("Rate Definition");//.setWidth(1000);
 //		grid.addSelectionListener(event -> {
 //			Set<Formula> selected = event.getAllSelectedItems();
 //			Notification.show(selected.size() + " items selected");

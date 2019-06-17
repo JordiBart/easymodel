@@ -2,5 +2,6 @@
 /easymodel/.settings/*
 /easymodel/target/*
 /easymodel/easymodel-appdata/*
+/easymodel/src/main/java/cat/udl/easymodel/httpservlet/*
 /easymodel/.classpath
 /easymodel/.project

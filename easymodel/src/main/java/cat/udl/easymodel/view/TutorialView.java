@@ -22,16 +22,19 @@ import com.vaadin.ui.VerticalLayout;
 
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
+import cat.udl.easymodel.utils.ToolboxVaadin;
 
 public class TutorialView extends CustomComponent implements View {
 	private static final long serialVersionUID = 1L;
 
 	public static final String NAME = "tutorial";
 	private HorizontalLayout slidesHL;
-	private HorizontalLayout footerHL;
+	private HorizontalLayout titleHL;
+	private HorizontalLayout centerHL;
+	private HorizontalLayout progressHL;
 	private int curSlide = 1;
-	private int totalSlide = 8;
-	private HashMap<Integer, String> captionMap = new HashMap<>();
+	private int totalSlide = 9;
+	private HashMap<Integer, String> titleMap = new HashMap<>();
 
 	private SharedData sharedData = SharedData.getInstance();
 	private SessionData sessionData;
@@ -39,15 +42,15 @@ public class TutorialView extends CustomComponent implements View {
 	public TutorialView() {
 		this.sessionData = (SessionData) UI.getCurrent().getData();
 		int i = 1;
-		captionMap.put(i++, "");
-		captionMap.put(i++, "Create a new model");
-		captionMap.put(i++, "Define the model name and reactions");
-		captionMap.put(i++, "Define the kinetic rates to be used in the model");
-		captionMap.put(i++,
-				"Select a kinetic rate for each reaction, set species configuration and validate the model");
-		captionMap.put(i++, "Configure the simulation to be performed");
-		captionMap.put(i++, "Get the simulation results");
-		captionMap.put(i++, "");
+		titleMap.put(i++, "");
+		titleMap.put(i++, "Create a new model");
+		titleMap.put(i++, "Define the model name and reactions");
+		titleMap.put(i++, "Define the rates to be used in the model");
+		titleMap.put(i++, "Complete the model and validate");
+		titleMap.put(i++, "Configure the simulation (1)");
+		titleMap.put(i++, "Configure the simulation (2)");
+		titleMap.put(i++, "Simulation results");
+		titleMap.put(i++, "");
 
 		addShortcuts();
 
@@ -68,7 +71,7 @@ public class TutorialView extends CustomComponent implements View {
 		HorizontalLayout headerHL = new HorizontalLayout();
 		headerHL.setWidth("100%");
 		headerHL.setHeight("60px");
-		headerHL.setDefaultComponentAlignment(Alignment.TOP_CENTER);
+		headerHL.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
 		headerHL.setMargin(false);
 		headerHL.setSpacing(false);
 		FileResource resource = new FileResource(
@@ -76,8 +79,14 @@ public class TutorialView extends CustomComponent implements View {
 						+ "/VAADIN/themes/easymodel/img/easymodel-logo-120.png"));
 		Image emLogo = new Image(null, resource);
 		emLogo.setHeight("60px");
-		headerHL.addComponents(emLogo, getSkipBtn());
-		headerHL.setExpandRatio(emLogo, 1f);
+		emLogo.setStyleName("tutorialLogo");
+		titleHL = new HorizontalLayout();
+		titleHL.setSizeFull();
+		titleHL.setMargin(false);
+		titleHL.setSpacing(false);
+		titleHL.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
+		headerHL.addComponents(emLogo, titleHL, getSkipBtn());
+		headerHL.setExpandRatio(titleHL, 1f);
 		vl.addComponent(headerHL);
 
 		slidesHL = new HorizontalLayout();
@@ -85,17 +94,24 @@ public class TutorialView extends CustomComponent implements View {
 		slidesHL.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
 		slidesHL.setMargin(false);
 		slidesHL.setSpacing(false);
-		HorizontalLayout spacer = new HorizontalLayout();
-		slidesHL.addComponents(getPrevBtn(), spacer, getNextBtn());
-		slidesHL.setExpandRatio(spacer, 1f);
+		centerHL = ToolboxVaadin.getRawHL(null);
+		slidesHL.addComponents(getPrevBtn(), centerHL, getNextBtn());
+		slidesHL.setExpandRatio(centerHL, 1f);
 		vl.addComponent(slidesHL);
 
-		footerHL = new HorizontalLayout();
+		HorizontalLayout footerHL = new HorizontalLayout();
 		footerHL.setWidth("100%");
-		footerHL.setHeight("30px");
-		footerHL.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
+		footerHL.setHeight("5px");
+		footerHL.setStyleName("tutorialFooter");
 		footerHL.setMargin(false);
 		footerHL.setSpacing(false);
+		progressHL = new HorizontalLayout();
+		progressHL.setSpacing(false);
+		progressHL.setMargin(false);
+		progressHL.setStyleName("tutorialProgress");
+		progressHL.setWidth("0%");
+		progressHL.setHeight("100%");
+		footerHL.addComponents(progressHL);
 		vl.addComponent(footerHL);
 
 		vl.setExpandRatio(slidesHL, 1f);
@@ -181,11 +197,18 @@ public class TutorialView extends CustomComponent implements View {
 	}
 
 	private void updateSlide() {
+		titleHL.removeAllComponents();
+		Label titleLabel = new Label(titleMap.get(curSlide));
+		titleLabel.setStyleName("tutorialTitle");
+		titleHL.addComponent(titleLabel);
+
+		centerHL.removeAllComponents();
+		Label numSlideLabel = new Label(String.valueOf(curSlide));
+		numSlideLabel.setStyleName("tutorialNumSlide");
+		centerHL.addComponent(numSlideLabel);
+
 		slidesHL.setStyleName("tutorialSlides tutorial" + curSlide);
-		footerHL.removeAllComponents();
-		Label lbl = new Label(captionMap.get(curSlide));
-		lbl.setStyleName("bold");
-		footerHL.addComponents(lbl);
+		progressHL.setWidth(String.format("%.0f", ((double) curSlide / totalSlide) * 100) + "%");
 	}
 
 	private void addShortcuts() {

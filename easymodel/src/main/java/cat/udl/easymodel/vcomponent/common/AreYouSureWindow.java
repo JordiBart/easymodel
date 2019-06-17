@@ -38,8 +38,8 @@ public class AreYouSureWindow extends Window {
 		this.setWindowMode(WindowMode.NORMAL);
 		this.setResizable(false);
 		this.center();
-		this.setWidth("300px");
-		this.setHeight("200px");
+		this.setWidth("400px");
+		this.setHeight("300px");
 
 		windowVL = new VerticalLayout();
 		windowVL.setSpacing(true);
@@ -77,9 +77,9 @@ public class AreYouSureWindow extends Window {
 		conPanel.setStyleName("withoutborder");
 		conPanel.setContent(contentPanelVL);
 
-		windowVL.addComponent(contentPanelVL);
+		windowVL.addComponent(conPanel);
 		windowVL.addComponent(getFooterHL());
-		windowVL.setExpandRatio(contentPanelVL, 1.0f);
+		windowVL.setExpandRatio(conPanel, 1.0f);
 	}
 
 	private HorizontalLayout getFooterHL() {

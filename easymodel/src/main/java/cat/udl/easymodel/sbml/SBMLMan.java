@@ -46,7 +46,7 @@ import cat.udl.easymodel.logic.types.SpeciesVarTypeType;
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.mathlink.MathLinkOp;
-import cat.udl.easymodel.utils.VaadinUtils;
+import cat.udl.easymodel.utils.ToolboxVaadin;
 
 public class SBMLMan {
 
@@ -275,13 +275,12 @@ public class SBMLMan {
 		SBMLDocument doc = SBMLReader.read(bais);
 		cat.udl.easymodel.logic.model.Model m = new cat.udl.easymodel.logic.model.Model();
 		m.setRepositoryType(RepositoryType.TEMP);
-		m.setRepositoryType(RepositoryType.PRIVATE);
 		m.setUser(sessionData.getUser());
 
 		Model model = doc.getModel();
 		m.setName((namePrefix != null ? namePrefix : "") + model.getName());
 		if (model.getNotesString() != null)
-			m.setDescription(VaadinUtils.sanitizeHTML(model.getNotesString()));//
+			m.setDescription(ToolboxVaadin.sanitizeHTML(model.getNotesString()));//
 
 		// fix sbml IDs
 //		for (Species sp : model.getListOfSpecies())

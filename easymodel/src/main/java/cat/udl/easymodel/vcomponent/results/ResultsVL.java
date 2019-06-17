@@ -1,11 +1,16 @@
 package cat.udl.easymodel.vcomponent.results;
 
+import com.vaadin.server.ExternalResource;
+import com.vaadin.server.ThemeResource;
 import com.vaadin.ui.Alignment;
+import com.vaadin.ui.HorizontalLayout;
+import com.vaadin.ui.Link;
 import com.vaadin.ui.Panel;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
 
 import cat.udl.easymodel.main.SessionData;
+import cat.udl.easymodel.utils.ToolboxVaadin;
 import cat.udl.easymodel.vcomponent.app.AppPanel;
 
 public class ResultsVL extends VerticalLayout {
@@ -29,7 +34,17 @@ public class ResultsVL extends VerticalLayout {
 		this.setSpacing(false);
 
 		outVL = sessionData.getOutVL();
+		HorizontalLayout bottomHL = ToolboxVaadin.getRawHL("resultsBottom");
+		bottomHL.setWidth("100%");
+		bottomHL.setHeight("32px");
 		statusHL = sessionData.getSimStatusHL();
+		HorizontalLayout wmHL = ToolboxVaadin.getRawHL("resultsBottomWM");
+		wmHL.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
+		wmHL.addComponent(getWebMathematicaLink());
+		wmHL.setWidth("210px");
+		wmHL.setHeight("100%");
+		bottomHL.addComponents(statusHL,wmHL);
+		bottomHL.setExpandRatio(statusHL, 1f);
 
 		Panel conPanel = new Panel();
 		conPanel.setSizeFull();
@@ -38,21 +53,30 @@ public class ResultsVL extends VerticalLayout {
 		VerticalLayout outerPanelVL = new VerticalLayout();
 		outerPanelVL.setSizeFull();
 		outerPanelVL.setSpacing(false);
-		outerPanelVL.setId("resultsOuterPanel");
+		//outerPanelVL.setMargin(false);
+		outerPanelVL.setStyleName("resultsOuterPanel");
 		outerPanelVL.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
 		outerPanelVL.addComponent(conPanel);
 
 		this.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
-		this.addComponents(outerPanelVL, statusHL);
+		this.addComponents(outerPanelVL, bottomHL);
 		this.setExpandRatio(outerPanelVL, 1f);
 		this.reset();
 	}
 
 	public void reset() {
 		outVL.reset();
-		statusHL.reset();
+		statusHL.running();
 	}
 
+	private Link getWebMathematicaLink() {
+		Link link = new Link("", new ExternalResource("http://www.wolfram.com/webmathematica/sitelink"));
+		link.setIcon(new ThemeResource("img/webm-trans-tiny.png"));
+		link.setTargetName("_blank");
+		link.setStyleName("resultsWebMLogo");
+		return link;
+	}
+	
 	// private VerticalLayout getInfoLayout() {
 	// VerticalLayout vlt = new VerticalLayout();
 	// vlt.addComponent(new Label("Simulation results are displayed in this

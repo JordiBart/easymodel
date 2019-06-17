@@ -15252,13 +15252,14 @@ div.v-layout.v-horizontal.v-widget {
 .easymodel .v-verticallayout-tutorialMain {
 	border: 2px solid #c5c5c5;
 	border-radius: 5px;
+	overflow: hidden;
 }
 
 .easymodel .v-button-tutorialSkip {
 	background-color: #ffffff;
 	background-image: none;
-	color: #0057fb;
-	font-weight: 800;
+	color: #00a3eb;
+	font-weight: bold;
 	font-size: 20px;
 	padding: 4px 9px;
 	-webkit-box-shadow: none;
@@ -15383,6 +15384,56 @@ div.v-layout.v-horizontal.v-widget {
 	background-position: center;
 }
 
+.easymodel .v-label.tutorialTitle {
+	color: #535353;
+	font-weight: bold;
+	font-size: 24px;
+}
+
+.easymodel .v-horizontallayout-tutorialFooter {
+	vertical-align: top;
+}
+
+.easymodel .v-horizontallayout-tutorialProgress {
+	background: #00a3eb;
+	-webkit-transition: width 0.3s;
+	transition: width 0.3s;
+}
+
+.easymodel .v-label.tutorialNumSlide {
+	font-size: 15px;
+	color: #575757;
+	font-weight: bold;
+	position: absolute;
+	right: 20px;
+	bottom: 15px;
+}
+
+.easymodel .v-image.tutorialLogo {
+	margin-left: 3px;
+}
+
+.easymodel .v-spacing {
+	width: 5px;
+	height: 5px;
+}
+
+.easymodel .v-margin-left {
+	padding-left: 15px;
+}
+
+.easymodel .v-margin-bottom {
+	padding-bottom: 15px;
+}
+
+.easymodel .v-margin-right {
+	padding-right: 15px;
+}
+
+.easymodel .v-margin-top {
+	padding-top: 15px;
+}
+
 .easymodel .v-textfield.v-readonly {
 	background: #fcfcfc;
 }
@@ -15443,11 +15494,6 @@ div.v-layout.v-horizontal.v-widget {
 	padding: 0px 5px 5px 5px;
 }
 
-.easymodel .v-spacing {
-	width: 5px;
-	height: 5px;
-}
-
 .easymodel .v-horizontallayout#mainLayout {
 	padding: 5px;
 }
@@ -15481,23 +15527,32 @@ div.v-layout.v-horizontal.v-widget {
 	padding: 5px !important;
 }
 
-.easymodel .v-verticallayout#resultsOuterPanel {
+.easymodel .v-verticallayout.resultsOuterPanel {
 	padding: 5px;
+}
+
+.easymodel .v-horizontallayout.resultsBottom {
+	border-top: 1px solid #c5c5c5;
+	overflow: hidden;
+}
+
+.easymodel .v-horizontallayout.resultsBottomWM {
+	background: #f9f9f9;
 }
 
 .easymodel .v-horizontallayout-resultsStatusRunning {
 	background: #008ae6;
-	padding: 3px 5px;
+	padding: 0 5px;
 }
 
 .easymodel .v-horizontallayout-resultsStatusFinish {
 	background: #33cc33;
-	padding: 3px 5px;
+	padding: 0 5px;
 }
 
 .easymodel .v-horizontallayout-resultsStatusError {
 	background: #e60000;
-	padding: 3px 5px;
+	padding: 0 5px;
 }
 
 .easymodel .v-label-resultsStatus {
@@ -15506,10 +15561,13 @@ div.v-layout.v-horizontal.v-widget {
 }
 
 .easymodel .v-button-resultsCancel {
-	font-size: 16px;
-	height: 100%;
-	padding: 0 10px;
+	font-size: 15px;
+	padding: 0;
 	margin-left: 5px;
+}
+
+.easymodel .v-link-resultsWebMLogo img {
+	height: 32px;
 }
 
 .easymodel .v-button-small {
@@ -15550,14 +15608,6 @@ div.v-layout.v-horizontal.v-widget {
 	background-size: 32px;
 	background-repeat: no-repeat;
 	background-position: center;
-}
-
-.easymodel .v-button-exitBtn {
-	background-color: #ffffff !important;
-	background: center url(img/exit.png) no-repeat;
-	background-size: 25px;
-	border-radius: 0px;
-	border: none;
 }
 
 .easymodel .v-button-infoBtn {
@@ -15619,38 +15669,31 @@ div.v-layout.v-horizontal.v-widget {
 	background-position: center;
 }
 
-.easymodel .v-button-udlLogo {
-	background: transparent url(img/udl-logo.jpg);
-	background-size: contain;
-	background-repeat: no-repeat;
-	background-position: center;
-	width: 76px;
+.easymodel .v-link-udlLogo img {
 	height: 40px;
 	-webkit-box-shadow: none;
 	box-shadow: none;
 	border: solid #acadae 1px;
 	border-radius: 5px;
+	text-decoration: none;
 }
 
-.easymodel .v-button-udlLogo:after {
-	content: none;
-}
-
-.easymodel .v-button-sbmlLogo {
-	background: transparent url(img/sbml-logo-70.png);
-	background-size: contain;
-	background-repeat: no-repeat;
-	background-position: center;
-	width: 92px;
+.easymodel .v-link-sbmlLogo img {
 	height: 40px;
 	-webkit-box-shadow: none;
 	box-shadow: none;
 	border: none;
 	border-radius: none;
+	text-decoration: none;
 }
 
-.easymodel .v-button-sbmlLogo:after {
-	content: none;
+.easymodel .v-link-loginWebMLogo img {
+	height: 40px;
+	-webkit-box-shadow: none;
+	box-shadow: none;
+	border: solid #acadae 1px;
+	border-radius: 5px;
+	text-decoration: none;
 }
 
 .easymodel .v-button-contact {
@@ -15670,40 +15713,128 @@ div.v-layout.v-horizontal.v-widget {
 	content: none;
 }
 
-.easymodel .v-button-stepNotSelected {
+.easymodel .v-button.stepNotSelected {
+	background-image: none;
+	background-color: #ffffff;
+	color: #020202;
+	border-radius: 0px;
+	border-top: none;
+	border-bottom: none;
+	border-left: none;
+	border-right: 1px solid #c5c5c5;
+	padding: 0 10px;
+	-webkit-box-shadow: none;
+	box-shadow: none;
+}
+
+.easymodel .v-button-stepNotSelected:focus:after {
+	border-color: #c5c5c5;
+	-webkit-box-shadow: none;
+	box-shadow: none;
+}
+
+.easymodel .v-button.stepNotSelected.v-disabled {
+	opacity: 1;
+	background-image: none;
+	background-color: #f5f5f5;
+	color: #a2a2a2;
+	border-radius: 0px;
+	border-top: none;
+	border-bottom: none;
+	border-left: none;
+	border-right: 1px solid #c5c5c5;
+	padding: 0 10px;
+	-webkit-box-shadow: none;
+	box-shadow: none;
+}
+
+.easymodel .v-button.stepSelected {
+	background-image: none;
+	background-color: #00A8EC;
+	color: #ffffff;
+	border-radius: 0px;
+	border-top: none;
+	border-bottom: none;
+	border-left: none;
+	border-right: 1px solid #c5c5c5;
+	padding: 0 10px;
+	-webkit-box-shadow: none;
+	box-shadow: none;
+}
+
+.easymodel .v-button-stepSelected:focus:after {
+	border-color: #c5c5c5;
+	-webkit-box-shadow: none;
+	box-shadow: none;
+}
+
+.easymodel .v-horizontallayout.topButtons {
+	background: #fff;
+	border-bottom: 1px solid #c5c5c5;
+	overflow: hidden;
+}
+
+.easymodel .v-horizontallayout.stepButtonsLogo {
+	background-image: url("img/easymodel-logo-120.png");
+	background-color: #ffffff;
+	background-size: contain;
+	background-repeat: no-repeat;
+	background-position: center;
+	border-radius: 0px;
+	border-left: none;
+	border-right: 1px solid #c5c5c5;
+	border-top: none;
+	border-bottom: none;
+}
+
+.easymodel .v-button.topButtonsRightPart {
 	background-image: none;
 	background-color: #ffffff;
 	color: #020202;
 	border-radius: 0px;
 	border: none;
-}
-
-.easymodel .v-button-stepNotSelected:focus:after {
-	border-color: none;
+	border: none;
+	border-top: none;
+	border-bottom: none;
+	border-left: 1px solid #c5c5c5;
+	border-right: none;
+	padding: 0 10px;
 	-webkit-box-shadow: none;
 	box-shadow: none;
 }
 
-.easymodel .v-button-stepNotSelected.v-disabled {
-	background-image: none;
-	background-color: #eee;
-	color: #a8a7a7;
-	border-radius: 0px;
-	border: none;
-}
-
-.easymodel .v-button-stepSelected {
-	background-image: none;
-	background-color: #00A8EC;
-	color: #ffffff;
-	border-radius: 0px;
-	border: none;
-}
-
-.easymodel .v-button-stepSelected:focus:after {
-	border-color: none;
+.easymodel .v-button-topButtonsRightPart:focus:after {
+	border-color: #c5c5c5;
 	-webkit-box-shadow: none;
 	box-shadow: none;
+}
+
+.easymodel .v-button.exitBtn {
+	background-image: url("img/exit.png");
+	background-color: #FFF;
+	background-repeat: no-repeat;
+	background-position: center;
+	background-size: contain;
+	border-radius: 0px;
+	border: none;
+	border-top: none;
+	border-bottom: none;
+	border-left: 1px solid #c5c5c5;
+	border-right: none;
+	-webkit-box-shadow: none;
+	box-shadow: none;
+}
+
+.easymodel .v-button-exitBtn:focus:after {
+	border-color: #c5c5c5;
+	-webkit-box-shadow: none;
+	box-shadow: none;
+}
+
+.easymodel .v-verticallayout.selectModel {
+	border: 1px solid #c5c5c5;
+	border-radius: 5px;
+	overflow: hidden;
 }
 
 .easymodel .v-horizontallayout-maxButton {
@@ -15726,17 +15857,12 @@ div.v-layout.v-horizontal.v-widget {
 	border-radius: 4px 4px 0px 0px;
 }
 
-.easymodel .v-slot-panelButtons {
-	background: #f8f8f8;
-	border-bottom: 1px solid #d5d5d5;
-}
-
 .easymodel .v-slot-panelstyle {
 	border: 1px solid #d5d5d5;
 	border-radius: 4px;
 }
 
-.easymodel .v-panel-withoutborder {
+.easymodel .v-panel.withoutborder {
 	border-style: none;
 	-webkit-box-shadow: none;
 	box-shadow: none;

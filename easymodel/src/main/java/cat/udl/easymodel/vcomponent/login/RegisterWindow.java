@@ -26,7 +26,7 @@ import cat.udl.easymodel.logic.types.UserType;
 import cat.udl.easymodel.logic.user.User;
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
-import cat.udl.easymodel.utils.VaadinUtils;
+import cat.udl.easymodel.utils.ToolboxVaadin;
 
 public class RegisterWindow extends Window {
 	private static final long serialVersionUID = 1L;
@@ -86,7 +86,7 @@ public class RegisterWindow extends Window {
 		user.setData(false);
 		user.setWidth("100%");
 		user.setRequiredIndicatorVisible(true);
-		user.setDescription(VaadinUtils.usernameRegexInfo);
+		user.setDescription(ToolboxVaadin.usernameRegexInfo);
 		user.addBlurListener(new BlurListener() {
 
 			@Override
@@ -100,7 +100,7 @@ public class RegisterWindow extends Window {
 		pass.setWidth("100%");
 		pass.setRequiredIndicatorVisible(true);
 		pass.setValue("");
-		pass.setDescription(VaadinUtils.passwordRegexInfo);
+		pass.setDescription(ToolboxVaadin.passwordRegexInfo);
 		pass.addBlurListener(new BlurListener() {
 
 			@Override
