@@ -15593,7 +15593,7 @@ div.v-layout.v-horizontal.v-widget {
 }
 
 .easymodel .v-button-exportSbmlBtn {
-	background-image: url("img/sbml-logo-70.png");
+	background-image: url("img/sbml-logo.png");
 	background-size: contain;
 	background-repeat: no-repeat;
 	background-position: center;
@@ -15678,12 +15678,22 @@ div.v-layout.v-horizontal.v-widget {
 	text-decoration: none;
 }
 
+.easymodel .v-link-githubLogo img {
+	width: 42px;
+	height: 40px;
+	-webkit-box-shadow: none;
+	box-shadow: none;
+	border: solid #acadae 1px;
+	border-radius: 5px;
+	text-decoration: none;
+}
+
 .easymodel .v-link-sbmlLogo img {
 	height: 40px;
 	-webkit-box-shadow: none;
 	box-shadow: none;
-	border: none;
-	border-radius: none;
+	border: solid #acadae 1px;
+	border-radius: 5px;
 	text-decoration: none;
 }
 

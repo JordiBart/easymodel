@@ -1,4 +1,4 @@
-# EasyModel v1.0 RC3
+# EasyModel v1.0 RC4
 Official public repository
 
 EasyModel is a web application for kinetic modeling of biological systems.

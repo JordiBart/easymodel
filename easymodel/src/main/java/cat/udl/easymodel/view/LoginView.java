@@ -268,7 +268,7 @@ public class LoginView extends CustomComponent implements View {
 		hl.setSpacing(false);
 		hl.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
 
-		hl.addComponents(getUdlLink(), getWebMathematicaLink(), getSBMLLink(), getContactButton(), getCounterVL());
+		hl.addComponents(getUdlLink(), getWebMathematicaLink(), getSBMLLink(), getGitHubLink(), getContactButton(), getCounterVL());
 		vl.addComponents(hl);
 		return vl;
 	}
@@ -289,24 +289,33 @@ public class LoginView extends CustomComponent implements View {
 	private Link getUdlLink() {
 		Link link = new Link("", new ExternalResource("http://www.udl.cat/ca/en/"));
 		link.setIcon(new ThemeResource("img/udl-logo.jpg"));
-		//link.setTargetName("_blank");
+		link.setTargetName("_blank");
 		link.setStyleName("udlLogo");
-		return link;
-	}
-
-	private Link getSBMLLink() {
-		Link link = new Link("", new ExternalResource("http://sbml.org/"));
-		link.setIcon(new ThemeResource("img/sbml-logo-70.png"));
-		//link.setTargetName("_blank");
-		link.setStyleName("sbmlLogo");
 		return link;
 	}
 	
 	private Link getWebMathematicaLink() {
 		Link link = new Link("", new ExternalResource("http://www.wolfram.com/webmathematica/sitelink"));
 		link.setIcon(new ThemeResource("img/webm-white-plain-no-border.png"));
-		//link.setTargetName("_blank");
+		link.setTargetName("_blank");
 		link.setStyleName("loginWebMLogo");
+		return link;
+	}
+	
+	private Link getSBMLLink() {
+		Link link = new Link("", new ExternalResource("http://sbml.org/"));
+		link.setIcon(new ThemeResource("img/sbml-logo.png"));
+		link.setTargetName("_blank");
+		link.setStyleName("sbmlLogo");
+		return link;
+	}
+
+	private Link getGitHubLink() {
+		Link link = new Link("", new ExternalResource("https://github.com/jordibart/easymodel/"));
+		link.setIcon(new ThemeResource("img/github-logo.png"));
+		link.setTargetName("_blank");
+		link.setDescription("GitHub project source-code repository");
+		link.setStyleName("githubLogo");
 		return link;
 	}
 	

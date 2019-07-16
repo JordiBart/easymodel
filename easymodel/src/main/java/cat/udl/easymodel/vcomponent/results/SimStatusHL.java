@@ -104,7 +104,7 @@ public class SimStatusHL extends HorizontalLayout {
 		sessionData.getUi().getSession().lock();
 		removeAllComponents();
 		setStyleName("resultsStatusRunning");
-		Label statusLabel = new Label("Cancelling simulation (this may take a while)");
+		Label statusLabel = new Label("Cancelling... Simulation will stop after the current webMathematica operation");
 		statusLabel.setStyleName("resultsStatus");
 		FileResource resource = new FileResource(
 				new File(VaadinService.getCurrent().getBaseDirectory().getAbsolutePath()
