@@ -17,11 +17,15 @@ import com.vaadin.ui.CustomComponent;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Image;
 import com.vaadin.ui.Label;
+import com.vaadin.ui.Notification;
+import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
 
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
+import cat.udl.easymodel.ui.MainUI;
+import cat.udl.easymodel.ui.TutorialUI;
 import cat.udl.easymodel.utils.ToolboxVaadin;
 
 public class TutorialView extends CustomComponent implements View {
@@ -122,11 +126,18 @@ public class TutorialView extends CustomComponent implements View {
 	}
 
 	private void skip() {
-		getUI().getNavigator().removeView(TutorialView.NAME);
-		getUI().getNavigator().addView(AppView.NAME, AppView.class);
-		getUI().getNavigator().navigateTo(AppView.NAME);
+		if (getUI() instanceof MainUI) {
+			getUI().getNavigator().removeView(TutorialView.NAME);
+			getUI().getNavigator().addView(AppView.NAME, AppView.class);
+			getUI().getNavigator().navigateTo(AppView.NAME);
+		} else
+			showSwitchBackToApp();
 	}
-
+	
+	private void showSwitchBackToApp() {
+		Notification.show("Please switch back to "+SharedData.appName+" window to continue using it", Type.WARNING_MESSAGE);
+	}
+	
 	private Component getSkipBtn() {
 		Button btn = new Button("SKIP");
 		btn.setStyleName("tutorialSkip");
@@ -179,9 +190,12 @@ public class TutorialView extends CustomComponent implements View {
 			curSlide--;
 			updateSlide();
 		} else {
-			sessionData.clear();
-			UI.getCurrent().getNavigator().removeView(TutorialView.NAME);
-			UI.getCurrent().getNavigator().navigateTo(LoginView.NAME);
+			if (getUI() instanceof MainUI) {
+				sessionData.clear();
+				UI.getCurrent().getNavigator().removeView(TutorialView.NAME);
+				UI.getCurrent().getNavigator().navigateTo(LoginView.NAME);
+			} else
+				showSwitchBackToApp();
 		}
 	}
 
@@ -190,9 +204,12 @@ public class TutorialView extends CustomComponent implements View {
 			curSlide++;
 			updateSlide();
 		} else {
-			UI.getCurrent().getNavigator().removeView(TutorialView.NAME);
-			UI.getCurrent().getNavigator().addView(AppView.NAME, AppView.class);
-			UI.getCurrent().getNavigator().navigateTo(AppView.NAME);
+			if (getUI() instanceof MainUI) {
+				UI.getCurrent().getNavigator().removeView(TutorialView.NAME);
+				UI.getCurrent().getNavigator().addView(AppView.NAME, AppView.class);
+				UI.getCurrent().getNavigator().navigateTo(AppView.NAME);
+			} else
+				showSwitchBackToApp();
 		}
 	}
 

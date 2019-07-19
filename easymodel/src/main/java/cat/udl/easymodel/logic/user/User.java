@@ -242,7 +242,7 @@ public class User {
 
 	public void validateForRegister(ArrayList<User> allUsers) throws Exception {
 		if (name == null || !name.matches(ToolboxVaadin.usernameRegex)) {
-			throw new Exception("Invalid Username: " + ToolboxVaadin.usernameRegexInfo);
+			throw new Exception("Invalid " + ToolboxVaadin.usernameRegexInfo);
 		}
 		if (allUsers != null) {
 			for (User u : allUsers)
@@ -250,18 +250,18 @@ public class User {
 					throw new Exception("Username " + name + " already exists");
 		}
 		if (pass == null || !pass.matches(ToolboxVaadin.passwordRegex))
-			throw new Exception("Invalid Password: " + ToolboxVaadin.passwordRegexInfo);
+			throw new Exception("Invalid " + ToolboxVaadin.passwordRegexInfo);
 		if (retypePass == null || !retypePass.equals(pass))
 			throw new Exception("Password fields don't match");
 	}
 
 	public void validateForAdmin() throws Exception {
 		if (name == null || !name.matches(ToolboxVaadin.usernameRegex)) {
-			throw new Exception("Invalid Username: " + ToolboxVaadin.usernameRegexInfo);
+			throw new Exception("Invalid " + ToolboxVaadin.usernameRegexInfo);
 		}
 		if ((id != null && pass != null && !pass.isEmpty() && !pass.matches(ToolboxVaadin.passwordRegex))
 				|| (id == null && (pass == null || !pass.matches(ToolboxVaadin.passwordRegex))))
-			throw new Exception("Invalid Password: " + ToolboxVaadin.passwordRegexInfo);
+			throw new Exception("Invalid " + ToolboxVaadin.passwordRegexInfo);
 	}
 	
 	public boolean isGuest() {

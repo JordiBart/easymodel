@@ -2,12 +2,19 @@ package cat.udl.easymodel.vcomponent.app;
 
 import java.util.HashMap;
 
+import com.vaadin.server.BrowserWindowOpener;
+import com.vaadin.server.ExternalResource;
+import com.vaadin.server.FileDownloader;
+import com.vaadin.server.StreamResource;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.HorizontalLayout;
+import com.vaadin.ui.MenuBar;
+import com.vaadin.ui.MenuBar.MenuItem;
+import com.vaadin.ui.Notification;
 import com.vaadin.ui.Panel;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
@@ -19,15 +26,20 @@ import cat.udl.easymodel.logic.types.UserType;
 import cat.udl.easymodel.logic.types.WStatusType;
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
+import cat.udl.easymodel.ui.TutorialUI;
+import cat.udl.easymodel.utils.DownFileStreamSource;
+import cat.udl.easymodel.vcomponent.login.RegisterWindow;
 import cat.udl.easymodel.vcomponent.model.ModelEditorVL;
 import cat.udl.easymodel.vcomponent.model.window.ValidateModelWindow;
 import cat.udl.easymodel.vcomponent.results.ResultsVL;
 import cat.udl.easymodel.vcomponent.selectmodel.SelectModelVL;
 import cat.udl.easymodel.vcomponent.selectmodel.window.SelectModelWindow;
 import cat.udl.easymodel.vcomponent.simulation.SimulationVL;
+import cat.udl.easymodel.vcomponent.useraccount.EditUserAccountWindow;
 import cat.udl.easymodel.view.AdminView;
 import cat.udl.easymodel.view.AppView;
 import cat.udl.easymodel.view.LoginView;
+import cat.udl.easymodel.view.TutorialView;
 
 public class AppPanel extends Panel {
 	private static final long serialVersionUID = 1L;
@@ -70,7 +82,7 @@ public class AppPanel extends Panel {
 		stepButtonsHL.addComponent(spacer);
 		if (sessionData.getUser().getUserType() == UserType.ADMIN)
 			stepButtonsHL.addComponent(getSwitchAdminAppButton());
-		stepButtonsHL.addComponents(getUserButton(), getExitButton());
+		stepButtonsHL.addComponents(getToolsMenuBar(), getExitButton());
 		stepButtonsHL.setExpandRatio(spacer, 1f);
 
 		// VerticalLayout conPanelVL = new VerticalLayout();
@@ -182,21 +194,28 @@ public class AppPanel extends Panel {
 		}
 	}
 
-	private Button getUserButton() {
-		Button btn = new Button();
-		btn.setCaption(sessionData.getUser().getName());
-		btn.setHeight("100%");
-		btn.setStyleName("topButtonsRightPart");
-		btn.addClickListener(new ClickListener() {
+	private MenuBar getToolsMenuBar() {
+		MenuBar menu = new MenuBar();
+		menu.setStyleName("appTools");
+		MenuItem tools = menu.addItem("Tools", null, null);
+		
+		MenuBar.Command userCommand = new MenuBar.Command() {
 			private static final long serialVersionUID = 1L;
 
-			@Override
-			public void buttonClick(ClickEvent event) {
-			}
-		});
-		return btn;
+			public void menuSelected(MenuItem selectedItem) {
+		    	EditUserAccountWindow win = new EditUserAccountWindow();
+				UI.getCurrent().addWindow(win);
+		    }
+		};
+		
+		MenuItem userAccount = tools.addItem("Account Settings", null, userCommand);
+		userAccount.setDescription("Change User Account Settings");
+		MenuItem tutorial = tools.addItem("Tutorial", null, null);
+		tutorial.setDescription("Open Tutorial in a new window");
+		BrowserWindowOpener opener = new BrowserWindowOpener(TutorialUI.class);
+		opener.extend(tutorial);
+		return menu;
 	}
-
 
 //	private ClickListener getSelectModelClickListener() {
 //		return new ClickListener() {
@@ -217,7 +236,7 @@ public class AppPanel extends Panel {
 		btn.setHeight("100%");
 //		btn.addClickListener(getSelectModelClickListener());
 		btn.addClickListener(new ClickListener() {
-			
+
 			@Override
 			public void buttonClick(ClickEvent event) {
 				selectedButton = stepButtons.get("Select Model");

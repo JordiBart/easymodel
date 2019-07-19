@@ -15819,6 +15819,23 @@ div.v-layout.v-horizontal.v-widget {
 	box-shadow: none;
 }
 
+.easymodel .v-menubar.appTools {
+	background-image: none;
+	background-color: #ffffff;
+	color: #020202;
+	border-radius: 0px;
+	border: none;
+	border: none;
+	border-top: none;
+	border-bottom: none;
+	border-left: 1px solid #c5c5c5;
+	border-right: none;
+	padding: 0;
+	-webkit-box-shadow: none;
+	box-shadow: none;
+	line-height: 30px;
+}
+
 .easymodel .v-button.exitBtn {
 	background-image: url("img/exit.png");
 	background-color: #FFF;
