@@ -16,62 +16,65 @@ import cat.udl.easymodel.utils.p;
 
 public class MathLinkOp {
 	private KernelLink ml = null;
-	private SessionData sessionData;
+	private CustomPacketListener customPacketListener = new CustomPacketListener();
+	private boolean isLocked = true;
 
-	public MathLinkOp(SessionData sessionData) {
-		this.sessionData = sessionData;
+	public MathLinkOp() {
 //		System.setProperty("com.wolfram.jlink.libdir", System.getProperty("user.dir") + "/" + SharedData.jLinkLibDir);
 	}
 
+	public CustomPacketListener getCustomPacketListener() {
+		return customPacketListener;
+	}
+	
 	public void openMathLink() throws MathLinkException {
 		if (isOpen())
 			return;
 		SharedData sharedData = SharedData.getInstance();
 		try {
-			// Try create kernel link using properties file
 			// System.load(System.getProperty("user.dir")+"/"+SharedData.jLinkLibDir+"/JLinkNativeLibrary.dll");
+			// Try create kernel link using properties file
 			ml = MathLinkFactory.createKernelLink(sharedData.getProperties().getProperty("mathKernelPath"));
 			ml.discardAnswer(); // InputNamePacket discarded
+			ml.addPacketListener(customPacketListener);
+			unlock();
 		} catch (MathLinkException | Error e1) {
 			if (e1 instanceof Error) {
 				e1.printStackTrace();
 				System.out.println("HINT: JLinkNativeLibrary.dll must be located in "
 						+ System.getProperty("com.wolfram.jlink.libdir"));
 				System.out.println("HINT: Try to restart webapp server");
-				throw new MathLinkException(0, "MathLink error, please contact with the administrator");
+				throw new MathLinkException(0, "webMathematica error, please contact with the administrator");
+			} else {
+				ml = null;
+				System.err.println("Cannot create MathLink: " + e1.getMessage());
+				System.err.println("HINT: edit " + SharedData.propertiesFilePath + " to set MathKernel.exe path");
+				throw new MathLinkException(0, "webMathematica busy, please try again later");
 			}
-			try {
-				// Try create kernel link in WINDOWS
-				ml = MathLinkFactory.createKernelLink(
-						"-linkmode launch -linkname 'C:\\Program Files\\Wolfram Research\\Mathematica\\9.0\\MathKernel.exe'");
-				ml.discardAnswer(); // InputNamePacket discarded
-			} catch (MathLinkException e2) {
-				try {
-					// Try create kernel link in LINUX
-					ml = MathLinkFactory.createKernelLink("-linkmode launch -linkname 'math -mathlink'");
-					ml.discardAnswer(); // InputNamePacket discarded
-				} catch (MathLinkException e3) {
-					ml = null;
-					System.err.println("MathLinkException: " + e3.getMessage());
-					System.err.println("HINT: edit " + SharedData.propertiesFilePath + " to set MathKernel.exe path");
-					throw new MathLinkException(0, "MathLink creation error, please try again later");
-				}
-			}
+//				WINDOWS example MathLinkFactory.createKernelLink("-linkmode launch -linkname 'C:\\Program Files\\Wolfram Research\\Mathematica\\11.3\\MathKernel.exe'"
+//				LINUX example: MathLinkFactory.createKernelLink("-linkmode launch -linkname 'math -mathlink'");
 		}
-		if (this.sessionData != null)
-			ml.addPacketListener(new MathPacketListener(this.sessionData));
 	}
 
 	public void closeMathLink() {
-		if (isOpen()) {
+		if (ml != null) {
 			ml.abortEvaluation();
-//			ml.interruptEvaluation();
-//			ml.abandonEvaluation();
+			ml.interruptEvaluation();
+			ml.abandonEvaluation();
 			
 			ml.terminateKernel();
 			ml.close();
 			ml = null;
 			System.gc();
+		}
+	}
+	
+	public void resetMathLink() {
+		closeMathLink();
+		try {
+			openMathLink();
+		} catch (MathLinkException e) {
+			System.err.println("ERROR: RESET MATHLINK");
 		}
 	}
 
@@ -86,53 +89,22 @@ public class MathLinkOp {
 		}
 	}
 
-//	public void abandonEvaluation() {
-//		if (isOpen()) {
-//			ml.abortEvaluation();
-//			ml.interruptEvaluation();
-//			ml.abandonEvaluation();
-//		}
-//	}
-
 	public void evaluate(String mlCmd) throws MathLinkException {
 		if (mlCmd != null) {
-			ml.connect();
+			// ml.connect();
 			ml.evaluate(mlCmd);
 			ml.discardAnswer();
 		}
 	}
 
-	public Integer evaluateToInt(String mlCmd) throws MathLinkException {
-		Integer result = 0;
-		if (mlCmd != null) {
-			ml.connect();
-			ml.evaluate(mlCmd);
-			ml.waitForAnswer();
-			ml.newPacket();
-			result = ml.getInteger();
-			ml.newPacket();
-		}
-		return result;
-	}
-
-	public Boolean evaluateToBoolean(String mlCmd) throws MathLinkException {
-		Boolean result = false;
-		if (mlCmd != null) {
-			ml.connect();
-			ml.evaluate(mlCmd);
-			ml.waitForAnswer();
-			result = ml.getBoolean();
-			ml.newPacket();
-		}
-		return result;
-	}
-
 	public String evaluateToString(String mlCmd) throws MathLinkException {
 		String result = "";
 		if (mlCmd != null) {
-			ml.connect();
+			// ml.connect();
 			result = ml.evaluateToOutputForm(mlCmd, 0);
-			if (ml.getLastError() != null)
+			if (result == null)
+				throw new MathLinkException(1, "Evaluate error");
+			else if (ml.getLastError() != null)
 				throw new MathLinkException(ml.getLastError());
 		}
 		return result;
@@ -167,7 +139,7 @@ public class MathLinkOp {
 	public byte[] evaluateToImage(String mlCmd) throws MathLinkException {
 		byte[] result = new byte[] { 0 };
 		if (mlCmd != null) {
-			ml.connect();
+			// ml.connect();
 			result = ml.evaluateToImage(mlCmd, 0, 0, 0, true); // width, height, dpi, use front end
 			if (ml.getLastError() != null)
 				throw new MathLinkException(ml.getLastError());
@@ -175,20 +147,32 @@ public class MathLinkOp {
 		return result;
 	}
 
-	// not used
-	public void killAllMathematica() {
-		ml=null;
-		System.gc();
-		try {
-			Runtime rt = Runtime.getRuntime();
-			if (SharedData.isWindowsSystem()) {
-				rt.exec("taskkill /F /IM MathKernel.exe");
-				rt.exec("taskkill /F /IM Mathematica.exe");
-			} else {
-				rt.exec("killall -9 WolframKernel | killall -9 Mathematica");
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+	public boolean isLocked() {
+		return isLocked;
 	}
+
+	public void lock() {
+		this.isLocked = true;
+	}
+
+	public void unlock() {
+		this.isLocked = false;
+	}
+	
+	// not used-not needed anymore
+//	public void killAllMathematica() {
+//		ml = null;
+//		System.gc();
+//		try {
+//			Runtime rt = Runtime.getRuntime();
+//			if (SharedData.isWindowsSystem()) {
+//				rt.exec("taskkill /F /IM MathKernel.exe");
+//				rt.exec("taskkill /F /IM Mathematica.exe");
+//			} else {
+//				rt.exec("killall -9 WolframKernel | killall -9 Mathematica");
+//			}
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
+//	}
 }

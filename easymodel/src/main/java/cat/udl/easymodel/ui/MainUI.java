@@ -69,8 +69,6 @@ public class MainUI extends UI {
 		this.setData(this.sessionData);
 		this.sessionData.init();
 
-		SBMLMan.getInstance();
-
 		getPage().setTitle(SharedData.fullAppName);
 		this.setNavigator(new Navigator(this, this));
 		// Navigator views

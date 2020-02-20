@@ -11,12 +11,15 @@ import com.vaadin.event.FieldEvents.BlurListener;
 import com.vaadin.ui.CheckBox;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.HorizontalLayout;
+import com.vaadin.ui.NativeSelect;
 import com.vaadin.ui.Slider;
 import com.vaadin.ui.TextField;
 import com.vaadin.ui.VerticalLayout;
 
 import cat.udl.easymodel.logic.formula.FormulaUtils;
 import cat.udl.easymodel.logic.model.Model;
+import cat.udl.easymodel.logic.simconfig.CellSizes;
+import cat.udl.easymodel.logic.simconfig.CellSizes.CellSize;
 import cat.udl.easymodel.logic.simconfig.SimConfigEntry;
 import cat.udl.easymodel.logic.simconfig.SimConfigSlider;
 import cat.udl.easymodel.logic.types.InputType;
@@ -25,7 +28,7 @@ import cat.udl.easymodel.utils.ToolboxVaadin;
 
 public class SimConfigToComponent {
 
-	public static Component convert(SimConfigEntry en, Set<String> setOfStringForArrayCheckbox) {
+	public static Component convert(SimConfigEntry en, Set<String> stringSet) {
 		Component comp = null;
 		switch (en.getType()) {
 		case STRING:
@@ -44,7 +47,13 @@ public class SimConfigToComponent {
 			comp = getSlider(en);
 			break;
 		case ARRAYCHECKBOX:
-			comp = getCheckBoxGroup(en,setOfStringForArrayCheckbox);
+			comp = getCheckBoxGroup(en, stringSet);
+			break;
+		case NATURAL:
+			comp = getNatural(en);
+			break;
+		case SELECT:
+			comp = getSelect(en);
 			break;
 		}
 		return comp;
@@ -52,7 +61,7 @@ public class SimConfigToComponent {
 
 	private static HorizontalLayout getString(SimConfigEntry en) {
 		TextField parValueTF = new TextField();
-		HorizontalLayout hl = getTextFieldHL(en, parValueTF);
+		HorizontalLayout hl = getComponentHL(en, parValueTF);
 		parValueTF.addBlurListener(new BlurListener() {
 			private static final long serialVersionUID = 1L;
 
@@ -72,17 +81,17 @@ public class SimConfigToComponent {
 
 	private static HorizontalLayout getMathExpression(SimConfigEntry en) {
 		TextField parValueTF = new TextField();
-		HorizontalLayout hl = getTextFieldHL(en, parValueTF);
+		HorizontalLayout hl = getComponentHL(en, parValueTF);
 		parValueTF.addBlurListener(new BlurListener() {
 			private static final long serialVersionUID = 1L;
 
 			@Override
 			public void blur(BlurEvent event) {
 				String newText = ((TextField) event.getComponent()).getValue();
-				String newVal = newText;
+				String newVal=newText;
 				try {
-					newVal = Utils.evalMathExpr(newText);
-					((TextField) event.getComponent()).setValue(newVal);
+					Utils.evalMathExpr(newText);
+					//((TextField) event.getComponent()).setValue(newVal);
 				} catch (Exception e) {
 					newVal = null;
 					((TextField) event.getComponent()).setValue("");
@@ -100,7 +109,7 @@ public class SimConfigToComponent {
 
 	private static HorizontalLayout getDecimal(SimConfigEntry en) {
 		TextField parValueTF = new TextField();
-		HorizontalLayout hl = getTextFieldHL(en, parValueTF);
+		HorizontalLayout hl = getComponentHL(en, parValueTF);
 		parValueTF.addBlurListener(new BlurListener() {
 			private static final long serialVersionUID = 1L;
 
@@ -110,6 +119,8 @@ public class SimConfigToComponent {
 				String newVal = newText;
 				try {
 					BigDecimal testBigDec = new BigDecimal(newVal);
+//					if (minVal != null && testBigDec.compareTo(minVal) < 0)
+//						throw new Exception("");
 				} catch (Exception e) {
 					newVal = null;
 					((TextField) event.getComponent()).setValue("");
@@ -124,8 +135,8 @@ public class SimConfigToComponent {
 			parValueTF.setValue(prevValue);
 		return hl;
 	}
-
-	private static HorizontalLayout getTextFieldHL(SimConfigEntry en, TextField parValueTF) {
+	
+	private static HorizontalLayout getComponentHL(SimConfigEntry en, Component comp) {
 		HorizontalLayout line = new HorizontalLayout();
 		line.setSpacing(false);
 		line.setMargin(false);
@@ -136,14 +147,14 @@ public class SimConfigToComponent {
 		parNameTF.setWidth("100%");
 		parNameTF.setReadOnly(true);
 
-//		parValueTF.setInputPrompt(caption);
-		parValueTF.setWidth("100%");
-		parValueTF.setId(en.getId());
-		parValueTF.setResponsive(true);
+		comp.setSizeFull();
+		comp.setId(en.getId());
+//		if (parValueTF instanceof TextField)
+//		((TextField) parValueTF).setResponsive(true);
 
-		line.addComponents(parNameTF, parValueTF);
+		line.addComponents(parNameTF, comp);
 		line.setExpandRatio(parNameTF, 1.0f);
-		line.setExpandRatio(parValueTF, 2.0f);
+		line.setExpandRatio(comp, 2.0f);
 		return line;
 	}
 
@@ -183,7 +194,7 @@ public class SimConfigToComponent {
 		});
 		return cb;
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	private static VerticalLayout getCheckBoxGroup(SimConfigEntry en, Set<String> setOfStringForArrayCheckbox) {
 		VerticalLayout vl = new VerticalLayout();
@@ -196,7 +207,7 @@ public class SimConfigToComponent {
 		}
 		return vl;
 	}
-	
+
 	private static CheckBox getDepVarToShowCheckBox(String depVar, ArrayList<String> arrDepVar) {
 		CheckBox cb = new CheckBox(depVar);
 		cb.setData(depVar);
@@ -213,5 +224,52 @@ public class SimConfigToComponent {
 			}
 		});
 		return cb;
+	}
+
+	private static HorizontalLayout getNatural(SimConfigEntry en) {
+		TextField parValueTF = new TextField();
+		HorizontalLayout hl = getComponentHL(en, parValueTF);
+		parValueTF.addBlurListener(new BlurListener() {
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public void blur(BlurEvent event) {
+				String newText = ((TextField) event.getComponent()).getValue();
+				String newVal = newText;
+				try {
+					Integer testNatural = Integer.valueOf(newVal);
+				} catch (Exception e) {
+					newVal = null;
+					((TextField) event.getComponent()).setValue("");
+				} finally {
+					en.setValue(newVal);
+				}
+			}
+		});
+		// Load previous value
+		String prevValue = (String) en.getValue();
+		if (prevValue != null)
+			parValueTF.setValue(prevValue);
+		return hl;
+	}
+
+	private static HorizontalLayout getSelect(SimConfigEntry en) {
+		NativeSelect<String> ns = new NativeSelect<>();
+		Set<String> stringSet = CellSizes.getInstance().getCellSizeNames();
+		ns.setItems(stringSet);
+		ns.setEmptySelectionAllowed(false);
+		ns.addValueChangeListener(new ValueChangeListener<String>() {
+			@Override
+			public void valueChange(ValueChangeEvent<String> event) {
+				String newVal = event.getValue();
+				en.setValue(newVal);
+			}
+		});
+		// Load previous value
+		String prevValue = (String) en.getValue();
+		if (prevValue != null)
+			ns.setValue(prevValue);
+		HorizontalLayout hl = getComponentHL(en, ns);
+		return hl;
 	}
 }

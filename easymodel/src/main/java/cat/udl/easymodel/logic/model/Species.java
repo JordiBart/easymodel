@@ -4,7 +4,7 @@ import cat.udl.easymodel.logic.types.SpeciesVarTypeType;
 
 public class Species {
 
-	private String concentration = null;
+	private String concentration = "1";
 	private SpeciesVarTypeType varType = SpeciesVarTypeType.TIMEDEP;
 	private boolean isStochastic = false;
 	private String amount = null;

@@ -18,11 +18,13 @@ import cat.udl.easymodel.logic.types.FormulaType;
 import cat.udl.easymodel.logic.types.UserType;
 import cat.udl.easymodel.logic.user.User;
 import cat.udl.easymodel.logic.user.Users;
+import cat.udl.easymodel.mathlink.MathLinkArray;
 import cat.udl.easymodel.persistence.DBManager;
 import cat.udl.easymodel.persistence.DBManagerImpl;
 import cat.udl.easymodel.thread.visitcounter.VisitCounterRunnable;
 
 public class SharedData {
+	private MathLinkArray mathLinkArray =new MathLinkArray();
 	private DBManager dbManager = null;
 	private Properties properties = null;
 	private DecimalFormat decimalFormat = null;
@@ -40,11 +42,12 @@ public class SharedData {
 //	public static final String jLinkLibDir = appDir + "/jlink-lib";//
 	public static final String tempDir = appDir + "/tmp";
 	public static final String appName = "EasyModel";
-	public static final String appVersion = "1.0";
+	public static final String appVersion = "1.2";
 	public static final String fullAppName = appName + " " + appVersion;
 	// public static final boolean enableMath = true;
 	public static final String dbError = "DATABASE CONNECTION ERROR";
 	// mathLink
+	public static final int maxMathLinks = 1;
 	public static final String mathLinkError = "MATHEMATICA CONNECTION ERROR, PLEASE TRY AGAIN LATER";
 	public static final String mathPrintPrefix = "MSG::";
 	// SBML
@@ -248,7 +251,7 @@ public class SharedData {
 		return genericFormulas;
 	}
 
-	private boolean isOKToDoDailyTask() {
+	private boolean isOKToRunDailyTask() {
 		LocalDate localDate = LocalDate.now();
 		if (localDate.getDayOfMonth() != dayOfMonthOfLastDailyOpDone) {
 			dayOfMonthOfLastDailyOpDone = localDate.getDayOfMonth();
@@ -258,7 +261,7 @@ public class SharedData {
 	}
 
 	public void tryDailyTask() {
-		if (!isOKToDoDailyTask())
+		if (!isOKToRunDailyTask())
 			return;
 		else {
 			try {
@@ -283,5 +286,9 @@ public class SharedData {
 		for (Formula f : genericFormulas)
 			res.addFormula(f);
 		return res;
+	}
+
+	public MathLinkArray getMathLinkArray() {
+		return mathLinkArray;
 	}
 }

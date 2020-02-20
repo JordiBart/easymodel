@@ -71,7 +71,6 @@ package cat.udl.easymodel.vcomponent.selectmodel.window;
 //			
 //			@Override
 //			public void error(com.vaadin.server.ErrorEvent event) {
-//				// TODO Auto-generated method stub
 //				
 //			}
 //		});

@@ -44,7 +44,6 @@ public class FormulasEditorVL extends VerticalLayout {
 	private Grid<Formula> grid;
 	private VerticalLayout thisVL = null;
 	private VerticalLayout formulaListVL = null;
-	private PopupView infoPopup = new PopupView(null, getInfoLayout());
 
 	private ModelEditorVL modelEditorVL;
 
@@ -82,50 +81,29 @@ public class FormulasEditorVL extends VerticalLayout {
 			private static final long serialVersionUID = 1L;
 
 			public void buttonClick(ClickEvent event) {
-				infoPopup.setPopupVisible(true);
+				sessionData.showInfoWindow("i- How to define rate expressions\r\n" + 
+						"    Usable operators: +-/*^()\r\n" + 
+						"    Reserved symbols:\r\n" + 
+						"        Mathematica functions/constants: m:<Mathematica function>\r\n" + 
+						"        Mathematica function indexes: i:<index>\r\n" + 
+						"        Special variables: b:t (time)\r\n" + 
+						"        b:X[]: Mathematica substrate list\r\n" + 
+						"        b:A[]: Mathematica substrate coefficient list\r\n" + 
+						"        b:M[]: Mathematica modifier list\r\n" + 
+						"        b:XF: first substrate\r\n" + 
+						"        b:MF: first modifier\r\n" + 
+						"    Example: m:Product[b:X[[i:j]]^g[[i:j]],{i:j,1,m:Length[b:X]}]\r\n" + 
+						"ii - Defining a new Rate expression\r\n" + 
+						"    1. Press \"Add Rate\" button\r\n" + 
+						"    2. Write the Mathematica expression for the Rate\r\n" + 
+						"iii - Edit rate expressions\r\n" + 
+						"    Press \"Edit\" button\r\n" + 
+						"iv - Importing predefined rate expressions\r\n" + 
+						"    1. Press \"Import Rates\" button\r\n" + 
+						"    2. Select the rates to import into the model", 600,600);
 			}
 		});
 		return btn;
-	}
-
-	private VerticalLayout getInfoLayout() {
-		VerticalLayout vlt = new VerticalLayout();
-		VerticalLayout vl1 = new VerticalLayout();
-		VerticalLayout vl11 = new VerticalLayout();
-		vl1.setMargin(false);
-		vl11.setMargin(false);
-		vlt.addComponent(new Label("i - How to define rate expressions"));
-		vl11.addComponents(new Label(
-				"Mathematica functions/constants: "+FormulaUtils.mathematicaSymbolPrefix+"<Mathematica function>"),
-				new Label("Mathematica function indexes: "+FormulaUtils.mathematicaIndexPrefix+"<index>"),
-				new Label("Special variables: "+FormulaUtils.mathematicaBuiltInPrefix+"t (time)"), new Label(FormulaUtils.mathematicaBuiltInPrefix+"X[]: Mathematica substrate list"),
-				new Label(FormulaUtils.mathematicaBuiltInPrefix+"A[]: Mathematica substrate coefficient list"), new Label(FormulaUtils.mathematicaBuiltInPrefix+"M[]: Mathematica modifier list"),
-				new Label(FormulaUtils.mathematicaBuiltInPrefix+"XF: first substrate"), new Label(FormulaUtils.mathematicaBuiltInPrefix+"MF: first modifier"));
-		vl1.addComponents(new Label("Usable operators: +-/*^()"), new Label("Reserved symbols:"),
-				ToolboxVaadin.getIndentedVLLayout(vl11), new Label("Example: "+FormulaUtils.mathematicaSymbolPrefix+"Product["+FormulaUtils.mathematicaBuiltInPrefix+"X[["+FormulaUtils.mathematicaIndexPrefix+"j]]^g[["+FormulaUtils.mathematicaIndexPrefix+"j]],{"+FormulaUtils.mathematicaIndexPrefix+"j,1,"+FormulaUtils.mathematicaSymbolPrefix+"Length["+FormulaUtils.mathematicaBuiltInPrefix+"X]}]"));
-		vlt.addComponent(ToolboxVaadin.getIndentedVLLayout(vl1));
-		vlt.addComponent(new Label("ii - Defining a new Rate expression"));
-		VerticalLayout vl2 = new VerticalLayout();
-		vl2.setMargin(false);
-		vl2.addComponents(new Label("1. Press \"Add Rate\" button"),
-				new Label("2. Write the Mathematica expression for the Rate"));
-		vlt.addComponent(ToolboxVaadin.getIndentedVLLayout(vl2));
-		vlt.addComponent(new Label("iii - Edit rate expressions"));
-		HorizontalLayout hl3 = new HorizontalLayout();
-		hl3.setMargin(false);
-		hl3.setSpacing(true);
-		Button setBtn = new Button();
-		setBtn.setWidth("37px");
-		setBtn.setStyleName("editBtn");
-		hl3.addComponents(new Label("Press"), setBtn);
-		vlt.addComponent(ToolboxVaadin.getIndentedVLLayout(hl3));
-		vlt.addComponent(new Label("iv - Importing predefined rate expressions"));
-		VerticalLayout vl3 = new VerticalLayout();
-		vl3.setMargin(false);
-		vl3.addComponents(new Label("1. Press \"Import Rates\" button"),
-				new Label("2. Select the rates to import into the model"));
-		vlt.addComponent(ToolboxVaadin.getIndentedVLLayout(vl3));
-		return vlt;
 	}
 
 	private void createGrid() {
@@ -165,7 +143,7 @@ public class FormulasEditorVL extends VerticalLayout {
 		hl11.setSpacing(false);
 		hl11.setMargin(false);
 		hl11.addComponents(getBackToModelBtn(),getNewRateButton(),getImportRatesButton());
-		hl1.addComponents(hl11, infoPopup, getInfoButton());
+		hl1.addComponents(hl11, getInfoButton());
 		hl1.setExpandRatio(hl11, 1f);
 		vl.addComponents(hl1);
 
@@ -303,11 +281,11 @@ public class FormulasEditorVL extends VerticalLayout {
 			private static final long serialVersionUID = 1L;
 
 			public void buttonClick(ClickEvent event) {
-				selModel.removeFormula(f);
-				sessionData.getModels().removeFormulaFromReactions(f);
-				Notification.show("Rate " + f.getNameToShow() + " has been unlinked from all reactions",
-						Type.TRAY_NOTIFICATION);
+				selModel.unlinkFormulaFromReactions(f);
+				selModel.getFormulas().removeFormula(f);
 				grid.setItems(selModel.getFormulas());
+				Notification.show("Rate " + f.getNameToShow() + " has been unlinked from all model reactions",
+						Type.TRAY_NOTIFICATION);
 //				updateDisplayContent();
 			}
 		});

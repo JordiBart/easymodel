@@ -50,7 +50,6 @@ public class ModelEditorVL extends VerticalLayout {
 	private Panel conPanel;
 	private VerticalLayout reactionsVL;
 	private ArrayList<TextField> reactionsTFList = new ArrayList<>();
-	private PopupView infoPopup = new PopupView(null, getInfoLayout());
 
 	private Model selectedModel;
 	private AppPanel mainPanel;
@@ -95,7 +94,7 @@ public class ModelEditorVL extends VerticalLayout {
 	private void updateConPanel() {
 		modelVL.removeAllComponents();
 		modelVL.addComponent(getHeaderHL());
-		modelVL.addComponent(getNameDescLayout());
+		modelVL.addComponent(getNameDescVL());
 		reactionsVL = getReactionsVL();
 		modelVL.addComponent(reactionsVL);
 		modelVL.addComponent(getModelButtons());
@@ -119,7 +118,7 @@ public class ModelEditorVL extends VerticalLayout {
 		head.setWidth("100%");
 		head.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
 		head.addComponent(image);
-		hl.addComponents(head, infoPopup, getInfoButton());
+		hl.addComponents(head, getInfoButton());
 		hl.setExpandRatio(head, 1f);
 		return hl;
 	}
@@ -223,7 +222,17 @@ public class ModelEditorVL extends VerticalLayout {
 			private static final long serialVersionUID = 1L;
 
 			public void buttonClick(ClickEvent event) {
-				infoPopup.setPopupVisible(true);
+				sessionData.showInfoWindow("How to use EasyModel\r\n" + 
+						"1. Define processes\r\n" + 
+						"    Reaction definition: Substrates -> Products ; Modifiers\r\n" + 
+						"    How to write: n1*A1+n2*A2+...->m1*B1+m2*B2+...;M1;M2;...\r\n" + 
+						"    Legend: nX,mX: coefficient; AX,BX: species; MX: modifier\r\n" + 
+						"2. Define model rates\r\n" + 
+						"3. Select a rate for every reaction\r\n" + 
+						"	Press \"Rate\" button\r\n" + 
+						"4. Define initial conditions (Species button)\r\n" + 
+						"5. Validate model\r\n" + 
+						"6. Run Simulation", 600,400);
 			}
 		});
 		return btn;
@@ -438,14 +447,21 @@ public class ModelEditorVL extends VerticalLayout {
 		return vlt;
 	}
 
-	private VerticalLayout getNameDescLayout() {
+	private VerticalLayout getNameDescVL() {
 		VerticalLayout vl = new VerticalLayout();
 		vl.setSizeFull();
 		vl.setSpacing(false);
 		vl.setMargin(false);
+//		vl.setCaption("Name");
+		HorizontalLayout hl = new HorizontalLayout();
+		hl.setDefaultComponentAlignment(Alignment.BOTTOM_LEFT);
+		hl.setWidth("100%");
+		hl.setSpacing(false);
+		hl.setMargin(false);
+		
 		nameTF = new TextField();
 		nameTF.setValue(selectedModel.getName());
-		nameTF.setCaption("Name");
+		nameTF.setPlaceholder("Name");
 		nameTF.setWidth("100%");
 		nameTF.addValueChangeListener(new ValueChangeListener<String>() {
 			@Override
@@ -454,39 +470,53 @@ public class ModelEditorVL extends VerticalLayout {
 			}
 		});
 
-		vl.addComponents(nameTF, getDescriptionHL());
-		return vl;
-	}
-
-	private Component getDescriptionHL() {
-		VerticalLayout hl = new VerticalLayout();
-		hl.setDefaultComponentAlignment(Alignment.BOTTOM_LEFT);
-		hl.setWidth("100%");
-		hl.setSpacing(true);
-		hl.setMargin(false);
-		Button editDescBtn = new Button();
-		editDescBtn.setCaption(selectedModel.getDescription());
-		editDescBtn.setWidth("100%");
-		editDescBtn.setId("editDescription");
-		editDescBtn.addClickListener(new ClickListener() {
-
+		Button descBtn = new Button();
+		descBtn.setCaption("Description");
+		descBtn.setWidth("120px");
+		//descBtn.setId("editDescription");
+		descBtn.addClickListener(new ClickListener() {
 			@Override
 			public void buttonClick(ClickEvent event) {
 				DescriptionEditWindow window = new DescriptionEditWindow();
-				window.addCloseListener(new CloseListener() {
-					@Override
-					public void windowClose(CloseEvent e) {
-						event.getButton().setCaption(selectedModel.getDescription());
-					}
-				});
 				UI.getCurrent().addWindow(window);
 			}
 		});
-		Label btnLabel = new Label("Description");
-		btnLabel.setStyleName("labelCaption");
-		hl.addComponents(btnLabel, editDescBtn);
-		return hl;
+		
+		hl.addComponents(nameTF, descBtn);
+		hl.setExpandRatio(nameTF, 1f);
+		vl.addComponent(hl);
+		return vl;
 	}
+
+//	private Component getDescriptionHL() {
+//		VerticalLayout hl = new VerticalLayout();
+//		hl.setDefaultComponentAlignment(Alignment.BOTTOM_LEFT);
+//		hl.setWidth("100%");
+//		hl.setSpacing(true);
+//		hl.setMargin(false);
+//		Button editDescBtn = new Button();
+//		editDescBtn.setCaption(selectedModel.getDescription());
+//		editDescBtn.setWidth("100%");
+//		editDescBtn.setId("editDescription");
+//		editDescBtn.addClickListener(new ClickListener() {
+//
+//			@Override
+//			public void buttonClick(ClickEvent event) {
+//				DescriptionEditWindow window = new DescriptionEditWindow();
+//				window.addCloseListener(new CloseListener() {
+//					@Override
+//					public void windowClose(CloseEvent e) {
+//						event.getButton().setCaption(selectedModel.getDescription());
+//					}
+//				});
+//				UI.getCurrent().addWindow(window);
+//			}
+//		});
+//		Label btnLabel = new Label("Description");
+//		btnLabel.setStyleName("labelCaption");
+//		hl.addComponents(btnLabel, editDescBtn);
+//		return hl;
+//	}
 
 	private void openLinkFormulaWindow(Reaction react, Button btn) {
 		if (!react.isValid()) {

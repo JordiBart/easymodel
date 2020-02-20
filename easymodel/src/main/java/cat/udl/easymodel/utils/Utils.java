@@ -125,4 +125,12 @@ public class Utils {
 	public static String doubleToString(Double d) {
 		return SharedData.getInstance().doubleToString(d);
 	}
+
+	public static Integer getNumOfDecimalDigits(String num) {
+		String[] parts = num.split("\\.");
+		if (parts.length == 2)
+			return parts[1].length();
+		else
+			return 0;
+	}
 }

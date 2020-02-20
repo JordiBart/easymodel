@@ -35,10 +35,11 @@ public class DBManagerImpl implements DBManager {
 			if (con == null || con.isClosed() || !con.isValid(3)) {
 				SharedData sharedData = SharedData.getInstance();
 				Properties properties = sharedData.getProperties();
-				Class.forName("com.mysql.cj.jdbc.Driver"); //load driver in current thread ClassLoader
+				Class.forName("com.mysql.cj.jdbc.Driver"); // load driver in current thread ClassLoader
 				con = DriverManager.getConnection("jdbc:mysql://" + properties.getProperty("mySqlHost") + "/"
 						+ properties.getProperty("mySqlDb") + "?" + "user=" + properties.getProperty("mySqlUser")
-						+ "&password=" + properties.getProperty("mySqlPass"));
+						+ "&password=" + properties.getProperty("mySqlPass")
+						+ "&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC");
 			}
 		} catch (ClassNotFoundException | SQLException e1) {
 			e1.printStackTrace();
@@ -113,17 +114,6 @@ public class DBManagerImpl implements DBManager {
 				f.setNoProducts(Utils.intToBool(rs.getInt("noproducts")));
 				f.setOneModifierOnly(Utils.intToBool(rs.getInt("onemodifieronly")));
 
-				PreparedStatement ps = con.prepareStatement(
-						"SELECT `id`, `id_formula`, `genparam`, `formulavaluetype` FROM `formulagenparam` WHERE id_formula=?");
-				ps.setInt(1, f.getId());
-				ResultSet rs2 = ps.executeQuery();
-				while (rs2.next()) {
-					f.getGenericParameters().put(rs2.getString("genparam"),
-							FormulaValueType.fromInt(rs2.getInt("formulavaluetype")));
-				}
-				rs2.close();
-				ps.close();
-
 				f.setDirty(false);
 				res.add(f);
 			}
@@ -137,7 +127,9 @@ public class DBManagerImpl implements DBManager {
 	@Override
 	public void autoConvertPrivateToPublic() throws SQLException {
 		Connection con = this.getCon();
-		LocalDate limitDate = LocalDate.now().minus(Integer.valueOf(SharedData.getInstance().getProperties().getProperty("privateWeeks")), ChronoUnit.WEEKS);
+		LocalDate limitDate = LocalDate.now().minus(
+				Integer.valueOf(SharedData.getInstance().getProperties().getProperty("privateWeeks")),
+				ChronoUnit.WEEKS);
 		PreparedStatement ps, ps2;
 		SharedData sharedData = SharedData.getInstance();
 		int p;

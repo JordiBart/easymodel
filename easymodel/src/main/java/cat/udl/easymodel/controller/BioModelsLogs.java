@@ -12,6 +12,7 @@ public class BioModelsLogs {
 	public BufferedWriter errorLogFile;
 //	public BufferedWriter reportLogFile;
 	public BufferedWriter simLogFile;
+	public boolean isLastSimError = false;
 	
 	public BioModelsLogs() {
 		try {
@@ -23,7 +24,6 @@ public class BioModelsLogs {
 //			writer.write(str);
 //		    writer.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}

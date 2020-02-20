@@ -3,6 +3,7 @@ package cat.udl.easymodel.vcomponent.model.window;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 
 import com.vaadin.data.HasValue.ValueChangeEvent;
 import com.vaadin.data.HasValue.ValueChangeListener;
@@ -65,7 +66,7 @@ public class DescriptionEditWindow extends Window {
 //			System.out.println(Integer.toHexString(x & 0xFF));
 //		}
 
-		isRenderHTML = desc.contains("</div>");
+//		isRenderHTML = desc.contains("</div>");
 		updateWindowContent();
 	}
 
@@ -104,7 +105,7 @@ public class DescriptionEditWindow extends Window {
 
 	private Button getInfoButton() {
 		Button btn = new Button();
-		btn.setDescription("How to use " + SharedData.appName);
+		btn.setDescription("Edit model description");
 		btn.setWidth("36px");
 		btn.setStyleName("infoBtn");
 		btn.addClickListener(new ClickListener() {
@@ -153,7 +154,7 @@ public class DescriptionEditWindow extends Window {
 		CustomLayout cl = new CustomLayout();
 		try {
 			String html = ToolboxVaadin.sanitizeHTML(desc);
-			cl = new CustomLayout(new ByteArrayInputStream(html.getBytes()));
+			cl = new CustomLayout(new ByteArrayInputStream(html.getBytes(StandardCharsets.UTF_8)));
 		} catch (IOException e) {
 			e.printStackTrace();
 		} finally {

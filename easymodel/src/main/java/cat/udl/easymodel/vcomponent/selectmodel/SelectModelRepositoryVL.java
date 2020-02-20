@@ -34,13 +34,13 @@ import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.sbml.SBMLMan;
 import cat.udl.easymodel.utils.ToolboxVaadin;
 import cat.udl.easymodel.vcomponent.app.AppPanel;
+import cat.udl.easymodel.vcomponent.common.InfoWindow;
 
 public class SelectModelRepositoryVL extends VerticalLayout {
 	private static final long serialVersionUID = 1L;
 
 	private RadioButtonGroup<RepositoryType> pubPrivGroup;
 	private SessionData sessionData;
-	private PopupView infoPopup = new PopupView(null, getInfoLayout());
 
 	private ByteArrayOutputStream baos = null;
 	private Upload upload;
@@ -54,7 +54,7 @@ public class SelectModelRepositoryVL extends VerticalLayout {
 		this.selectModelListVL = sm;
 		this.sessionData = (SessionData) UI.getCurrent().getData();
 
-		this.setWidth("250px");
+		this.setWidth("170px");
 		this.setHeight("100%");
 		this.setSpacing(true);
 		this.setMargin(true);
@@ -98,16 +98,16 @@ public class SelectModelRepositoryVL extends VerticalLayout {
 		hl.setWidth("100%");
 		hl.setHeight("37px");
 		HorizontalLayout spacer = new HorizontalLayout();
-		hl.addComponents(spacer, infoPopup, getInfoButton());
+		hl.addComponents(spacer, getInfoButton());
 		hl.setExpandRatio(spacer, 1f);
 		return hl;
 	}
 	// SBML import
 
 	private Upload getUpload() {
-		Upload upload = new Upload("Import SBML file from disk", getReceiver());
+		Upload upload = new Upload("Import SBML file", getReceiver());
 		upload.setButtonCaption("Import SBML");
-		upload.setDescription("Import SBML model file from disk");
+		upload.setDescription("Import SBML model file");
 		upload.setWidth("100%");
 		upload.addSucceededListener(getSucceededListener());
 		upload.addFailedListener(getFailedListener());
@@ -142,8 +142,8 @@ public class SelectModelRepositoryVL extends VerticalLayout {
 			public void uploadSucceeded(SucceededEvent event) {
 				try {
 					StringBuilder report = new StringBuilder();
-					Model m = SBMLMan.getInstance().importSBML(new ByteArrayInputStream(baos.toByteArray()), report,
-							null);
+					SBMLMan sbmlMan = new SBMLMan(sessionData);
+					Model m = sbmlMan.importSBML(new ByteArrayInputStream(baos.toByteArray()), report, null, false);
 					if (report.length() > 0)
 						Notification.show("SBML import report:\n" + report.toString(), Type.WARNING_MESSAGE);
 					sessionData.setSelectedModel(m);
@@ -178,31 +178,14 @@ public class SelectModelRepositoryVL extends VerticalLayout {
 			private static final long serialVersionUID = 1L;
 
 			public void buttonClick(ClickEvent event) {
-				infoPopup.setPopupVisible(true);
+				sessionData.showInfoWindow("-Public repository: Public data. Changes won't be saved into database.\n"
+						+ "-Private repository: Private user's data. Changes will be saved into database when model is validated. Private models will automatically become public after "
+						+ SharedData.getInstance().getProperties().getProperty("privateWeeks")
+						+ " weeks since last modification. To avoid publishing a model, please delete it before this time frame.\n"
+						+ "-Importing SBML model: Model will be imported but data won't be saved into database.\n"
+						+ "(Guest users can't save any data)\n", 800, 300);
 			}
 		});
 		return btn;
-	}
-
-	private VerticalLayout getInfoLayout() {
-		VerticalLayout vlt = new VerticalLayout();
-		vlt.setWidth("420px");
-		Label lab;
-		lab = new Label("-Public repository: Public data. Changes won't be saved into database.");
-		lab.setWidth("400px");
-		vlt.addComponent(lab);
-		lab = new Label(
-				"-Private repository: Private user's data. Changes will be saved into database when model is validated. Private models will automatically become public after "
-						+ SharedData.getInstance().getProperties().getProperty("privateWeeks")
-						+ " weeks since last modification. To avoid publishing a model, please delete it before this time frame.");
-		lab.setWidth("400px");
-		vlt.addComponent(lab);
-		lab = new Label("-Importing SBML model: Model will be imported but data won't be saved into database.");
-		lab.setWidth("400px");
-		vlt.addComponent(lab);
-		lab = new Label("(Guest users can't save any data)");
-		lab.setWidth("400px");
-		vlt.addComponent(lab);
-		return vlt;
 	}
 }

@@ -358,7 +358,7 @@ public class AppPanel extends Panel {
 					selectedButton = stepButtons.get("Simulation");
 					selectedButton.setEnabled(true);
 					updateStepButtonsStyle();
-					simulationVL = new SimulationVL(sessionData.getSelectedModel(), globalThis);
+					simulationVL = new SimulationVL(globalThis);
 					conPanel.setContent(simulationVL);
 				} else {
 					stepButtons.get("Simulation").setEnabled(false);
@@ -371,7 +371,6 @@ public class AppPanel extends Panel {
 
 	public void showResults() {
 		// switch to resultsVL
-		resultsVL.reset();
 		selectedButton = stepButtons.get("Results");
 		selectedButton.setEnabled(true);
 		updateStepButtonsStyle();

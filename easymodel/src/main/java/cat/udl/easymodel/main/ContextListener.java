@@ -26,12 +26,14 @@ public class ContextListener implements ServletContextListener {
 			System.err.println("MYSQL CONNECT ERROR!");
 			e.printStackTrace();
 		}
+		sharedData.getMathLinkArray().openMathLinks();
 	}
 
 	@Override
 	public void contextDestroyed(ServletContextEvent arg0) {
 		System.out.println("STOPPING WEBAPP");
 		SharedData sharedData = SharedData.getInstance();
+		sharedData.getMathLinkArray().closeMathLinks();
 		try {
 			sharedData.getDbManager().close();
 		} catch (SQLException e) {

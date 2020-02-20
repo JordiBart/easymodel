@@ -142,6 +142,8 @@ public class Formulas extends ArrayList<Formula> {
 		if (formulaType != FormulaType.GENERIC)
 			return;
 		for (Formula f1 : from) {
+			if (f1.getFormulaType() == FormulaType.PREDEFINED)
+				continue;
 			boolean found = false;
 			for (Formula f2 : this) {
 				if (f1.isEquivalentTo(f2)) {
@@ -267,27 +269,7 @@ public class Formulas extends ArrayList<Formula> {
 					preparedStatement.close();
 				}
 //				System.out.println("db f id:"+f.getId());
-				// GENERIC PARAMETERS TYPES (we define fixed formulavaluetype for parameters)
-				if (f.getId() != null) {
-					// DELETE OLD VALUES
-					preparedStatement = con.prepareStatement("DELETE FROM formulagenparam WHERE id_formula=?");
-					preparedStatement.setInt(1, f.getId());
-					preparedStatement.executeUpdate();
-					preparedStatement.close();
-					// ADD NEW ENTRIES
-					for (String genParam : f.getGenericParameters().keySet()) {
-						if (f.getGenericParameters().get(genParam) != null) {
-							preparedStatement = con.prepareStatement(
-									"INSERT INTO `formulagenparam`(`id`, `id_formula`, `genparam`, `formulavaluetype`) VALUES (NULL,?,?,?)");
-							p = 1;
-							preparedStatement.setInt(p++, f.getId());
-							preparedStatement.setString(p++, genParam);
-							preparedStatement.setInt(p++, f.getGenericParameters().get(genParam).getValue());
-							preparedStatement.executeUpdate();
-							preparedStatement.close();
-						}
-					}
-				}
+	
 				f.setDirty(false);
 			}
 		} catch (SQLException e) {
@@ -322,18 +304,6 @@ public class Formulas extends ArrayList<Formula> {
 				f.setOneSubstrateOnly(Utils.intToBool(rs.getInt("onesubstrateonly")));
 				f.setNoProducts(Utils.intToBool(rs.getInt("noproducts")));
 				f.setOneModifierOnly(Utils.intToBool(rs.getInt("onemodifieronly")));
-
-				// GENERIC PARAMETERS TYPES
-				pre2 = con.prepareStatement(
-						"SELECT `id`, `id_formula`, `genparam`, `formulavaluetype` FROM `formulagenparam` WHERE id_formula=?");
-				pre2.setInt(1, f.getId());
-				ResultSet rs2 = pre2.executeQuery();
-				while (rs2.next()) {
-					f.setTypeOfGenericParameter(rs2.getString("genparam"),
-							FormulaValueType.fromInt(rs2.getInt("formulavaluetype")));
-				}
-				rs2.close();
-				pre2.close();
 
 				this.addFormula(f);
 				f.setDirty(false);

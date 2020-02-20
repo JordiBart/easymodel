@@ -408,7 +408,7 @@ public class Model extends ArrayList<Reaction> {
 		return gl;
 	}
 
-	public void removeFormula(Formula f) {
+	public void unlinkFormulaFromReactions(Formula f) {
 		for (Reaction r : this) {
 			if (r.getFormula() == f)
 				r.setFormula(null);
@@ -437,7 +437,7 @@ public class Model extends ArrayList<Reaction> {
 			numErr++;
 		}
 		if (this.size() == 0) {
-			err += "Model must have some reactions\n";
+			err += "Model must have at least one reaction\n";
 			numErr++;
 		}
 		for (String sp : getAllSpecies().keySet())
@@ -927,7 +927,13 @@ public class Model extends ArrayList<Reaction> {
 	public void checkMathExpressions(MathLinkOp mathLinkOp) throws MathLinkException, CException {
 //		String newVal = null;
 		mathLinkOp.checkMultiMathCommands(this.getAllUsedFormulaStringsWithContext());
-		mathLinkOp.checkMultiMathCommands(this.simConfig.getAllMathExpressions());
+		try {
+			for (String calculatedValue : this.simConfig.getAllMathExpressions()) {
+				Utils.evalMathExpr(calculatedValue);
+			}
+		} catch (Exception e) {
+			throw new CException("Sim config");
+		}
 //		for (String name : speciesConfigMap.keySet()) {
 //			Species sp = speciesConfigMap.get(name);
 //			newVal = mathLinkOp.checkMathCommand(sp.getConcentration());

@@ -54,16 +54,11 @@ public class SBMLMan {
 	public static final String keywordFixSufix = "EZMD";
 	public static final int substituteFormulaRecursionIterations = 1;
 	public static final double stochasticFactor = (1 / (6.23E-8));
-	private static SBMLMan thisSingleton = new SBMLMan();
 	private SessionData sessionData;
 	private SharedData sharedData = SharedData.getInstance();
 
-	private SBMLMan() {
-		this.sessionData = (SessionData) UI.getCurrent().getData();
-	}
-
-	public static SBMLMan getInstance() {
-		return thisSingleton;
+	public SBMLMan(SessionData sessionData) {
+		this.sessionData = sessionData;
 	}
 
 	public String exportSBML(cat.udl.easymodel.logic.model.Model m, MathLinkOp mathLinkOp) throws Exception {
@@ -271,7 +266,7 @@ public class SBMLMan {
 	}
 
 	public cat.udl.easymodel.logic.model.Model importSBML(ByteArrayInputStream bais, StringBuilder report,
-			String namePrefix) throws Exception {
+			String namePrefix, boolean isBatch) throws Exception {
 		SBMLDocument doc = SBMLReader.read(bais);
 		cat.udl.easymodel.logic.model.Model m = new cat.udl.easymodel.logic.model.Model();
 		m.setRepositoryType(RepositoryType.TEMP);
@@ -300,7 +295,6 @@ public class SBMLMan {
 			// add formula
 		}
 		// set initial concentration/type of variable / check stochastic model
-		boolean atLeastOneSpeciesImported = false;
 		cat.udl.easymodel.logic.model.Species emSp;
 		for (Species sp : model.getListOfSpecies()) {
 			emSp = m.getAllSpecies().get(getFixedSBMLId(sp.getId()));
@@ -318,22 +312,31 @@ public class SBMLMan {
 			}
 			if (emSp.getConcentration() == null && emSp.getAmount() == null) {
 				emSp.setConcentration("1");
-				report.append("Initial concentration for " + sp.getId() + " was lacking and it was reset to 1\n");// (rule?
+				report.append("Initial concentration/amount for " + sp.getId()
+						+ " was lacking and concentration was set to 1\n");// (rule?
 				// "+(model.getRuleByVariable(sp.getId())!=null?"y":"n")+")\n");
-			} else {
-				atLeastOneSpeciesImported = true;
 			}
 			emSp.setVarType(sp.isConstant() ? SpeciesVarTypeType.INDEP : SpeciesVarTypeType.TIMEDEP);
-		}
-		if (!atLeastOneSpeciesImported) {
-			throw new Exception("Model couldn't be imported due to lack of any concentration/amount of its species");
 		}
 		// set formulas + pars
 		int i = 0;
 		for (Reaction rs : model.getListOfReactions()) {
 			cat.udl.easymodel.logic.model.Reaction r = m.get(i);
 			String adaptedFormula = getSBMLFormulaKeywordFix(
-					substituteRecursiveFormulaVars(rs.getKineticLaw().getFormula(), rs, model, null, 0));
+					substituteRecursiveFormulaVars(rs.getKineticLaw().getFormula(), rs, model, true, null, 0));
+			if (isBatch) {
+				// Mathematica is used
+				String testFormulaWithMathematica = sessionData.getMathLinkOp().evaluateToString(adaptedFormula);
+//			System.out.println(adaptedFormula+" -> "+testFormulaWithMathematica);
+				if ("0".equals(testFormulaWithMathematica)) {
+					report.append("Formula 0 found " + adaptedFormula + "\n");
+					if (adaptedFormula.equals("0"))
+						adaptedFormula = "k";
+					else
+						adaptedFormula = getSBMLFormulaKeywordFix(substituteRecursiveFormulaVars(
+								rs.getKineticLaw().getFormula(), rs, model, false, null, 0));
+				}
+			}
 			Formula f = new Formula(m.getFormulas().getNextFormulaNameByModelShortName(), adaptedFormula,
 					FormulaType.MODEL, m);
 			if (!f.isValid())
@@ -371,23 +374,27 @@ public class SBMLMan {
 						// global SBML parameters
 						for (Parameter p : model.getListOfParameters()) {
 							if (par.equals(getFixedSBMLId(p.getId()))) {
-								if (p.isConstant())
+								if (!Double.isNaN(p.getValue())) {
 									r.getFormulaGenPars().put(par, new FormulaValueImpl(FormulaValueType.CONSTANT,
 											getDoubleWithStandardNotation(p.getValue())));
-								else {
-									ExplicitRule er = model.getRuleByVariable(p.getId());
-									FunctionDefinition fd = model.getFunctionDefinition(p.getId());
-									if (er != null)
-										throw new Exception(er.getFormula() + " Rule detected (recursion?) as par "
-												+ par + " in formula " + f.getFormulaDef() + " (original= "
-												+ rs.getKineticLaw().getFormula() + ") in XMLreaction " + rs.getId());
-									else if (fd != null)
-										throw new Exception(fd.getFormula() + " custom function detected as par " + par
-												+ " in formula " + f.getFormulaDef() + " in XMLreaction " + rs.getId());
-									else
-										throw new Exception("Variable " + par
-												+ " found in SBML parameter list but it's non-constant and can't find its reference. Formula "
-												+ f.getFormulaDef() + " in XMLreaction " + rs.getId());
+								} else {
+									r.getFormulaGenPars().put(par,
+											new FormulaValueImpl(FormulaValueType.CONSTANT, "1"));
+									report.append(
+											"Global parameter " + par + " value was lacking and it was reset to 1\n");
+//									ExplicitRule er = model.getRuleByVariable(p.getId());
+//									FunctionDefinition fd = model.getFunctionDefinition(p.getId());
+//									if (er != null)
+//										throw new Exception(er.getFormula() + " Rule detected (recursion?) as par "
+//												+ par + " in formula " + f.getFormulaDef() + " (original= "
+//												+ rs.getKineticLaw().getFormula() + ") in XMLreaction " + rs.getId());
+//									else if (fd != null)
+//										throw new Exception(fd.getFormula() + " custom function detected as par " + par
+//												+ " in formula " + f.getFormulaDef() + " in XMLreaction " + rs.getId());
+//									else
+//										throw new Exception("Variable " + par
+//												+ " found in SBML parameter list but it's non-constant and can't find its reference. Formula "
+//												+ f.getFormulaDef() + " in XMLreaction " + rs.getId());
 								}
 								continue formulaParsLoop;
 							}
@@ -413,8 +420,12 @@ public class SBMLMan {
 //											+ " in XMLreaction " + rs.getId());
 							}
 						}
-						r.getFormulaGenPars().put(par, new FormulaValueImpl(FormulaValueType.CONSTANT, "1"));
-						report.append("Parameter value for parameter " + par + " was lacking and it was reset to 1\n");
+						String resetVal = "1";
+						if ("pi".equals(par))
+							resetVal = "3.14";
+						r.getFormulaGenPars().put(par, new FormulaValueImpl(FormulaValueType.CONSTANT, resetVal));
+						report.append("Parameter value for parameter " + par + " was lacking and it was reset to "
+								+ resetVal + "\n");
 //						throw new Exception("Can't find par val for " + par + " in formula " + f.getFormulaDef()
 //								+ " in XMLreaction " + rs.getId());
 					}
@@ -437,7 +448,8 @@ public class SBMLMan {
 	}
 
 	private String substituteRecursiveFormulaVars(String rawSBMLformula, Reaction rs, Model model,
-			ArrayList<String> processedVars, int level) throws Exception { // start level=0
+			boolean replaceNonConstantPar, ArrayList<String> processedVars, int level) throws Exception { // start
+																											// level=0
 		String toParseRegEx = "(?=(?:[^a-zA-Z0-9_]|^)([a-zA-Z_][a-zA-Z0-9_]*)(?:[^a-zA-Z0-9_]|$))";
 		Pattern pattern = Pattern.compile(toParseRegEx);
 		String result = "";
@@ -451,7 +463,7 @@ public class SBMLMan {
 			var = matcherStr.substring(matcher.start(1), matcher.end(1));
 //			System.out.println(var);
 			Parameter par = model.getParameter(var);
-			if (par != null && !par.isConstant()) {
+			if (par != null && !par.isConstant() && replaceNonConstantPar) {
 				ExplicitRule er = model.getRuleByVariable(par.getId());
 				if (er != null) {
 					replace = er.getFormula();
@@ -466,8 +478,8 @@ public class SBMLMan {
 						processedVars = new ArrayList<>();
 					if (!processedVars.contains(var)) { // from level 1 on, children receive a list of vars
 						processedVars.add(var);
-						replace = "(" + substituteRecursiveFormulaVars(replace, rs, model, processedVars, level + 1)
-								+ ")";
+						replace = "(" + substituteRecursiveFormulaVars(replace, rs, model, replaceNonConstantPar,
+								processedVars, level + 1) + ")";
 						processedVars.remove(processedVars.size() - 1); // remove added var in this same level
 					} else {
 						if (!"NaN".equals(String.valueOf(par.getValue()))) {
@@ -532,7 +544,7 @@ public class SBMLMan {
 	public String getFixedSBMLId(String name) {
 		if (name == null || name.matches("\\d+(\\.\\d+)?"))
 			return name;
-		String res = name.replaceAll("_", "");
+		String res = name.replaceAll("_", ""); // amb Mathematica _ = \[LetterSpace]
 		if (res.matches(FormulaUtils.getInstance().getKeywordsRegEx()))
 			res = res + keywordFixSufix;
 		else if (res.matches("[0-9]+[a-zA-Z][0-9a-zA-Z]*"))
@@ -547,14 +559,14 @@ public class SBMLMan {
 			SpeciesReference sr = r.getReactant(i);
 			if (i > 0)
 				res += " + ";
-			res += getFixedStoichiometry(sr.getStoichiometry()) + "*" + getFixedSBMLId(sr.getSpeciesInstance().getId());
+			res += getFixedStoichiometryWithMultiplier(sr.getStoichiometry()) + getFixedSBMLId(sr.getSpeciesInstance().getId());
 		}
 		res += " -> ";
 		for (int i = 0; i < r.getProductCount(); i++) {
 			SpeciesReference sr = r.getProduct(i);
 			if (i > 0)
 				res += " + ";
-			res += getFixedStoichiometry(sr.getStoichiometry()) + "*" + getFixedSBMLId(sr.getSpeciesInstance().getId());
+			res += getFixedStoichiometryWithMultiplier(sr.getStoichiometry()) + getFixedSBMLId(sr.getSpeciesInstance().getId());
 		}
 		for (int i = 0; i < r.getModifierCount(); i++) {
 			ModifierSpeciesReference sr = r.getModifier(i);
@@ -563,11 +575,13 @@ public class SBMLMan {
 		return res;
 	}
 
-	private String getFixedStoichiometry(double sbmlStoi) {
-		String res = String.format("%.0f", sbmlStoi); // remove decimal part
-		if (res.equals("0"))
-			res = "1";
-		return scientificNotationToStandard(res);
+	private String getFixedStoichiometryWithMultiplier(double sbmlStoi) {
+		String stoiNumberStr = String.format("%.0f", sbmlStoi); // remove decimal part
+		stoiNumberStr = scientificNotationToStandard(stoiNumberStr);
+		if (stoiNumberStr.equals("0") || stoiNumberStr.equals("1"))
+			return "";
+		else
+			return stoiNumberStr+"*";
 	}
 
 	private String replaceFormulaVariable(String formula, String search, String replace) {

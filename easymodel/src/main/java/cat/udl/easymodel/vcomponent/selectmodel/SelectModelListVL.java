@@ -1,5 +1,8 @@
 package cat.udl.easymodel.vcomponent.selectmodel;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
@@ -13,10 +16,12 @@ import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Component;
+import com.vaadin.ui.CustomLayout;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.NativeSelect;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Notification.Type;
+import com.vaadin.ui.Panel;
 import com.vaadin.ui.TextArea;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
@@ -28,13 +33,14 @@ import cat.udl.easymodel.logic.model.Reaction;
 import cat.udl.easymodel.logic.types.RepositoryType;
 import cat.udl.easymodel.logic.types.WStatusType;
 import cat.udl.easymodel.main.SessionData;
+import cat.udl.easymodel.utils.ToolboxVaadin;
 import cat.udl.easymodel.vcomponent.app.AppPanel;
 import cat.udl.easymodel.vcomponent.common.AreYouSureWindow;
 
 public class SelectModelListVL extends VerticalLayout {
 	private SessionData sessionData;
 	private NativeSelect<Model> modelListSelect;
-	private TextArea descTA;
+	private Panel descriptionPanel;
 	private Button newModelButton;
 	private AppPanel mainPanel;
 
@@ -55,10 +61,13 @@ public class SelectModelListVL extends VerticalLayout {
 	public void update() {
 		this.removeAllComponents();
 
-		descTA = new TextArea();
-		descTA.setCaption("Model Description");
-		descTA.setReadOnly(true);
-		descTA.setSizeFull();
+		descriptionPanel = new Panel();
+		descriptionPanel.setSizeFull();
+		VerticalLayout descVL = new VerticalLayout();
+		descVL.setCaption("Model Description");
+		descVL.setSizeFull();
+		descVL.setMargin(false);
+		descVL.addComponent(descriptionPanel);
 
 		modelListSelect = getModelListSelect();
 
@@ -66,9 +75,9 @@ public class SelectModelListVL extends VerticalLayout {
 		contentVL.setSpacing(true);
 		contentVL.setMargin(false);
 		contentVL.setSizeFull();
-		contentVL.addComponents(modelListSelect, descTA);
+		contentVL.addComponents(modelListSelect, descVL);
 		contentVL.setExpandRatio(modelListSelect, 0.6f);
-		contentVL.setExpandRatio(descTA, 0.4f);
+		contentVL.setExpandRatio(descVL, 0.4f);
 		contentVL.addLayoutClickListener(new LayoutClickListener() {
 
 			@Override
@@ -112,9 +121,7 @@ public class SelectModelListVL extends VerticalLayout {
 				public void valueChange(ValueChangeEvent<Model> event) {
 					Model selModel = event.getValue();
 					if (selModel != null) {
-						descTA.setReadOnly(false);
-						descTA.setValue(selModel.getDescription());
-						descTA.setReadOnly(true);
+						updateDescriptionPanel(selModel.getDescription());
 					}
 				}
 			});
@@ -132,22 +139,35 @@ public class SelectModelListVL extends VerticalLayout {
 		return select;
 	}
 
+	private void updateDescriptionPanel(String desc) {
+		CustomLayout cl = new CustomLayout();
+		try {
+			String html = ToolboxVaadin.sanitizeHTML(desc);
+			cl = new CustomLayout(new ByteArrayInputStream(desc.getBytes(StandardCharsets.UTF_8)));
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			cl.setStyleName("descriptionHTML");
+		}
+		descriptionPanel.setContent(cl);
+	}
+	
 	private HorizontalLayout getFooterHL() {
 		HorizontalLayout hl = new HorizontalLayout();
 		hl.setWidth("100%");
 		hl.setHeight("38px");
 		hl.setSpacing(true);
 		if (sessionData.getRepository() != null) {
+			HorizontalLayout spacer = new HorizontalLayout();
+			hl.addComponents(getLoadModelButton());
+			hl.addComponents(spacer);
+			hl.setExpandRatio(spacer, 1.0f);
 			if (sessionData.getRepository() == RepositoryType.PRIVATE) {
 				newModelButton = getNewModelButton();
 				hl.addComponents(newModelButton, getDeleteModelButton());
 			} else {
 				hl.addComponents(getImportPublicModelToPrivateModels());
 			}
-			HorizontalLayout spacer = new HorizontalLayout();
-			hl.addComponents(spacer);
-			hl.addComponents(getLoadModelButton());
-			hl.setExpandRatio(spacer, 1.0f);
 		}
 		return hl;
 	}
@@ -285,6 +305,7 @@ public class SelectModelListVL extends VerticalLayout {
 			Model copy = new Model(modelListSelect.getValue());
 			copy.loadDB();
 			sessionData.setSelectedModel(copy);
+			sessionData.cancelSimulation();
 			mainPanel.showEditModel();
 		} catch (SQLException e) {
 			sessionData.setSelectedModel(null);

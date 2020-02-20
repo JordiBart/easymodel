@@ -1,5 +1,6 @@
 package cat.udl.easymodel.main;
 
+import com.vaadin.server.VaadinService;
 import com.vaadin.ui.UI;
 
 import cat.udl.easymodel.controller.BioModelsLogs;
@@ -8,20 +9,25 @@ import cat.udl.easymodel.logic.model.Models;
 import cat.udl.easymodel.logic.types.RepositoryType;
 import cat.udl.easymodel.logic.user.User;
 import cat.udl.easymodel.mathlink.MathLinkOp;
+import cat.udl.easymodel.thread.SimulationCancelThread;
 import cat.udl.easymodel.thread.SimulationManagerThread;
+import cat.udl.easymodel.utils.p;
+import cat.udl.easymodel.vcomponent.common.InfoWindow;
 import cat.udl.easymodel.vcomponent.results.OutVL;
 import cat.udl.easymodel.vcomponent.results.SimStatusHL;
 
 public class SessionData {
 	private UI ui = null;
+	private VaadinService vaadinService = null;
+	private BioModelsLogs bioModelsLogs = null;
 	private Models models = null;
 	private RepositoryType modelsRepo;
 	private Model selectedModel;
 	private User user;
-	private MathLinkOp mathLinkOp;
-	private BioModelsLogs bioModelsLogs = null;
+	private InfoWindow infoWindow = null;
 	private OutVL outVL = null;
 	private SimStatusHL simStatusHL = null;
+	private MathLinkOp mathLinkOp = null;
 	private SimulationManagerThread simulationManager = null;
 
 	public SessionData(UI ui) {
@@ -31,10 +37,22 @@ public class SessionData {
 	}
 
 	public void init() {
+		vaadinService = VaadinService.getCurrent(); // within servlets, this is set to null
 		models = new Models();
 		outVL = new OutVL(ui);
-		simStatusHL = new SimStatusHL();
-		mathLinkOp = new MathLinkOp(this);
+		simStatusHL = new SimStatusHL(this);
+		infoWindow = new InfoWindow(this);
+		respawnSimulationManager();
+	}
+
+	public void clear() {
+		setUser(null);
+		setRepository(null);
+		setSelectedModel(null);
+		models.resetModels();
+		outVL.reset();
+		freeMathLinkOp();
+		respawnSimulationManager();
 	}
 
 	public boolean isUserSet() {
@@ -134,19 +152,6 @@ public class SessionData {
 		return outVL;
 	}
 
-	public MathLinkOp getMathLinkOp() {
-		return mathLinkOp;
-	}
-
-	public void clear() {
-		setUser(null);
-		setRepository(null);
-		setSelectedModel(null);
-		models.resetModels();
-		outVL.reset();
-		mathLinkOp.closeMathLink();
-	}
-
 	public BioModelsLogs getBioModelsLogs() {
 		return bioModelsLogs;
 	}
@@ -158,20 +163,60 @@ public class SessionData {
 	public UI getUi() {
 		return ui;
 	}
-
-	public SimulationManagerThread getSimulationManager() {
-		return simulationManager;
+///////////////////////////////////
+	public boolean loadMathLinkOpFromShared() {
+		if (mathLinkOp != null && mathLinkOp.isLocked())
+			return false;
+		this.mathLinkOp = SharedData.getInstance().getMathLinkArray().getFreeMathLink();
+		if (mathLinkOp != null)
+			mathLinkOp.getCustomPacketListener().setSessionData(this);
+		return (mathLinkOp != null);
 	}
 
-	public void setSimulationManager(SimulationManagerThread simulationManager) {
-		this.simulationManager = simulationManager;
+	public MathLinkOp getMathLinkOp() {
+		return mathLinkOp;
 	}
 
+	public void freeMathLinkOp() {
+		if (mathLinkOp != null) {
+			mathLinkOp.resetMathLink();
+			mathLinkOp = null;
+		}
+	}
+///////////////////////////////////
+	public void respawnSimulationManager() {
+		simulationManager = new SimulationManagerThread(this);
+	}
+	public boolean isSimulating() {
+		return this.simulationManager.isAlive();
+	}
+
+	public void launchSimulation() {
+		this.simulationManager.start();
+	}
+
+	public void cancelSimulation() {
+		if (isSimulating())
+			new SimulationCancelThread(this.simulationManager).start();
+	}
+////////////////////////////////////
 	public SimStatusHL getSimStatusHL() {
 		return simStatusHL;
 	}
 
 	public void setSimStatusHL(SimStatusHL simStatusHL) {
 		this.simStatusHL = simStatusHL;
+	}
+
+	public void showInfoWindow(String message, int w, int h) {
+		if (!infoWindow.isAttached()) {
+			infoWindow.updateContent(message, w, h);
+			UI.getCurrent().addWindow(infoWindow);
+			infoWindow.focus();
+		}
+	}
+
+	public VaadinService getVaadinService() {
+		return vaadinService;
 	}
 }

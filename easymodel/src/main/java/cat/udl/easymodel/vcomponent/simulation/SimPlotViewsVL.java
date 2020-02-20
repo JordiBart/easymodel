@@ -11,6 +11,7 @@ import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.PopupView;
 import com.vaadin.ui.TabSheet;
+import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
@@ -22,12 +23,12 @@ import com.vaadin.ui.TabSheet.Tab;
 import cat.udl.easymodel.logic.model.Model;
 import cat.udl.easymodel.logic.simconfig.SimConfig;
 import cat.udl.easymodel.logic.simconfig.SimConfigArray;
+import cat.udl.easymodel.main.SessionData;
 
 public class SimPlotViewsVL extends VerticalLayout {
 	private SimConfig simConfig;
 	private Model selectedModel;
-	
-	private PopupView infoPlotViewsPopup = new PopupView(null, getInfoPlotViewsLayout());
+	private SessionData sessionData;
 	private TabSheet plotViewsTabs = new TabSheet();
 	private boolean tabSheetListenerEnable = true;
 	
@@ -35,6 +36,7 @@ public class SimPlotViewsVL extends VerticalLayout {
 		super();
 		
 		this.simConfig=simConfig;
+		this.sessionData = (SessionData) UI.getCurrent().getData();
 		this.selectedModel=selectedModel;
 		
 		VerticalLayout leftVL = new VerticalLayout();
@@ -59,20 +61,13 @@ public class SimPlotViewsVL extends VerticalLayout {
 		hl.setSizeFull();
 		hl.setSpacing(false);
 		hl.setMargin(false);
-		hl.addComponents(leftVL, infoPlotViewsPopup, rightVL);
+		hl.addComponents(leftVL, rightVL);
 		hl.setExpandRatio(leftVL, 1f);
 		
 		this.setSizeFull();
 		this.setMargin(true);
 		this.setSpacing(false);
 		this.addComponent(hl);
-	}
-	
-	private Component getInfoPlotViewsLayout() {
-		VerticalLayout vlt = new VerticalLayout();
-		vlt.addComponent(
-				new Label("Define or select the graphical representation options for the different result views"));
-		return vlt;
 	}
 	
 	private Button getInfoPlotViewsButton() {
@@ -84,7 +79,7 @@ public class SimPlotViewsVL extends VerticalLayout {
 			private static final long serialVersionUID = 1L;
 
 			public void buttonClick(ClickEvent event) {
-				infoPlotViewsPopup.setPopupVisible(true);
+				sessionData.showInfoWindow("Plot Views: Define the variables to represent in each plot.", 800,200);
 			}
 		});
 		return btn;
@@ -103,7 +98,7 @@ public class SimPlotViewsVL extends VerticalLayout {
 				simConfig.clearPlotViews();
 				for (String dv : selectedModel.getAllSpeciesTimeDependent().keySet()) {
 					simConfig.addPlotView();
-					((ArrayList<String>) simConfig.getPlotViews().get(simConfig.getPlotViews().size() - 1)
+					((ArrayList<String>) simConfig.getDeterministicPlotViews().get(simConfig.getDeterministicPlotViews().size() - 1)
 							.get("DepVarsToShow").getValue()).add(dv);
 				}
 				updatePlotTabs();
@@ -116,8 +111,8 @@ public class SimPlotViewsVL extends VerticalLayout {
 	public void updatePlotTabs() {
 		tabSheetListenerEnable = false;
 		plotViewsTabs.removeAllComponents();
-		for (int i = 0; i < simConfig.getPlotViews().size(); i++) {
-			SimConfigArray conf = simConfig.getPlotViews().get(i);
+		for (int i = 0; i < simConfig.getDeterministicPlotViews().size(); i++) {
+			SimConfigArray conf = simConfig.getDeterministicPlotViews().get(i);
 			VerticalLayout tvl = new VerticalLayout();
 			tvl.setData(new Integer(i));
 			HorizontalLayout hl1 = new HorizontalLayout();

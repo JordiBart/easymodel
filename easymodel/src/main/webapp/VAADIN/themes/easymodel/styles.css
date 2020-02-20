@@ -15656,6 +15656,7 @@ div.v-layout.v-horizontal.v-widget {
 }
 
 .easymodel .v-button-remove {
+	background-color: #fafafa;
 	background: transparent url(img/remove.png);
 	background-size: contain;
 	background-repeat: no-repeat;
@@ -15858,6 +15859,11 @@ div.v-layout.v-horizontal.v-widget {
 	box-shadow: none;
 }
 
+.easymodel .v-verticallayout.simConfig {
+	width: 100%;
+	max-width: 500px;
+}
+
 .easymodel .v-verticallayout.selectModel {
 	border: 1px solid #c5c5c5;
 	border-radius: 5px;
@@ -15953,4 +15959,8 @@ div.v-layout.v-horizontal.v-widget {
 .easymodel .v-label-labelCaption {
 	font-size: 14px;
 	font-weight: 600;
+}
+
+.easymodel .v-window-info img.v-icon {
+	width: 35px;
 }

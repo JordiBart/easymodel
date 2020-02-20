@@ -248,6 +248,7 @@
 		height: 37px;
 	}
 	.v-button-remove {
+		background-color: #fafafa;
 		background: transparent url(img/remove.png);
 		background-size: contain;
 		background-repeat: no-repeat;
@@ -436,6 +437,10 @@
     	box-shadow: none;
     }
     ////////////////////////////////////////////
+    .v-verticallayout.simConfig{
+    	width: 100%;
+	    max-width: 500px;
+    }
     .v-verticallayout.selectModel {
 		border: 1px solid #c5c5c5;
 		border-radius:5px;
@@ -515,5 +520,8 @@
 	.v-label-labelCaption {
 		font-size: 14px;
 		font-weight: 600;
+	}
+	.v-window-info img.v-icon {
+		width: 35px;
 	}
 }

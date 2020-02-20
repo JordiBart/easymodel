@@ -19,10 +19,8 @@ import cat.udl.easymodel.utils.p;
 
 public class Models extends ArrayList<Model> {
 	private static final long serialVersionUID = 1L;
-	private SessionData sessionData;
 
 	public Models() {
-		this.sessionData = (SessionData) UI.getCurrent().getData();
 	}
 
 	public Model getModelByName(String name) {
@@ -76,7 +74,7 @@ public class Models extends ArrayList<Model> {
 
 	public void removeFormulaFromReactions(Formula f) {
 		for (Model mod : this) {
-			mod.removeFormula(f);
+			mod.unlinkFormulaFromReactions(f);
 		}
 	}
 

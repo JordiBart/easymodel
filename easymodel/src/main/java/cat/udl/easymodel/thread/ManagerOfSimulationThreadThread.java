@@ -1,3 +1,5 @@
+//alternative version of SimulationManagerThread
+
 //package cat.udl.easymodel.thread;
 //
 //import cat.udl.easymodel.main.SessionData;

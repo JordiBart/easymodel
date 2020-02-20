@@ -55,7 +55,8 @@ public class OutVL extends VerticalLayout {
 				globalThis.addComponent(new Label(line, ContentMode.TEXT));
 			}
 		}
-		ui.push();
+		if (ui != null)
+			ui.push();
 	}
 
 	public void out(String msg, String style) {
@@ -64,7 +65,8 @@ public class OutVL extends VerticalLayout {
 				globalThis.addComponent(ToolboxVaadin.getStyledLabel(line, style));
 			}
 		}
-		ui.push();
+		if (ui != null)
+			ui.push();
 	}
 
 //	public void dbg(String msg) {
@@ -96,8 +98,8 @@ public class OutVL extends VerticalLayout {
 		grid.addComponent(c);
 	}
 
-	public void outNewGrid() {
-		grid = new GridLayout(2, 1);
+	public void outNewGrid(int cols, int rows) {
+		grid = new GridLayout(cols, rows);
 		globalThis.addComponent(grid);
 	}
 
@@ -123,7 +125,8 @@ public class OutVL extends VerticalLayout {
 			// dbg("Image " + filename + " displayed");
 			// resource = null; imageSource = null;
 		}
-		ui.push();
+		if (ui != null)
+			ui.push();
 	}
 
 	private Image getImage(String filename, byte[] imageArray, String imWidth) {
@@ -157,7 +160,8 @@ public class OutVL extends VerticalLayout {
 			else
 				globalThis.addComponent(downBtn);
 		}
-		ui.push();
+		if (ui != null)
+			ui.push();
 	}
 
 	public void reset() {

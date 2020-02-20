@@ -30,9 +30,9 @@ public class SimStatusHL extends HorizontalLayout {
 	private SessionData sessionData;
 	private boolean isCancelBtnClicked=false;
 
-	public SimStatusHL() {
+	public SimStatusHL(SessionData sessionData) {
 		super();
-		sessionData = (SessionData) UI.getCurrent().getData();
+		this.sessionData = sessionData;
 		setDefaultComponentAlignment(Alignment.MIDDLE_LEFT);
 		setWidth("100%");
 		setHeight("100%");
@@ -80,17 +80,17 @@ public class SimStatusHL extends HorizontalLayout {
 
 			@Override
 			public void buttonClick(ClickEvent event) {
-				if (sessionData.getSimulationManager() != null) {
+				if (sessionData.isSimulating()) {
 					if (!isCancelBtnClicked) {
 						isCancelBtnClicked=true;
 						cancelling();
-						new SimulationCancelThread(sessionData.getSimulationManager()).start();
+						sessionData.cancelSimulation();
 					}
 				}
 			}
 		});
 		FileResource resource = new FileResource(
-				new File(VaadinService.getCurrent().getBaseDirectory().getAbsolutePath()
+				new File(sessionData.getVaadinService().getBaseDirectory().getAbsolutePath()
 						+ "/VAADIN/themes/easymodel/img/runningSim.png"));
 		Image dots = new Image(null, resource);
 		dots.setHeight("25px");
@@ -104,10 +104,10 @@ public class SimStatusHL extends HorizontalLayout {
 		sessionData.getUi().getSession().lock();
 		removeAllComponents();
 		setStyleName("resultsStatusRunning");
-		Label statusLabel = new Label("Cancelling... Simulation will stop after the current webMathematica operation");
+		Label statusLabel = new Label("Cancelling");
 		statusLabel.setStyleName("resultsStatus");
 		FileResource resource = new FileResource(
-				new File(VaadinService.getCurrent().getBaseDirectory().getAbsolutePath()
+				new File(sessionData.getVaadinService().getBaseDirectory().getAbsolutePath()
 						+ "/VAADIN/themes/easymodel/img/runningSim.png"));
 		Image dots = new Image(null, resource);
 		dots.setHeight("25px");

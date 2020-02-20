@@ -38,7 +38,7 @@ public class ExportMathCommandsImpl implements ExportMathCommands {
 	
 	@Override
 	public void addCommand(String com) {
-		buf.append("Cell[\""+com.replaceAll("\"", "\\\\\"")+"\", \"Input\"],"+newLineChar);
+		buf.append("Cell[\"\\<"+com.replaceAll("\"", "\\\\\"")+"\\>\", \"Input\"],"+newLineChar);
 	}
 	
 	@Override

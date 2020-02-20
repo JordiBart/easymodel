@@ -10,12 +10,14 @@ import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.PopupView;
 import com.vaadin.ui.Slider;
+import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
 
 import cat.udl.easymodel.logic.simconfig.SimConfig;
 import cat.udl.easymodel.logic.simconfig.SimConfigArray;
+import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.utils.p;
 
 import com.vaadin.ui.CheckBox;
@@ -24,11 +26,12 @@ public class SimPlotVL extends VerticalLayout {
 
 	private static final long serialVersionUID = 1L;
 	private SimConfigArray plotConfig;
-	private PopupView infoPlotSetPopup = new PopupView(null, getInfoPlotSettingsLayout());
+	private SessionData sessionData;
 
 	public SimPlotVL(SimConfigArray plotConfig) {
 		super();
 
+		this.sessionData = (SessionData) UI.getCurrent().getData();
 		this.plotConfig = plotConfig;
 		VerticalLayout leftVL = new VerticalLayout();
 		leftVL.setWidth("100%");
@@ -59,7 +62,7 @@ public class SimPlotVL extends VerticalLayout {
 		hl.setSizeFull();
 		hl.setSpacing(false);
 		hl.setMargin(false);
-		hl.addComponents(leftVL, infoPlotSetPopup, rightVL);
+		hl.addComponents(leftVL, rightVL);
 		hl.setExpandRatio(leftVL, 1f);
 
 		this.setSizeFull();
@@ -77,15 +80,10 @@ public class SimPlotVL extends VerticalLayout {
 			private static final long serialVersionUID = 1L;
 
 			public void buttonClick(ClickEvent event) {
-				infoPlotSetPopup.setPopupVisible(true);
+				sessionData.showInfoWindow("Define or select the graphical representation options for your simulations.", 700, 200);
 			}
 		});
 		return btn;
 	}
-
-	private Component getInfoPlotSettingsLayout() {
-		VerticalLayout vlt = new VerticalLayout();
-		vlt.addComponent(new Label("Define or select the general graphical representation options for your results"));
-		return vlt;
-	}
+	
 }

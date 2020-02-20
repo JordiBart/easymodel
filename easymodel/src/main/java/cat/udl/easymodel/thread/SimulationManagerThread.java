@@ -14,7 +14,9 @@ import com.wolfram.jlink.MathLinkException;
 import cat.udl.easymodel.controller.SimulationCtrl;
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
+import cat.udl.easymodel.mathlink.MathLinkOp;
 import cat.udl.easymodel.utils.CException;
+import cat.udl.easymodel.utils.p;
 
 public class SimulationManagerThread extends Thread {
 	private String errMessage = null;
@@ -22,20 +24,22 @@ public class SimulationManagerThread extends Thread {
 	private SharedData sharedData;
 	private boolean isCancel;
 	private Integer timeout;
+	private ExecutorService executor;
+	private SimCallable simCallable;
 
 	public SimulationManagerThread(SessionData sessionData) {
 		this.sessionData = sessionData;
-		sharedData = SharedData.getInstance();
-		timeout = Integer.valueOf(sharedData.getProperties().getProperty("simulationTimeoutMinutes"));
+		this.sharedData = SharedData.getInstance();
+		this.timeout = Integer.valueOf(sharedData.getProperties().getProperty("simulationTimeoutMinutes"));
+		this.executor = Executors.newSingleThreadExecutor();
+		this.simCallable = new SimCallable(this.sessionData);
 	}
 
 	@Override
 	public void run() {
 		isCancel = false;
-		ExecutorService executor = Executors.newSingleThreadExecutor();
-		Future<String> future = executor.submit(new SimCallable(sessionData));
 		try {
-			errMessage = future.get(timeout, TimeUnit.MINUTES);
+			errMessage = executor.submit(this.simCallable).get(timeout, TimeUnit.MINUTES);
 			if (isCancel)
 				sessionData.getSimStatusHL().error("Simulation cancelled by user");
 			else if (errMessage != null) {
@@ -44,44 +48,57 @@ public class SimulationManagerThread extends Thread {
 				sessionData.getSimStatusHL().finish();
 			}
 		} catch (TimeoutException e) {
-			sessionData.getMathLinkOp().closeMathLink();
 			sessionData.getSimStatusHL().error("Simulation timeout (" + timeout + " minutes)");
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		} catch (ExecutionException e) {
 			e.printStackTrace();
-		} finally {
-			sessionData.getMathLinkOp().closeMathLink();
-			executor.shutdownNow();
-			sessionData.setSimulationManager(null);
 		}
+		sessionData.respawnSimulationManager();
+		sessionData.freeMathLinkOp();
+		executor.shutdownNow();
+		this.interrupt();
+//		sessionData.simulationManager = null;
 	}
 
 	public void cancelSim() {
-		isCancel = true;
-		sessionData.getMathLinkOp().closeMathLink();
+		MathLinkOp mathLinkOp = sessionData.getMathLinkOp();
+		if (mathLinkOp != null) {
+			isCancel = true;
+			mathLinkOp.closeMathLink();
+		}
 	}
 }
 
 class SimCallable implements Callable<String> {
 	private SessionData sessionData = null;
+	private SimulationCtrl simCtrl = null;
 
 	public SimCallable(SessionData sessionData) {
 		this.sessionData = sessionData;
+		this.simCtrl = new SimulationCtrl(this.sessionData);
 	}
 
 	@Override
 	public String call() throws Exception {
-		SimulationCtrl simCtrl = new SimulationCtrl(sessionData);
 		try {
+			if (!this.sessionData.loadMathLinkOpFromShared())
+				throw new CException("webMathematica is busy, please try again later");
+			sessionData.getSimStatusHL().running();
+			sessionData.getOutVL().reset();
 			simCtrl.simulate();
+			this.sessionData.freeMathLinkOp();
+			this.sessionData.getOutVL().finish();
 		} catch (Exception e) {
-			if (e instanceof MathLinkException)
-				return "WebMathematica error, please try again later";
-			else if (e instanceof CException)
+			if (e instanceof MathLinkException) {
+//				p.p(e.getMessage());
+				return "webMathematica error, please try again later";
+			} else if (e instanceof CException)
 				return e.getMessage();
-			else
+			else {
+				e.printStackTrace();
 				return "Unknown error";
+			}
 		}
 		return null;
 	}

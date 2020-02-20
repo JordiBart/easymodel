@@ -1,4 +1,4 @@
-package cat.udl.easymodel.persistence;
+//package cat.udl.easymodel.persistence;
 //
 //import java.sql.SQLException;
 //
@@ -16,7 +16,6 @@ package cat.udl.easymodel.persistence;
 //		try {
 //			sessionData.getCustomFormulas().loadDB();
 //		} catch (SQLException e) {
-//			// TODO Auto-generated catch block
 //			e.printStackTrace();
 //		}
 //		// Load of predefined model example for Sensitivities + Stability

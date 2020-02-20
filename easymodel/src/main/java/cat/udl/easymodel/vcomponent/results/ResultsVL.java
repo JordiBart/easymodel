@@ -61,12 +61,6 @@ public class ResultsVL extends VerticalLayout {
 		this.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
 		this.addComponents(outerPanelVL, bottomHL);
 		this.setExpandRatio(outerPanelVL, 1f);
-		this.reset();
-	}
-
-	public void reset() {
-		outVL.reset();
-		statusHL.running();
 	}
 
 	private Link getWebMathematicaLink() {

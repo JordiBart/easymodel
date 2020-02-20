@@ -94,9 +94,6 @@ public class ModelsAdminVL extends VerticalLayout {
 			return getTF("name", "Name", m.getName(), m);
 		}).setCaption("Name");
 		grid.addComponentColumn(m -> {
-			return getTF("description", "Description", m.getDescription(), m);
-		}).setCaption("Description");
-		grid.addComponentColumn(m -> {
 			return getCB("repositorytype", m.getRepositoryType() == RepositoryType.PUBLIC, m);
 		}).setCaption("Public");
 		grid.addColumn(Model::getUserName).setCaption("User");
@@ -121,8 +118,6 @@ public class ModelsAdminVL extends VerticalLayout {
 				String newVal = ((TextField) event.getSource()).getValue();
 				if (field.equals("name"))
 					m.setName(newVal);
-				else if (field.equals("description"))
-					m.setDescription(newVal);
 			}
 		});
 		return tf;

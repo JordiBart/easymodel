@@ -63,6 +63,7 @@ public class Formula {
 		setFormulaDef(fExpression);
 		setFormulaType(formulaType);
 		setModel(model);
+		initGenericFormula();
 	}
 
 	public Formula(Formula from) {
@@ -72,7 +73,7 @@ public class Formula {
 		this.name = from.getNameRaw();
 		this.setFormulaType(from.getFormulaType());
 		this.setModel(from.getModel());
-		this.setFormulaDef(from.getFormulaDef()); //parse
+		this.setFormulaDef(from.getFormulaDef()); // parse
 		this.oneSubstrateOnly = from.isOneSubstrateOnly();
 		this.noProducts = from.isNoProducts();
 		this.oneModifierOnly = from.isOneModifierOnly();
@@ -98,6 +99,35 @@ public class Formula {
 		oneSubstrateOnly = false;
 		noProducts = false;
 		oneModifierOnly = false;
+	}
+
+	private void initGenericFormula() {
+		if (formulaType == FormulaType.PREDEFINED || formulaType == FormulaType.MODEL) {
+			if (getNameRaw().equals("Power Laws"))
+				setTypeOfGenericParameter("a", FormulaValueType.CONSTANT);
+			else if (getNameRaw().equals("Saturating Cooperative"))
+				setTypeOfGenericParameter("v", FormulaValueType.CONSTANT);
+			else if (getNameRaw().equals("Saturating"))
+				setTypeOfGenericParameter("v", FormulaValueType.CONSTANT);
+			else if (getNameRaw().equals("Mass action"))
+				setTypeOfGenericParameter("a", FormulaValueType.CONSTANT);
+			else if (getNameRaw().equals("Henri-Michaelis menten")) {
+				setTypeOfGenericParameter("v", FormulaValueType.CONSTANT);
+				setTypeOfGenericParameter("k", FormulaValueType.CONSTANT);
+			} else if (getNameRaw().equals("Hill Cooperativity")) {
+				setTypeOfGenericParameter("v", FormulaValueType.CONSTANT);
+				setTypeOfGenericParameter("n", FormulaValueType.CONSTANT);
+				setTypeOfGenericParameter("k", FormulaValueType.CONSTANT);
+			} else if (getNameRaw().equals("Catalytic activation")) {
+				setTypeOfGenericParameter("v", FormulaValueType.CONSTANT);
+				setTypeOfGenericParameter("k", FormulaValueType.CONSTANT);
+				setTypeOfGenericParameter("k2", FormulaValueType.CONSTANT);
+			} else if (getNameRaw().equals("Competititve inhibition")) {
+				setTypeOfGenericParameter("v", FormulaValueType.CONSTANT);
+				setTypeOfGenericParameter("k", FormulaValueType.CONSTANT);
+				setTypeOfGenericParameter("k2", FormulaValueType.CONSTANT);
+			}
+		}
 	}
 
 	public boolean isBlank() {
@@ -244,7 +274,7 @@ public class Formula {
 	}
 
 	public String getFormulaImportDef() {
-		if (formulaType==FormulaType.PREDEFINED) {
+		if (formulaType == FormulaType.PREDEFINED) {
 			if ("Power Laws".equals(name))
 				return "a X1^g11...Xn^g1n";
 			if ("Saturating Cooperative".equals(name))
@@ -252,11 +282,11 @@ public class Formula {
 			if ("Saturating".equals(name))
 				return "v X1...X2/((KX1+X1)...(KXn+Xn))";
 			if ("Mass action".equals(name))
-				return "a X1^nX1...X2^nXn"; 
+				return "a X1^nX1...X2^nXn";
 		}
 		return formula;
 	}
-	
+
 	public void setFormulaDef(String formula) {
 		this.formula = formula;
 		this.parse();
@@ -459,23 +489,14 @@ public class Formula {
 			}
 			rs.close();
 			preparedStatement.close();
-			preparedStatement = con.prepareStatement(
-					"SELECT `id`, `id_formula`, `genparam`, `formulavaluetype` FROM `formulagenparam` WHERE id_formula=?");
-			p = 1;
-			preparedStatement.setInt(p++, this.id);
-			rs = preparedStatement.executeQuery();
-			while (rs.next()) {
-				this.getGenericParameters().put(rs.getString("genparam"),FormulaValueType.fromInt(rs.getInt("formulavaluetype")));
-			}
-			rs.close();
-			preparedStatement.close();
+			
 			setDirty(false);
 		} catch (SQLException e) {
 			System.err.println(e.getMessage());
 			throw e;
 		}
 	}
-	
+
 	public void saveDB() throws SQLException {
 		Formula f = this;
 		SharedData sharedData = SharedData.getInstance();
@@ -527,27 +548,7 @@ public class Formula {
 				}
 				preparedStatement.close();
 			}
-			// GENERIC PARAMETERS TYPES (we define fixed formulavaluetype for parameters)
-			if (f.getId() != null) {
-				// DELETE OLD VALUES
-				preparedStatement = con.prepareStatement("DELETE FROM formulagenparam WHERE id_formula=?");
-				preparedStatement.setInt(1, f.getId());
-				preparedStatement.executeUpdate();
-				preparedStatement.close();
-				// ADD NEW ENTRIES
-				for (String genParam : f.getGenericParameters().keySet()) {
-					if (f.getGenericParameters().get(genParam) != null) {
-						preparedStatement = con.prepareStatement(
-								"INSERT INTO `formulagenparam`(`id`, `id_formula`, `genparam`, `formulavaluetype`) VALUES (NULL,?,?,?)");
-						p = 1;
-						preparedStatement.setInt(p++, f.getId());
-						preparedStatement.setString(p++, genParam);
-						preparedStatement.setInt(p++, f.getGenericParameters().get(genParam).getValue());
-						preparedStatement.executeUpdate();
-						preparedStatement.close();
-					}
-				}
-			}
+			
 			setDirty(false);
 		} catch (SQLException e) {
 			System.err.println(e.getMessage());
@@ -581,12 +582,7 @@ public class Formula {
 				preparedStatement.setInt(1, f.getId());
 				preparedStatement.executeUpdate();
 				preparedStatement.close();
-				// GENERIC PARAMETERS TYPES (we define fixed formulavaluetype for parameters)
-				// DELETE OLD VALUES
-				preparedStatement = con.prepareStatement("DELETE FROM formulagenparam WHERE id_formula=?");
-				preparedStatement.setInt(1, f.getId());
-				preparedStatement.executeUpdate();
-				preparedStatement.close();
+				
 				f.reset();
 			} catch (SQLException e) {
 				System.err.println(e.getMessage());

@@ -1,5 +1,7 @@
 package cat.udl.easymodel.logic.simconfig;
 
+import java.util.ArrayList;
+
 import cat.udl.easymodel.logic.types.InputType;
 
 public class SimConfigEntry {
@@ -10,6 +12,7 @@ public class SimConfigEntry {
 	private String caption;
 	private String description;
 	private boolean mandatory=true;
+	private ValueRange valueRange = null;
 
 	public SimConfigEntry(String id, Object value, InputType type, String caption, String description) {
 		this.id = id;
@@ -17,6 +20,17 @@ public class SimConfigEntry {
 		this.type = type;
 		this.caption = caption;
 		this.description = description;
+	}
+	
+	public void checkValue(String exceptionPrefix) throws Exception {
+		if (this.mandatory && value == null)
+			throw new Exception(this.getCaption() +": missing value");
+		if (valueRange != null) {
+			if (valueRange.getMin() != null && Double.valueOf((String)this.getValue()) < Double.valueOf(valueRange.getMin()))
+				throw new Exception(exceptionPrefix+": "+this.getCaption() +": minimum value: "+valueRange.getMin());
+			if (valueRange.getMax() != null && Double.valueOf((String)this.getValue()) > Double.valueOf(valueRange.getMax()))
+				throw new Exception(exceptionPrefix+": "+this.getCaption() +": maximum value: "+valueRange.getMax());
+		}
 	}
 	
 	@Override
@@ -73,5 +87,9 @@ public class SimConfigEntry {
 
 	public void setMandatory(boolean mandatory) {
 		this.mandatory = mandatory;
+	}
+
+	public void setValueRange(String min, String max) {
+		this.valueRange = new ValueRange(min, max);
 	}
 }
