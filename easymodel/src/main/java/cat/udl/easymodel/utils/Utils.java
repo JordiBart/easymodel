@@ -1,5 +1,7 @@
 package cat.udl.easymodel.utils;
 
+import java.util.Set;
+
 import cat.udl.easymodel.main.SharedData;
 
 public class Utils {
@@ -7,6 +9,16 @@ public class Utils {
 
 	}
 
+	public static Integer getPosition(Set<String> searchSet, String searchStr) {
+		int count=0;
+		for (String it : searchSet) {
+			if (it.equals(searchStr))
+				return count;
+			count++;
+		}
+		return null;
+	}
+	
 	public static void debug(Object o) {
 		if (SharedData.getInstance().isDebug())
 			System.out.println("dbg:: " + o);

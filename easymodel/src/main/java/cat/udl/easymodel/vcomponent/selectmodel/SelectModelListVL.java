@@ -12,6 +12,7 @@ import com.vaadin.event.LayoutEvents.LayoutClickEvent;
 import com.vaadin.event.LayoutEvents.LayoutClickListener;
 import com.vaadin.event.ShortcutAction;
 import com.vaadin.event.ShortcutListener;
+import com.vaadin.icons.VaadinIcons;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
@@ -41,7 +42,6 @@ public class SelectModelListVL extends VerticalLayout {
 	private SessionData sessionData;
 	private NativeSelect<Model> modelListSelect;
 	private Panel descriptionPanel;
-	private Button newModelButton;
 	private AppPanel mainPanel;
 
 	public SelectModelListVL(AppPanel mainPanel) {
@@ -158,21 +158,24 @@ public class SelectModelListVL extends VerticalLayout {
 		hl.setHeight("38px");
 		hl.setSpacing(true);
 		if (sessionData.getRepository() != null) {
+			if (sessionData.isUserSet()) {
+				if (sessionData.getRepository() == RepositoryType.PRIVATE) {
+					hl.addComponents(getNewModelButton(sessionData.isUserSet()), getDeleteModelButton());
+				} else if (sessionData.getRepository() == RepositoryType.PUBLIC) {
+					hl.addComponents(getImportPublicModelToPrivateModelsButton());
+				}
+			} else {
+				hl.addComponent(getNewModelButton(sessionData.isUserSet()));
+			}
 			HorizontalLayout spacer = new HorizontalLayout();
-			hl.addComponents(getLoadModelButton());
 			hl.addComponents(spacer);
 			hl.setExpandRatio(spacer, 1.0f);
-			if (sessionData.getRepository() == RepositoryType.PRIVATE) {
-				newModelButton = getNewModelButton();
-				hl.addComponents(newModelButton, getDeleteModelButton());
-			} else {
-				hl.addComponents(getImportPublicModelToPrivateModels());
-			}
+			hl.addComponents(getLoadModelButton());
 		}
 		return hl;
 	}
 
-	private Component getImportPublicModelToPrivateModels() {
+	private Component getImportPublicModelToPrivateModelsButton() {
 		Button btn = new Button("Import to private");
 		btn.setDescription("Import a copy of the model to your private repository");
 		btn.addClickListener(new Button.ClickListener() {
@@ -180,8 +183,8 @@ public class SelectModelListVL extends VerticalLayout {
 
 			public void buttonClick(ClickEvent event) {
 				try {
-					if (sessionData.getUser().isGuest())
-						throw new Exception("Guest user cannot do this operation");
+					if (sessionData.getUser() == null)
+						throw new Exception("A user account is required for this operation");
 					if (modelListSelect.getValue() == null)
 						throw new Exception("Please select a model");
 					Model m = modelListSelect.getValue();
@@ -218,9 +221,10 @@ public class SelectModelListVL extends VerticalLayout {
 		return win;
 	}
 
-	private Button getNewModelButton() {
+	private Button getNewModelButton(boolean isUserSet) {
 		Button btn = new Button("New Model");
 		btn.setId("newModelBtn");
+		btn.setIcon(VaadinIcons.PLUS);
 		btn.setDescription("Create a new model");
 		btn.addClickListener(new Button.ClickListener() {
 			private static final long serialVersionUID = 1L;
@@ -229,7 +233,10 @@ public class SelectModelListVL extends VerticalLayout {
 				// NEW MODEL
 				Model m = new Model();
 				m.setUser(sessionData.getUser());
-				m.setRepositoryType(RepositoryType.PRIVATE);
+				if (isUserSet)
+					m.setRepositoryType(RepositoryType.PRIVATE);
+				else
+					m.setRepositoryType(RepositoryType.TEMP);	
 				m.addReaction(new Reaction());
 				sessionData.setSelectedModel(m);
 				mainPanel.showEditModel();
@@ -240,6 +247,7 @@ public class SelectModelListVL extends VerticalLayout {
 
 	private Button getDeleteModelButton() {
 		Button btn = new Button("Delete Model");
+		btn.setIcon(VaadinIcons.MINUS);
 		btn.setId("delModelBtn");
 		btn.setDescription("Delete selected model");
 		btn.addClickListener(new Button.ClickListener() {
@@ -247,8 +255,8 @@ public class SelectModelListVL extends VerticalLayout {
 
 			public void buttonClick(ClickEvent event) {
 				try {
-					if (sessionData.getUser().isGuest())
-						throw new Exception("Guest user cannot do this operation");
+					if (sessionData.getUser() == null)
+						throw new Exception("A user account is required for this operation");
 					if (modelListSelect.getValue() == null)
 						throw new Exception("Please select a model");
 					Model m = modelListSelect.getValue();
@@ -286,6 +294,7 @@ public class SelectModelListVL extends VerticalLayout {
 
 	private Button getLoadModelButton() {
 		Button btn = new Button("Load Model");
+		btn.setIcon(VaadinIcons.PLAY);
 		btn.addClickListener(new Button.ClickListener() {
 			private static final long serialVersionUID = 1L;
 
@@ -305,7 +314,7 @@ public class SelectModelListVL extends VerticalLayout {
 			Model copy = new Model(modelListSelect.getValue());
 			copy.loadDB();
 			sessionData.setSelectedModel(copy);
-			sessionData.cancelSimulation();
+			sessionData.cancelSimulationByUser();
 			mainPanel.showEditModel();
 		} catch (SQLException e) {
 			sessionData.setSelectedModel(null);

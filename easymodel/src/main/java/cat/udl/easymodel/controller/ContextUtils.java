@@ -8,7 +8,7 @@ public class ContextUtils {
 	public static final String gainContext = "gain`";
 	public static final String sensitivityContext = "sens`";
 	public static final String builtInContext = "b`";
-	public static final String arrayContext = "Ar`";
+	public static final String arrayContext = ""; //"Ar`";
 	public static final String substrateContext = "Sub`";
 	public static final String modifierContext = "Mod`";
 	

@@ -32,7 +32,7 @@ public class ImportPredefinedFormulasWindow extends Window {
 
 		this.selModel = selModel;
 
-		this.setData(new Boolean(false)); // for window close callback
+		this.setData(false); // for window close callback
 		this.setCaption("Import Predefined Rates");
 		this.setClosable(true);
 		this.setWidth("800px");
@@ -94,7 +94,7 @@ public class ImportPredefinedFormulasWindow extends Window {
 	}
 
 	private Button getOkButton() {
-		Button button = new Button("Ok");
+		Button button = new Button("Import");
 		button.setId("okButton");
 		button.addClickListener(new Button.ClickListener() {
 			private static final long serialVersionUID = 1L;
@@ -135,7 +135,7 @@ public class ImportPredefinedFormulasWindow extends Window {
 			fCopy.setDirty(true);
 			selModel.getFormulas().addFormula(fCopy);
 		}
-		this.setData(new Boolean(true)); // for window close callback
+		this.setData(true); // for window close callback
 		close();
 	}
 }

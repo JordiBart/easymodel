@@ -55,7 +55,7 @@ public class SimulationManagerThread extends Thread {
 			e.printStackTrace();
 		}
 		sessionData.respawnSimulationManager();
-		sessionData.freeMathLinkOp();
+		sessionData.closeMathLinkOp();
 		executor.shutdownNow();
 		this.interrupt();
 //		sessionData.simulationManager = null;
@@ -80,26 +80,25 @@ class SimCallable implements Callable<String> {
 	}
 
 	@Override
-	public String call() throws Exception {
+	public String call() {
 		try {
-			if (!this.sessionData.loadMathLinkOpFromShared())
+			if (!sessionData.createMathLinkOp())
 				throw new CException("webMathematica is busy, please try again later");
-			sessionData.getSimStatusHL().running();
-			sessionData.getOutVL().reset();
 			simCtrl.simulate();
-			this.sessionData.freeMathLinkOp();
-			this.sessionData.getOutVL().finish();
+			this.sessionData.closeMathLinkOp();
+			return null;
 		} catch (Exception e) {
 			if (e instanceof MathLinkException) {
-//				p.p(e.getMessage());
+				System.err.println("SimMan:MathLinkException");
+				System.err.println(e.getMessage());
 				return "webMathematica error, please try again later";
 			} else if (e instanceof CException)
 				return e.getMessage();
 			else {
+				System.err.println("SimMan:Other Exception");
 				e.printStackTrace();
 				return "Unknown error";
 			}
 		}
-		return null;
 	}
 }

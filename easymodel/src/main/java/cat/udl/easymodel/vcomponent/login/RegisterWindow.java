@@ -106,7 +106,7 @@ public class RegisterWindow extends Window {
 			@Override
 			public void blur(BlurEvent event) {
 				String newVal = ((PasswordField) event.getComponent()).getValue();
-				newUser.setPass(newVal);
+				newUser.setPassForRegister(newVal);
 			}
 		});
 
@@ -121,7 +121,7 @@ public class RegisterWindow extends Window {
 			@Override
 			public void blur(BlurEvent event) {
 				String newVal = ((PasswordField) event.getComponent()).getValue();
-				newUser.setRetypePass(newVal);
+				newUser.setRetypePassForRegister(newVal);
 			}
 		});
 

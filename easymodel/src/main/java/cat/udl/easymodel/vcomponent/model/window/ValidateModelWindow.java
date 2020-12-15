@@ -32,7 +32,7 @@ public class ValidateModelWindow extends Window {
 	public ValidateModelWindow(Model selMod) {
 		super();
 
-		this.setData(new Boolean(false)); // for window close callback
+		this.setData(false); // for window close callback
 		this.selectedModel = selMod;
 		this.sessionData = (SessionData) UI.getCurrent().getData();
 		this.setCaption("Model validation");
@@ -85,15 +85,15 @@ public class ValidateModelWindow extends Window {
 				throw new Exception("Model name \"" + selectedModel.getName() + "\" is already in use");
 			}
 			selectedModel.checkValidModel();
-			this.setData(new Boolean(true));
+			this.setData(true);
 			Label resLab = new Label("Validation: OK");
 			conPanelVL.addComponents(resLab);
-			if (sessionData.getRepository() == RepositoryType.PRIVATE && !sessionData.getUser().isGuest()) {
+			if (sessionData.getRepository() == RepositoryType.PRIVATE) {
 				try {
 					boolean saveToModels = selectedModel.getId() == null;
 					selectedModel.saveDB();
-					Label lbl = new Label("MODEL SAVED (model will be published after " +
-						SharedData.getInstance().getProperties().getProperty("privateWeeks") + " weeks unless it's deleted)");
+					Label lbl = new Label("MODEL SAVED (model will be automatically published in " +
+						SharedData.getInstance().getProperties().getProperty("privateWeeks") + " weeks unless it's deleted before this time period)");
 					lbl.setWidth("450px");
 					conPanelVL.addComponent(lbl);
 					if (saveToModels) {
@@ -117,7 +117,7 @@ public class ValidateModelWindow extends Window {
 			ta.setValue(e.getMessage());
 			ta.setReadOnly(true);
 			conPanelVL.addComponents(resLab, ta);
-			this.setData(new Boolean(false));
+			this.setData(false);
 		}
 	}
 

@@ -23,7 +23,9 @@ import com.vaadin.ui.TabSheet.Tab;
 import cat.udl.easymodel.logic.model.Model;
 import cat.udl.easymodel.logic.simconfig.SimConfig;
 import cat.udl.easymodel.logic.simconfig.SimConfigArray;
+import cat.udl.easymodel.logic.types.SimType;
 import cat.udl.easymodel.main.SessionData;
+import cat.udl.easymodel.vcomponent.common.InfoWindowButton;
 
 public class SimPlotViewsVL extends VerticalLayout {
 	private SimConfig simConfig;
@@ -31,14 +33,17 @@ public class SimPlotViewsVL extends VerticalLayout {
 	private SessionData sessionData;
 	private TabSheet plotViewsTabs = new TabSheet();
 	private boolean tabSheetListenerEnable = true;
-	
-	public SimPlotViewsVL(SimConfig simConfig, Model selectedModel) {
+
+	public SimPlotViewsVL() {
 		super();
-		
-		this.simConfig=simConfig;
+
 		this.sessionData = (SessionData) UI.getCurrent().getData();
-		this.selectedModel=selectedModel;
-		
+		this.selectedModel = this.sessionData.getSelectedModel();
+		this.simConfig = this.selectedModel.getSimConfig();
+
+		if (simConfig.getSimType() == SimType.DETERMINISTIC)
+			simConfig.getDynamic_PlotViews().initPlotViews(selectedModel);
+
 		VerticalLayout leftVL = new VerticalLayout();
 		leftVL.setWidth("100%");
 		leftVL.setSpacing(true);
@@ -63,26 +68,16 @@ public class SimPlotViewsVL extends VerticalLayout {
 		hl.setMargin(false);
 		hl.addComponents(leftVL, rightVL);
 		hl.setExpandRatio(leftVL, 1f);
-		
+
 		this.setSizeFull();
 		this.setMargin(true);
 		this.setSpacing(false);
 		this.addComponent(hl);
 	}
-	
-	private Button getInfoPlotViewsButton() {
-		Button btn = new Button();
-		btn.setDescription("How to set Plot Views settings");
-		btn.setWidth("36px");
-		btn.setStyleName("infoBtn");
-		btn.addClickListener(new ClickListener() {
-			private static final long serialVersionUID = 1L;
 
-			public void buttonClick(ClickEvent event) {
-				sessionData.showInfoWindow("Plot Views: Define the variables to represent in each plot.", 800,200);
-			}
-		});
-		return btn;
+	private Button getInfoPlotViewsButton() {
+		return new InfoWindowButton("How to set Plot Views settings",
+				"Plot Views: Define the variables to represent in each plot.", 800, 200);
 	}
 
 	private Button getSetEachDepVarToOneViewButton() {
@@ -95,12 +90,7 @@ public class SimPlotViewsVL extends VerticalLayout {
 
 			@SuppressWarnings("unchecked")
 			public void buttonClick(ClickEvent event) {
-				simConfig.clearPlotViews();
-				for (String dv : selectedModel.getAllSpeciesTimeDependent().keySet()) {
-					simConfig.addPlotView();
-					((ArrayList<String>) simConfig.getDeterministicPlotViews().get(simConfig.getDeterministicPlotViews().size() - 1)
-							.get("DepVarsToShow").getValue()).add(dv);
-				}
+				simConfig.getDynamic_PlotViews().setEachDepVarToOneView(selectedModel);
 				updatePlotTabs();
 			}
 		});
@@ -111,13 +101,14 @@ public class SimPlotViewsVL extends VerticalLayout {
 	public void updatePlotTabs() {
 		tabSheetListenerEnable = false;
 		plotViewsTabs.removeAllComponents();
-		for (int i = 0; i < simConfig.getDeterministicPlotViews().size(); i++) {
-			SimConfigArray conf = simConfig.getDeterministicPlotViews().get(i);
+		for (int i = 0; i < simConfig.getDynamic_PlotViews().size(); i++) {
+			SimConfigArray conf = simConfig.getDynamic_PlotViews().get(i);
 			VerticalLayout tvl = new VerticalLayout();
 			tvl.setData(new Integer(i));
 			HorizontalLayout hl1 = new HorizontalLayout();
 			tvl.addComponent(hl1);
-			hl1.addComponent(SimConfigToComponent.convert(conf.get("DepVarsToShow"), selectedModel.getAllSpeciesTimeDependent().keySet()));
+			hl1.addComponent(SimConfigToComponent.convert(conf.get("DepVarsToShow"),
+					selectedModel.getAllSpeciesTimeDependent().keySet()));
 			Tab tab = plotViewsTabs.addTab(tvl);
 			tab.setClosable(true);
 			tab.setCaption("View " + plotViewsTabs.getComponentCount());
@@ -145,7 +136,7 @@ public class SimPlotViewsVL extends VerticalLayout {
 					TabSheet ts = event.getTabSheet();
 					Component selVL = ts.getSelectedTab();
 					if (selVL == ((Map<String, VerticalLayout>) ts.getData()).get("newViewVL")) {
-						simConfig.addPlotView();
+						simConfig.getDynamic_PlotViews().addNewPlotView();
 						updatePlotTabs();
 					}
 				}
@@ -157,7 +148,7 @@ public class SimPlotViewsVL extends VerticalLayout {
 				if (tabSheetListenerEnable) {// && tabsheet.getSelectedTab() != tabContent) {
 					Component selVL = tabsheet.getSelectedTab();
 					Integer arrIndex = (Integer) ((VerticalLayout) tabContent).getData();
-					simConfig.removePlotView(arrIndex.intValue());
+					simConfig.getDynamic_PlotViews().removeAtIndex(arrIndex.intValue());
 					updatePlotTabs();
 					// doesn't work:
 					tabSheetListenerEnable = false;

@@ -41,9 +41,9 @@ public class User {
 		this.reset();
 		id = from.getId();
 		name = from.getName();
-		encPassword = from.getEncPassword();
-		pass = from.getPass();
-		retypePass = from.getRetypePass();
+		encPassword = from.getEncryptedPassword();
+		pass = from.getPassForRegister();
+		retypePass = from.getRetypePassForRegister();
 		userType = from.getUserType();
 		isDBDelete = from.isDBDelete();
 		isDirty = from.isDirty();
@@ -65,11 +65,11 @@ public class User {
 		this.name = name;
 	}
 
-	public String getEncPassword() {
+	public String getEncryptedPassword() {
 		return encPassword;
 	}
 
-	public void setEncPassword(String encPass) {
+	public void setEncryptedPassword(String encPass) {
 		this.encPassword = encPass;
 	}
 
@@ -78,8 +78,8 @@ public class User {
 		// gen: https://asecuritysite.com/encryption/bcrypt
 		if (pass != null && pass.matches(ToolboxVaadin.passwordRegex)) {
 			this.encPassword = BCrypt.hashpw(pass, BCrypt.gensalt());
-			setPass(null);
-			setRetypePass(null);
+			setPassForRegister(null);
+			setRetypePassForRegister(null);
 		}
 	}
 
@@ -133,7 +133,7 @@ public class User {
 						Statement.RETURN_GENERATED_KEYS);
 				p = 1;
 				preparedStatement.setString(p++, getName());
-				preparedStatement.setString(p++, getEncPassword());
+				preparedStatement.setString(p++, getEncryptedPassword());
 				preparedStatement.setInt(p++, getUserType().getValue());
 				int affectedRows = preparedStatement.executeUpdate();
 				if (affectedRows == 0)
@@ -149,11 +149,11 @@ public class User {
 				preparedStatement.close();
 			} else {
 				preparedStatement = con.prepareStatement("UPDATE user SET name=?,"
-						+ (getEncPassword() != null ? "password=?," : "") + "usertype=? WHERE id=?");
+						+ (getEncryptedPassword() != null ? "password=?," : "") + "usertype=? WHERE id=?");
 				p = 1;
 				preparedStatement.setString(p++, getName());
-				if (getEncPassword() != null)
-					preparedStatement.setString(p++, getEncPassword());
+				if (getEncryptedPassword() != null)
+					preparedStatement.setString(p++, getEncryptedPassword());
 				preparedStatement.setInt(p++, getUserType().getValue());
 				preparedStatement.setInt(p++, id);
 				preparedStatement.executeUpdate();
@@ -224,19 +224,19 @@ public class User {
 		this.isDirty = isDirty;
 	}
 
-	public String getPass() {
+	public String getPassForRegister() {
 		return pass;
 	}
 
-	public void setPass(String pass) {
+	public void setPassForRegister(String pass) {
 		this.pass = pass;
 	}
 
-	public String getRetypePass() {
+	public String getRetypePassForRegister() {
 		return retypePass;
 	}
 
-	public void setRetypePass(String retypePass) {
+	public void setRetypePassForRegister(String retypePass) {
 		this.retypePass = retypePass;
 	}
 
@@ -262,9 +262,5 @@ public class User {
 		if ((id != null && pass != null && !pass.isEmpty() && !pass.matches(ToolboxVaadin.passwordRegex))
 				|| (id == null && (pass == null || !pass.matches(ToolboxVaadin.passwordRegex))))
 			throw new Exception("Invalid " + ToolboxVaadin.passwordRegexInfo);
-	}
-	
-	public boolean isGuest() {
-		return this == SharedData.getInstance().getGuestUser();
 	}
 }

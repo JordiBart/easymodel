@@ -8,16 +8,18 @@ import java.util.TreeMap;
 import java.util.regex.Pattern;
 
 import cat.udl.easymodel.logic.formula.Formula;
+import cat.udl.easymodel.logic.formula.FormulaArrayValue;
+import cat.udl.easymodel.logic.formula.FormulaParameter;
 import cat.udl.easymodel.logic.formula.FormulaUtils;
+import cat.udl.easymodel.logic.formula.FormulaValue;
+import cat.udl.easymodel.logic.stochastic.ReactantReactionLevel;
 import cat.udl.easymodel.logic.types.FormulaValueType;
+import cat.udl.easymodel.logic.types.SpeciesType;
+import cat.udl.easymodel.utils.p;
 
 public class Reaction implements Comparable<Reaction> {
-	enum SpeciesType {
-		REACTIVE, PRODUCTIVE, MODIFIER
-	};
-
-	private Integer id=null;
-	private Integer idJava=null;
+	private Integer id = null;
+	private Integer idJava = null;
 	private String reactionStr = "";
 	private String loadedReactionStr = "";
 	// species stored with coefficients/stoichiometry:
@@ -40,6 +42,39 @@ public class Reaction implements Comparable<Reaction> {
 	public Reaction() {
 	}
 
+	public Reaction(Reaction from) {
+		id = from.id;
+		idJava = from.idJava;
+		reactionStr = from.reactionStr;
+		loadedReactionStr = from.loadedReactionStr;
+		for (String key : from.leftPartSpecies.keySet())
+			leftPartSpecies.put(key, from.leftPartSpecies.get(key));
+		for (String key : from.rightPartSpecies.keySet())
+			rightPartSpecies.put(key, from.rightPartSpecies.get(key));
+		for (String key : from.modifiers.keySet())
+			modifiers.put(key, from.modifiers.get(key));
+		for (String key : from.bothSidesSpecies.keySet())
+			bothSidesSpecies.put(key, from.bothSidesSpecies.get(key));
+		formula = new Formula(from.formula);
+		loadedFormula = new Formula(from.loadedFormula);
+		for (String key : from.formulaValues.keySet())
+			formulaValues.put(key, new FormulaValue(from.formulaValues.get(key)));
+//		for (String key : formulaValues.keySet())
+//			p.p(key+" "+formulaValues.get(key));
+		for (String key1 : from.formulaSubstratesArrayParameters.keySet()) {
+			SortedMap<String, FormulaArrayValue> map1 = new TreeMap<String, FormulaArrayValue>();
+			for (String key2 : from.formulaSubstratesArrayParameters.get(key1).keySet())
+				map1.put(key2, new FormulaArrayValue(from.formulaSubstratesArrayParameters.get(key1).get(key2)));
+			formulaSubstratesArrayParameters.put(key1, map1);
+		}
+		for (String key1 : from.formulaModifiersArrayParameters.keySet()) {
+			SortedMap<String, FormulaArrayValue> map1 = new TreeMap<String, FormulaArrayValue>();
+			for (String key2 : from.formulaModifiersArrayParameters.get(key1).keySet())
+				map1.put(key2, new FormulaArrayValue(from.formulaModifiersArrayParameters.get(key1).get(key2)));
+			formulaModifiersArrayParameters.put(key1, map1);
+		}
+	}
+	
 	public Reaction(String reactionStr) {
 		setReactionStr(reactionStr);
 	}
@@ -326,12 +361,12 @@ public class Reaction implements Comparable<Reaction> {
 			// remove unused keys
 			List<String> keysToRemove = new ArrayList<>();
 			for (String constantKey : formulaValues.keySet())
-				if (!formula.getGenericParameters().containsKey(constantKey))
+				if (!formula.getParameters().containsKey(constantKey))
 					keysToRemove.add(constantKey);
 			for (String key : keysToRemove)
 				formulaValues.remove(key);
 			// add missing keys
-			for (String constantKey : formula.getGenericParameters().keySet()) {
+			for (String constantKey : formula.getParameters().keySet()) {
 				if (!formulaValues.containsKey(constantKey))
 					formulaValues.put(constantKey, null);
 				else {
@@ -351,7 +386,7 @@ public class Reaction implements Comparable<Reaction> {
 		return formulaValues;
 	}
 
-	public SortedMap<String, SortedMap<String, FormulaArrayValue>> getFormulaModifiersArrayParametersForFormula(
+	public SortedMap<String, SortedMap<String, FormulaArrayValue>> getGeneratedFormulaModifierArrayParametersForFormula(
 			Formula f) {
 		SortedMap<String, SortedMap<String, FormulaArrayValue>> parameters = new TreeMap<>();
 		if (f != null) {
@@ -367,7 +402,7 @@ public class Reaction implements Comparable<Reaction> {
 		return parameters;
 	}
 
-	public SortedMap<String, SortedMap<String, FormulaArrayValue>> getFormulaSubstratesArrayParametersForFormula(
+	public SortedMap<String, SortedMap<String, FormulaArrayValue>> getGeneratedFormulaSubstrateArrayParametersForFormula(
 			Formula f) {
 		SortedMap<String, SortedMap<String, FormulaArrayValue>> parameters = new TreeMap<>();
 		if (f != null) {
@@ -386,31 +421,30 @@ public class Reaction implements Comparable<Reaction> {
 	public SortedMap<String, FormulaValue> getFormulaGenParsForFormula(Formula f) {
 		SortedMap<String, FormulaValue> values = new TreeMap<>();
 		if (f != null) {
-			for (String constantKey : f.getGenericParameters().keySet())
+			for (String constantKey : f.getParameters().keySet())
 				values.put(constantKey, null);
 		}
 		return values;
 	}
 
-	public boolean areAllFormulaParValuesValid() {
+	public boolean isAllReactionDataFullfiled() {
 		// has formula, species/modifiers values and all constants
-		if (!parse())
+		if (!parse() || getFormula() == null)
 			return false;
-		if (getFormula() == null)
-			return false;
-		for (FormulaValue co : formulaValues.values())
+		for (FormulaValue co : getFormulaGenPars().values()) {
 			if (co == null || !co.isFilled()
 					|| co.getType() == FormulaValueType.SUBSTRATE
 							&& !leftPartSpecies.containsKey(co.getSubstrateValue())
 					|| co.getType() == FormulaValueType.MODIFIER && !modifiers.containsKey(co.getModifierValue()))
 				return false;
+		}
 		for (Map<String, FormulaArrayValue> constMap : getFormulaSubstratesArrayParameters().values())
 			for (FormulaArrayValue co : constMap.values())
-				if (co == null)
+				if (co == null || !co.isFilled())
 					return false;
 		for (Map<String, FormulaArrayValue> constMap : getFormulaModifiersArrayParameters().values())
 			for (FormulaArrayValue co : constMap.values())
-				if (co == null)
+				if (co == null || !co.isFilled())
 					return false;
 		return true;
 	}
@@ -421,7 +455,6 @@ public class Reaction implements Comparable<Reaction> {
 	 * only keyset is used, not values! Values/Concentrations are stored in
 	 * getRightPartSpecies() getLeftPartSpecies() getModifiers()
 	 */
-
 	public SortedMap<String, Integer> getBothSides() {
 		return bothSidesSpecies;
 	}
@@ -453,4 +486,39 @@ public class Reaction implements Comparable<Reaction> {
 		return Integer.valueOf(this.idJava).compareTo(Integer.valueOf(((Reaction) react2).getIdJava()));
 	}
 
+	///////////// REACTION ORDER
+	public SortedMap<String, ReactantReactionLevel> getReactants() {
+		SortedMap<String, ReactantReactionLevel> res = new TreeMap<>();
+		if (!this.isAllReactionDataFullfiled())
+			return res;
+		for (String substrate : this.leftPartSpecies.keySet()) {
+			for (String par : this.formulaValues.keySet()) {
+				FormulaValue fv = this.formulaValues.get(par);
+				if (fv.getType() == FormulaValueType.SUBSTRATE && substrate.equals(fv.getSubstrateValue())) {
+					Integer powerInt;
+					String powerStr = this.getFormula().getParameters().get(par).getPower();
+					try {
+						powerInt = Integer.valueOf(powerStr); // powerStr contains a number
+					} catch (Exception e1) {
+						try {
+							powerInt = Integer.valueOf(this.formulaValues.get(powerStr).getConstantValue()); //try to substitute numerical parameter
+						} catch (Exception e2) {
+							powerInt = 1;
+						}
+					}
+					if (powerInt < 1)
+						powerInt = 1;
+					res.put(substrate,new ReactantReactionLevel(substrate, powerInt, this.leftPartSpecies.get(substrate)));
+				}
+			}
+		}
+		return res;
+	}
+	
+	public int getReactionTotalOrder() {
+		int res = 0;
+		for (ReactantReactionLevel r : this.getReactants().values())
+			res+=r.getOrder();
+		return res;
+	}
 }

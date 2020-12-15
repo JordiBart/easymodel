@@ -1,33 +1,32 @@
 package cat.udl.easymodel.mathlink;
 
-import java.io.IOException;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.ArrayList;
 
 import com.wolfram.jlink.KernelLink;
-import com.wolfram.jlink.MathLink;
 import com.wolfram.jlink.MathLinkException;
 import com.wolfram.jlink.MathLinkFactory;
 
-import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.utils.CException;
 import cat.udl.easymodel.utils.p;
 
 public class MathLinkOp {
 	private KernelLink ml = null;
-	private CustomPacketListener customPacketListener = new CustomPacketListener();
-	private boolean isLocked = true;
+	private MathPacketListenerOp customPacketListener = new MathPacketListenerOp();
+	private Timestamp openTimestamp = null;
 
 	public MathLinkOp() {
 //		System.setProperty("com.wolfram.jlink.libdir", System.getProperty("user.dir") + "/" + SharedData.jLinkLibDir);
 	}
 
-	public CustomPacketListener getCustomPacketListener() {
+	public MathPacketListenerOp getCustomPacketListener() {
 		return customPacketListener;
 	}
-	
-	public void openMathLink() throws MathLinkException {
+
+	public void openMathLink() throws Exception {
 		if (isOpen())
 			return;
 		SharedData sharedData = SharedData.getInstance();
@@ -37,8 +36,9 @@ public class MathLinkOp {
 			ml = MathLinkFactory.createKernelLink(sharedData.getProperties().getProperty("mathKernelPath"));
 			ml.discardAnswer(); // InputNamePacket discarded
 			ml.addPacketListener(customPacketListener);
-			unlock();
+			openTimestamp = Timestamp.from(Instant.now());
 		} catch (MathLinkException | Error e1) {
+			ml = null;
 			if (e1 instanceof Error) {
 				e1.printStackTrace();
 				System.out.println("HINT: JLinkNativeLibrary.dll must be located in "
@@ -46,12 +46,11 @@ public class MathLinkOp {
 				System.out.println("HINT: Try to restart webapp server");
 				throw new MathLinkException(0, "webMathematica error, please contact with the administrator");
 			} else {
-				ml = null;
 				System.err.println("Cannot create MathLink: " + e1.getMessage());
-				System.err.println("HINT: edit " + SharedData.propertiesFilePath + " to set MathKernel.exe path");
+				System.err.println("HINT: edit " + SharedData.propertiesFilePath + " to set MathKernel.exe path (or max no. of kernels reached?");
 				throw new MathLinkException(0, "webMathematica busy, please try again later");
 			}
-//				WINDOWS example MathLinkFactory.createKernelLink("-linkmode launch -linkname 'C:\\Program Files\\Wolfram Research\\Mathematica\\11.3\\MathKernel.exe'"
+//				WINDOWS example MathLinkFactory.createKernelLink("-linkmode launch -linkname 'C:\\Program Files\\Wolfram Research\\Mathematica\\12.0\\MathKernel.exe'"
 //				LINUX example: MathLinkFactory.createKernelLink("-linkmode launch -linkname 'math -mathlink'");
 		}
 	}
@@ -61,43 +60,48 @@ public class MathLinkOp {
 			ml.abortEvaluation();
 			ml.interruptEvaluation();
 			ml.abandonEvaluation();
-			
+
 			ml.terminateKernel();
 			ml.close();
 			ml = null;
 			System.gc();
 		}
 	}
-	
+
 	public void resetMathLink() {
 		closeMathLink();
 		try {
 			openMathLink();
-		} catch (MathLinkException e) {
+		} catch (Exception e) {
 			System.err.println("ERROR: RESET MATHLINK");
 		}
 	}
 
 	public boolean isOpen() {
-		if (ml == null)
+		if (ml == null) {
 			return false;
+		}
 		try {
 			ml.connect();
+			this.evaluate("1");
 			return true;
-		} catch (MathLinkException e) {
+		} catch (Exception e) {
+			ml = null;
 			return false;
 		}
 	}
-
-	public void evaluate(String mlCmd) throws MathLinkException {
-		if (mlCmd != null) {
-			// ml.connect();
-			ml.evaluate(mlCmd);
-			ml.discardAnswer();
-		}
+	
+	public boolean isClosed() {
+		return ml == null;
 	}
 
-	public String evaluateToString(String mlCmd) throws MathLinkException {
+	public void evaluate(String mlCmd) throws Exception {
+		// ml.connect();
+		ml.evaluate(mlCmd);
+		ml.discardAnswer();
+	}
+
+	public String evaluateToString(String mlCmd) throws Exception {
 		String result = "";
 		if (mlCmd != null) {
 			// ml.connect();
@@ -110,7 +114,7 @@ public class MathLinkOp {
 		return result;
 	}
 
-	public String checkMathCommand(String mlCmd) throws CException, MathLinkException {
+	public String checkMathCommand(String mlCmd) throws Exception {
 		try {
 			BigDecimal bigDec = new BigDecimal(mlCmd);
 			return bigDec.toString();
@@ -131,34 +135,31 @@ public class MathLinkOp {
 		}
 	}
 
-	public void checkMultiMathCommands(ArrayList<String> cmds) throws CException, MathLinkException {
+	public void checkMultiMathCommands(ArrayList<String> cmds) throws Exception {
 		for (String cmd : cmds)
 			checkMathCommand(cmd);
 	}
 
-	public byte[] evaluateToImage(String mlCmd) throws MathLinkException {
+	public byte[] evaluateToImage(String mlCmd) throws Exception {
 		byte[] result = new byte[] { 0 };
 		if (mlCmd != null) {
 			// ml.connect();
-			result = ml.evaluateToImage(mlCmd, 0, 0, 0, true); // width, height, dpi, use front end
+			result = ml.evaluateToImage(mlCmd, 0, 0, 0, false); // width, height, dpi, use front end
 			if (ml.getLastError() != null)
 				throw new MathLinkException(ml.getLastError());
 		}
 		return result;
 	}
 
-	public boolean isLocked() {
-		return isLocked;
+	public void tryTimeout() {
+		SharedData sharedData = SharedData.getInstance();
+		if (openTimestamp != null && openTimestamp.getTime()
+				+ ((Integer.valueOf(sharedData.getProperties().getProperty("simulationTimeoutMinutes"))+1) * 60
+						* 1000) < Timestamp.from(Instant.now()).getTime()) {
+			this.closeMathLink();
+		}
 	}
 
-	public void lock() {
-		this.isLocked = true;
-	}
-
-	public void unlock() {
-		this.isLocked = false;
-	}
-	
 	// not used-not needed anymore
 //	public void killAllMathematica() {
 //		ml = null;

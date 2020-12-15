@@ -11,9 +11,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.regex.Matcher;
 
+import com.vaadin.shared.ui.ContentMode;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.GridLayout;
 import com.vaadin.ui.Label;
@@ -21,8 +24,16 @@ import com.vaadin.ui.Layout;
 import com.wolfram.jlink.MathLinkException;
 
 import cat.udl.easymodel.logic.formula.Formula;
+import cat.udl.easymodel.logic.formula.FormulaArrayValue;
+import cat.udl.easymodel.logic.formula.FormulaElem;
+import cat.udl.easymodel.logic.formula.FormulaParameter;
+import cat.udl.easymodel.logic.formula.FormulaUtils;
+import cat.udl.easymodel.logic.formula.FormulaValue;
 import cat.udl.easymodel.logic.formula.Formulas;
 import cat.udl.easymodel.logic.simconfig.SimConfig;
+import cat.udl.easymodel.logic.stochastic.ReactantReactionLevel;
+import cat.udl.easymodel.logic.stochastic.ReactantModelLevel;
+import cat.udl.easymodel.logic.types.FormulaElemType;
 import cat.udl.easymodel.logic.types.FormulaType;
 import cat.udl.easymodel.logic.types.FormulaValueType;
 import cat.udl.easymodel.logic.types.RepositoryType;
@@ -32,6 +43,7 @@ import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.mathlink.MathLinkOp;
 import cat.udl.easymodel.utils.CException;
 import cat.udl.easymodel.utils.Utils;
+import cat.udl.easymodel.utils.p;
 import cat.udl.easymodel.vcomponent.common.SpacedLabel;
 
 public class Model extends ArrayList<Reaction> {
@@ -48,21 +60,43 @@ public class Model extends ArrayList<Reaction> {
 	private String description = "";
 	private RepositoryType repositoryType = RepositoryType.PRIVATE;
 	private boolean isDBDelete = false;
-	private Model parent=null;
+	private Model parent = null;
 
 	public Model() {
 		super();
 		this.reset();
 	}
-	
-	public Model(Model parent) {
+
+	public Model(Model from) {
+		// basic model copy
 		super();
-		this.parent=parent;
-		setId(parent.getId());
-		setUser(parent.getUser());
-		setName(parent.getName());
-		setDescription(parent.getDescription());
-		setRepositoryType(parent.getRepositoryType());
+		this.parent = from;
+		setId(from.getId());
+		setUser(from.getUser());
+		setName(from.getName());
+		setDescription(from.getDescription());
+		setRepositoryType(from.getRepositoryType());
+	}
+
+	public Model(Model from, int fullCopyConstructor) {
+		// XXX don't use, full model copy, revise and redo
+		idJava = from.idJava;
+		id = from.id;
+		user = from.getUser();
+		formulas = new Formulas(from.formulas);
+		formulas.setModel(this);
+		speciesConfigMap.putAll(from.getAllSpecies());
+		simConfig = from.getSimConfig();
+		name = from.getName();
+		description = from.getDescription();
+		repositoryType = from.getRepositoryType();
+		isDBDelete = from.isDBDelete();
+		parent = from.getParent();
+		for(Reaction fromReaction : from)
+			this.add(new Reaction(fromReaction));
+		for(Reaction r : this)
+			for (String key : r.getFormulaGenPars().keySet())
+				p.p(key+" "+r.getFormulaGenPars().get(key));
 	}
 
 	//
@@ -86,6 +120,7 @@ public class Model extends ArrayList<Reaction> {
 
 	public void reset() {
 		this.clear();
+		parent = null;
 		speciesConfigMap.clear();
 		formulas = new Formulas(this);
 		user = null;
@@ -184,68 +219,63 @@ public class Model extends ArrayList<Reaction> {
 		return res;
 	}
 
-	public SortedMap<String, String> getAllSpeciesTimeDependent() {
-		// if (!checkReactions())
-		// return null;
-		SortedMap<String, String> allParticipants = new TreeMap<String, String>();
+	public SortedMap<String, Species> getAllSpeciesTimeDependent() {
+		SortedMap<String, Species> retMap = new TreeMap<>();
+		for (String name : getAllSpecies().keySet()) {
+			Species sp = getAllSpecies().get(name);
+			if (sp.getVarType() == SpeciesVarTypeType.TIME_DEP)
+				retMap.put(name, sp);
+		}
+		return retMap;
+	}
+
+	public SortedMap<String, Species> getAllSpeciesConstant() {
+		SortedMap<String, Species> retMap = new TreeMap<>();
+		for (String name : getAllSpecies().keySet()) { // modifiers can be indep vars
+			Species sp = getAllSpecies().get(name);
+			if (sp.getVarType() == SpeciesVarTypeType.INDEPENDENT)
+				retMap.put(name, sp);
+		}
+		return retMap;
+	}
+
+	public SortedMap<String, Species> getAllSpeciesExceptModifiers() {
+		SortedMap<String, Species> allSpecies = getAllSpecies();
+		SortedMap<String, Species> allParticipants = new TreeMap<>();
 		for (Reaction r : this)
 			for (String sp : r.getBothSides().keySet())
-				if (getAllSpecies().get(sp).getVarType() == SpeciesVarTypeType.TIMEDEP)
-					allParticipants.put(sp, null);
+				allParticipants.put(sp, allSpecies.get(sp));
 		return allParticipants;
 	}
 
-	public SortedMap<String, String> getAllSpeciesConstant() {
-		SortedMap<String, String> indSpecies = new TreeMap<String, String>();
-		for (String sp : getAllSpecies().keySet()) // modifiers can be indep vars
-			if (getAllSpecies().get(sp).getVarType() == SpeciesVarTypeType.INDEP)
-				indSpecies.put(sp, null);
-		return indSpecies;
-	}
-
-	public SortedMap<String, String> getAllSpeciesExceptModifiers() {
-		// if (!checkReactions())
-		// return null;
-		SortedMap<String, String> allParticipants = new TreeMap<String, String>();
-		for (Reaction r : this)
-			for (String sp : r.getBothSides().keySet())
-				allParticipants.put(sp, null);
-		return allParticipants;
-	}
-
-	public SortedMap<String, String> getAllSubstrates() {
-		// if (!checkReactions())
-		// return null;
-		SortedMap<String, String> allSubstrates = new TreeMap<String, String>();
+	public SortedMap<String, Species> getAllSubstrates() {
+		SortedMap<String, Species> allSpecies = getAllSpecies();
+		SortedMap<String, Species> allSubstrates = new TreeMap<>();
 		for (Reaction r : this)
 			for (String sp : r.getLeftPartSpecies().keySet())
-				allSubstrates.put(sp, null);
+				allSubstrates.put(sp, allSpecies.get(sp));
 		return allSubstrates;
 	}
 
-	public SortedMap<String, String> getAllProducts() {
-		// if (!checkReactions())
-		// return null;
-		SortedMap<String, String> allProducts = new TreeMap<String, String>();
+	public SortedMap<String, Species> getAllProducts() {
+		SortedMap<String, Species> allSpecies = getAllSpecies();
+		SortedMap<String, Species> allProducts = new TreeMap<>();
 		for (Reaction r : this)
 			for (String sp : r.getRightPartSpecies().keySet())
-				allProducts.put(sp, null);
+				allProducts.put(sp, allSpecies.get(sp));
 		return allProducts;
 	}
 
-	public SortedMap<String, String> getAllModifiers() {
-		// if (!checkReactions())
-		// return null;
-		SortedMap<String, String> allModifiers = new TreeMap<String, String>();
+	public SortedMap<String, Species> getAllModifiers() {
+		SortedMap<String, Species> allSpecies = getAllSpecies();
+		SortedMap<String, Species> allModifiers = new TreeMap<>();
 		for (Reaction r : this)
 			for (String sp : r.getModifiers().keySet())
-				allModifiers.put(sp, null);
+				allModifiers.put(sp, allSpecies.get(sp));
 		return allModifiers;
 	}
 
 	public SortedMap<String, Species> getAllSpecies() {
-		// if (!checkReactions())
-		// return null;
 		// Update concentrations species
 		// Delete unused values
 		List<String> speciesToDelete = new ArrayList<>();
@@ -266,10 +296,10 @@ public class Model extends ArrayList<Reaction> {
 		for (Reaction react : this) {
 			for (String sp : react.getBothSides().keySet())
 				if (!speciesConfigMap.containsKey(sp))
-					speciesConfigMap.put(sp, new Species());
+					speciesConfigMap.put(sp, new Species(sp));
 			for (String sp : react.getModifiers().keySet())
 				if (!speciesConfigMap.containsKey(sp))
-					speciesConfigMap.put(sp, new Species());
+					speciesConfigMap.put(sp, new Species(sp));
 		}
 		// Old species values are still there
 		return speciesConfigMap;
@@ -283,59 +313,53 @@ public class Model extends ArrayList<Reaction> {
 	}
 
 	public String getStoichiometricMatrix() throws Exception {
+		// first index is for species, second for reaction
 		checkReactions();
 		if (getValidReactions().isEmpty())
 			throw new Exception("All reactions are empty");
-		String matrix = "{";
+		StringBuilder matrix = new StringBuilder("{");
 		boolean first1 = true;
 		boolean first2;
 		for (String species : getAllSpeciesTimeDependent().keySet()) {
-			matrix += (first1 ? "" : ",");
-			matrix += "{";
+			matrix.append(first1 ? "" : ",");
+			matrix.append("{");
 			first2 = true;
 			for (Reaction react : getValidReactions()) {
-				matrix += (first2 ? "" : ",");
-				matrix += (react.getSpeciesValuesForStMatrix().containsKey(species)
-						? String.valueOf(react.getSpeciesValuesForStMatrix().get(species))
-						: "0");
+				matrix.append(first2 ? "" : ",");
+				Integer val = react.getSpeciesValuesForStMatrix().get(species);
+				matrix.append(val != null ? val : "0");
 				first2 = false;
 			}
-			matrix += "}";
+			matrix.append("}");
 			first1 = false;
 		}
-		matrix += "}";
-		return matrix;
+		matrix.append("}");
+		return matrix.toString();
 	}
 
-	public GridLayout getDisplayStoichiometricMatrix() throws Exception {
-		checkReactions();
-		if (getValidReactions().isEmpty())
-			throw new Exception("All reactions are empty");
-		GridLayout gl = new GridLayout(getValidReactions().size() + 1, getAllSpeciesTimeDependent().size() + 1);
-		gl.addStyleName("table");
-		gl.setSpacing(false);
-		gl.setMargin(false);
-//		if (gl.getColumns() > 12)
-//			gl.setSizeFull();
-		gl.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
-		gl.addComponent(new SpacedLabel(""), 0, 0);
-		int i = 1, j = 0;
-		for (Reaction react : getValidReactions()) {
-			gl.addComponent(new SpacedLabel(react.getIdJavaStr()), i++, 0);
-		}
-		i = 0;
-		j++;
+	public Label getDisplayStoichiometricMatrix() {
+		ArrayList<Reaction> reactions = this;
+		Label table = new Label();
+		table.setContentMode(ContentMode.HTML);
+		table.setStyleName("matrix");
+		StringBuilder content = new StringBuilder("<table><tr><td>&nbsp;</td>");
+		for (Reaction react : reactions)
+			content.append("<td>&nbsp;" + react.getIdJavaStr() + "&nbsp;</td>");
+		content.append("</tr>");
 		for (String species : getAllSpeciesTimeDependent().keySet()) {
-			gl.addComponent(new SpacedLabel(species), i++, j);
-			for (Reaction react : getValidReactions()) {
-				gl.addComponent(new SpacedLabel((react.getSpeciesValuesForStMatrix().containsKey(species)
-						? String.valueOf(react.getSpeciesValuesForStMatrix().get(species))
-						: "0")), i++, j);
+			content.append("<tr><td>&nbsp;" + species + "&nbsp;</td>");
+			for (Reaction react : reactions) {
+				Integer val = react.getSpeciesValuesForStMatrix().get(species);
+				if (val != null)
+					content.append("<td>" + val + "</td>");
+				else
+					content.append("<td>0</td>");
 			}
-			i = 0;
-			j++;
+			content.append("</tr>");
 		}
-		return gl;
+		content.append("</table>");
+		table.setValue(content.toString());
+		return table;
 	}
 
 	public String getRegulatoryMatrix() throws Exception {
@@ -343,69 +367,89 @@ public class Model extends ArrayList<Reaction> {
 		checkReactions();
 		if (getValidReactions().isEmpty())
 			throw new Exception("All reactions are empty");
-		String matrix = "{";
+		StringBuilder matrix = new StringBuilder("{");
 		boolean first1 = true;
 		boolean first2;
 		for (String mod : getAllSpecies().keySet()) {
-			matrix += (first1 ? "" : ",");
-			matrix += "{";
+			matrix.append(first1 ? "" : ",");
+			matrix.append("{");
 			first2 = true;
 			for (Reaction react : getValidReactions()) {
-				matrix += (first2 ? "" : ",");
-				if (react.getModifiers().keySet().contains(mod)) {
-					if (react.getModifiers().get(mod) != null && react.getModifiers().get(mod) == 1)
-						matrix += "1";
-					else
-						matrix += "-1";
-				} else
-					matrix += "0";
+				matrix.append(first2 ? "" : ",");
+				Integer val = react.getModifiers().get(mod);
+				if (val != null)
+					matrix.append(val == 1 ? "1" : "-1");
+				else
+					matrix.append("0");
 				first2 = false;
 			}
-			matrix += "}";
+			matrix.append("}");
 			first1 = false;
 		}
-		matrix += "}";
-		return matrix;
+		matrix.append("}");
+		return matrix.toString();
 	}
 
-	public Layout getDisplayRegulatoryMatrix() throws Exception {
-		checkReactions();
-//		if (getAllModifiers().isEmpty()) {
-//			VerticalLayout vle = new VerticalLayout(new Label("(Empty matrix)"));
-//			vle.setSpacing(false);
-//			vle.setMargin(false);
-//			return vle;
-//		}
-		GridLayout gl = new GridLayout(getValidReactions().size() + 1, getAllSpecies().size()+1);
-		gl.addStyleName("table");
-		gl.setSpacing(false);
-		gl.setMargin(false);
-		if (gl.getColumns() > 12)
-			gl.setSizeFull();
-		gl.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
-		gl.addComponent(new SpacedLabel(""), 0, 0);
-		int i = 1, j = 0;
-		for (Reaction react : getValidReactions())
-			gl.addComponent(new SpacedLabel(react.getIdJavaStr()), i++, 0);
-		i = 0;
-		j++;
-		for (String var : getAllSpecies().keySet()) {
-			Label modLabel = new SpacedLabel(var);
-			gl.addComponent(modLabel, i++, j);
-			gl.setComponentAlignment(modLabel, Alignment.MIDDLE_CENTER);
-			for (Reaction react : getValidReactions()) {
-				if (react.getModifiers().keySet().contains(var)) {
-					if (react.getModifiers().get(var) != null && react.getModifiers().get(var) == 1)
-						gl.addComponent(new SpacedLabel("1"), i++, j);
-					else
-						gl.addComponent(new SpacedLabel("-1"), i++, j);
-				} else
-					gl.addComponent(new SpacedLabel("0"), i++, j);
+	public Label getDisplayRegulatoryMatrix() {
+		ArrayList<Reaction> reactions = this;
+		Label table = new Label();
+		table.setContentMode(ContentMode.HTML);
+		table.setStyleName("matrix");
+		StringBuilder content = new StringBuilder("<table><tr><td>&nbsp;</td>");
+		for (Reaction react : reactions)
+			content.append("<td>&nbsp;" + react.getIdJavaStr() + "&nbsp;</td>");
+		content.append("</tr>");
+		for (String species : getAllSpecies().keySet()) {
+			content.append("<tr><td>&nbsp;" + species + "&nbsp;</td>");
+			for (Reaction react : reactions) {
+				Integer val = react.getModifiers().get(species);
+				if (val != null)
+					content.append("<td>" + (val == 1 ? "1" : "-1") + "</td>");
+				else
+					content.append("<td>0</td>");
 			}
-			i = 0;
-			j++;
+			content.append("</tr>");
 		}
-		return gl;
+		content.append("</table>");
+		table.setValue(content.toString());
+		return table;
+//		checkReactions();
+////		if (getAllModifiers().isEmpty()) {
+////			VerticalLayout vle = new VerticalLayout(new Label("(Empty matrix)"));
+////			vle.setSpacing(false);
+////			vle.setMargin(false);
+////			return vle;
+////		}
+//		GridLayout gl = new GridLayout(getValidReactions().size() + 1, getAllSpecies().size()+1);
+//		gl.addStyleName("table");
+//		gl.setSpacing(false);
+//		gl.setMargin(false);
+//		if (gl.getColumns() > 12)
+//			gl.setSizeFull();
+//		gl.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
+//		gl.addComponent(new SpacedLabel(""), 0, 0);
+//		int i = 1, j = 0;
+//		for (Reaction react : getValidReactions())
+//			gl.addComponent(new SpacedLabel(react.getIdJavaStr()), i++, 0);
+//		i = 0;
+//		j++;
+//		for (String var : getAllSpecies().keySet()) {
+//			Label modLabel = new SpacedLabel(var);
+//			gl.addComponent(modLabel, i++, j);
+//			gl.setComponentAlignment(modLabel, Alignment.MIDDLE_CENTER);
+//			for (Reaction react : getValidReactions()) {
+//				if (react.getModifiers().keySet().contains(var)) {
+//					if (react.getModifiers().get(var) != null && react.getModifiers().get(var) == 1)
+//						gl.addComponent(new SpacedLabel("1"), i++, j);
+//					else
+//						gl.addComponent(new SpacedLabel("-1"), i++, j);
+//				} else
+//					gl.addComponent(new SpacedLabel("0"), i++, j);
+//			}
+//			i = 0;
+//			j++;
+//		}
+//		return gl;
 	}
 
 	public void unlinkFormulaFromReactions(Formula f) {
@@ -415,10 +459,10 @@ public class Model extends ArrayList<Reaction> {
 		}
 	}
 
-	public void checkIfReadyToSimulate() throws CException {
+	public void checkAndAdaptToSimulate() throws CException {
 		try {
+			simConfig.checkAndAdaptToSimulate(this);
 			checkValidModel();
-			simConfig.checkSimConfigs();
 		} catch (Exception e) {
 			throw new CException(e.getMessage());
 		}
@@ -430,10 +474,6 @@ public class Model extends ArrayList<Reaction> {
 		int numErr = 0;
 		if (this.name == null || this.name.equals("")) {
 			err += "Model must have a name\n";
-			numErr++;
-		}
-		if (this.user == null) {
-			err += "Model must have a user\n";
 			numErr++;
 		}
 		if (this.size() == 0) {
@@ -457,7 +497,7 @@ public class Model extends ArrayList<Reaction> {
 				err += "Reaction " + r.getIdJavaStr() + ": No rate is bound\n";
 				numErr++;
 			}
-			if (!r.areAllFormulaParValuesValid()) {
+			if (!r.isAllReactionDataFullfiled()) {
 				err += "Reaction " + r.getIdJavaStr() + ": Missing rate values\n";
 				numErr++;
 			}
@@ -466,11 +506,18 @@ public class Model extends ArrayList<Reaction> {
 			throw new Exception(err);
 	}
 
+	public ArrayList<String> getDepVarArrayList() {
+		ArrayList<String> res = new ArrayList<String>();
+		for (String dv : getAllSpeciesTimeDependent().keySet())
+			res.add(dv);
+		return res;
+	}
+
 	private void cleanModel() {
 		// vars only modifiers can't be time dependent
 		for (String sp : this.getAllSpecies().keySet()) {
 			if (!this.getAllSpeciesExceptModifiers().containsKey(sp)) {
-				this.getAllSpecies().get(sp).setVarType(SpeciesVarTypeType.INDEP);
+				this.getAllSpecies().get(sp).setVarType(SpeciesVarTypeType.INDEPENDENT);
 			}
 		}
 	}
@@ -768,12 +815,12 @@ public class Model extends ArrayList<Reaction> {
 			pre.setInt(1, this.id);
 			rs = pre.executeQuery();
 			while (rs.next()) {
-				Species spObj = new Species();
+				Species spObj = new Species(rs.getString("species"));
 				spObj.setConcentration(rs.getString("concentration"));
 				spObj.setVarType(SpeciesVarTypeType.fromInt(rs.getInt("vartype")));
 				spObj.setStochastic(Utils.intToBool(rs.getInt("stochastic")));
 				spObj.setAmount(rs.getString("amount"));
-				this.speciesConfigMap.put(rs.getString("species"), spObj);
+				this.speciesConfigMap.put(spObj.getName(), spObj);
 			}
 			rs.close();
 			pre.close();
@@ -798,7 +845,7 @@ public class Model extends ArrayList<Reaction> {
 				pre2.setInt(1, r.getId());
 				rs2 = pre2.executeQuery();
 				while (rs2.next()) {
-					FormulaValue fv = new FormulaValueImpl();
+					FormulaValue fv = new FormulaValue(rs2.getString("constant"));
 					FormulaValueType fvt = FormulaValueType.fromInt(rs2.getInt("formulavaluetype"));
 					fv.setType(fvt);
 					fv.setConstantValue(rs2.getString("constantvalue"));
@@ -924,7 +971,7 @@ public class Model extends ArrayList<Reaction> {
 		return res;
 	}
 
-	public void checkMathExpressions(MathLinkOp mathLinkOp) throws MathLinkException, CException {
+	public void checkMathExpressions(MathLinkOp mathLinkOp) throws Exception, CException {
 //		String newVal = null;
 		mathLinkOp.checkMultiMathCommands(this.getAllUsedFormulaStringsWithContext());
 		try {
@@ -1031,11 +1078,30 @@ public class Model extends ArrayList<Reaction> {
 		return formulas;
 	}
 
+	public SortedMap<String, ReactantModelLevel> getReactantsAtModelLevel() {
+		// HOR highest order reaction, HSC highest Stoichiometry Coefficient
+		SortedMap<String, ReactantModelLevel> res = new TreeMap<>();
+		for (Reaction r : this) {
+			SortedMap<String, ReactantReactionLevel> reactantsMapByReaction = r.getReactants();
+			for (String reactantName : reactantsMapByReaction.keySet()) {
+				if (!getAllSpeciesTimeDependent().containsKey(reactantName))
+					continue;
+				Integer order = reactantsMapByReaction.get(reactantName).getOrder();
+				Integer stCoef = reactantsMapByReaction.get(reactantName).getStCoef();
+				ReactantModelLevel currentReactantData = res.get(reactantName);
+				if ((currentReactantData == null) || currentReactantData.getHOR() < order
+						|| (currentReactantData.getHOR() == order && currentReactantData.getHSC() < stCoef))
+					res.put(reactantName, new ReactantModelLevel(reactantName, order, stCoef));
+			}
+		}
+		return res;
+	}
+
 	public Model getParent() {
 		return parent;
 	}
 
 	public void setParent(Model parent) {
-		this.parent=parent;
+		this.parent = parent;
 	}
 }

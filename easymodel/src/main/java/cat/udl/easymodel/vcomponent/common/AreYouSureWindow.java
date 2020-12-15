@@ -13,6 +13,7 @@ import cat.udl.easymodel.main.SessionData;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.Panel;
+import com.vaadin.ui.TextArea;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.Window;
@@ -32,8 +33,9 @@ public class AreYouSureWindow extends Window {
 		this.message = message;
 		this.sessionData = (SessionData) UI.getCurrent().getData();
 
+		this.setData(WStatusType.KO);
 		this.setCaption(this.title);
-		this.setClosable(false);
+		this.setClosable(true);
 		this.setModal(true);
 		this.setWindowMode(WindowMode.NORMAL);
 		this.setResizable(false);
@@ -49,14 +51,21 @@ public class AreYouSureWindow extends Window {
 		this.setContent(windowVL);
 
 		this.addShortcutListener(new ShortcutListener("Shortcut enter", ShortcutAction.KeyCode.ENTER, null) {
-			private static final long serialVersionUID = 1L;
-
 			@Override
 			public void handleAction(Object sender, Object target) {
 				setData(WStatusType.OK);
 				close();
 			}
 		});
+//		this.addShortcutListener(new ShortcutListener("Shortcut esc", ShortcutAction.KeyCode.ESCAPE, null) {
+//			private static final long serialVersionUID = 1L;
+//
+//			@Override
+//			public void handleAction(Object sender, Object target) {
+//				setData(WStatusType.KO);
+//				close();
+//			}
+//		});
 		displayWindowContent();
 	}
 
@@ -67,10 +76,11 @@ public class AreYouSureWindow extends Window {
 		contentPanelVL.setSpacing(true);
 		contentPanelVL.setMargin(false);
 		contentPanelVL.setSizeFull();
-		// contentPanelVL.setDefaultComponentAlignment(Alignment.TOP_LEFT);
-		Label lbl =new Label(message);
-		lbl.setWidth("100%");
-		contentPanelVL.addComponents(lbl);
+		TextArea ta =new TextArea();
+		ta.setValue(message);
+		ta.setReadOnly(true);
+		ta.setSizeFull();
+		contentPanelVL.addComponents(ta);
 
 		Panel conPanel = new Panel();
 		conPanel.setSizeFull();
@@ -96,8 +106,6 @@ public class AreYouSureWindow extends Window {
 	private Button getYesButton() {
 		Button btn = new Button("Yes");
 		btn.addClickListener(new Button.ClickListener() {
-			private static final long serialVersionUID = 1L;
-
 			public void buttonClick(ClickEvent event) {
 				setData(WStatusType.OK);
 				close();
@@ -112,7 +120,6 @@ public class AreYouSureWindow extends Window {
 			private static final long serialVersionUID = 1L;
 
 			public void buttonClick(ClickEvent event) {
-				setData(WStatusType.KO);
 				close();
 			}
 		});

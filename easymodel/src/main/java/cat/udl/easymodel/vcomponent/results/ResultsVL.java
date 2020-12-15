@@ -23,11 +23,11 @@ public class ResultsVL extends VerticalLayout {
 
 	private AppPanel mainPanel;
 
-	public ResultsVL(AppPanel mainPanel) {
+	public ResultsVL() {
 		super();
 		this.sessionData = (SessionData) UI.getCurrent().getData();
+		this.mainPanel = this.sessionData.getAppPanel();
 		// this.sharedData = SharedData.getInstance();
-		this.mainPanel = mainPanel;
 
 		this.setSizeFull();
 		this.setMargin(false);
@@ -47,20 +47,21 @@ public class ResultsVL extends VerticalLayout {
 		bottomHL.setExpandRatio(statusHL, 1f);
 
 		Panel conPanel = new Panel();
+		conPanel.setStyleName("withoutborder");
 		conPanel.setSizeFull();
 		conPanel.setContent(outVL);
 
-		VerticalLayout outerPanelVL = new VerticalLayout();
-		outerPanelVL.setSizeFull();
-		outerPanelVL.setSpacing(false);
-		//outerPanelVL.setMargin(false);
-		outerPanelVL.setStyleName("resultsOuterPanel");
-		outerPanelVL.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
-		outerPanelVL.addComponent(conPanel);
+//		VerticalLayout outerPanelVL = new VerticalLayout();
+//		outerPanelVL.setSizeFull();
+//		outerPanelVL.setSpacing(false);
+//		//outerPanelVL.setMargin(false);
+//		outerPanelVL.setStyleName("resultsOuterPanel");
+//		outerPanelVL.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
+//		outerPanelVL.addComponent(conPanel);
 
 		this.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
-		this.addComponents(outerPanelVL, bottomHL);
-		this.setExpandRatio(outerPanelVL, 1f);
+		this.addComponents(conPanel, bottomHL);
+		this.setExpandRatio(conPanel, 1f);
 	}
 
 	private Link getWebMathematicaLink() {

@@ -1,5 +1,10 @@
 package cat.udl.easymodel.main;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.SQLException;
 
 import javax.servlet.ServletContextEvent;
@@ -21,12 +26,12 @@ public class ContextListener implements ServletContextListener {
 			sharedData.getUsers().loadDB();
 			sharedData.getPredefinedFormulas().loadDB();
 			sharedData.getGenericFormulas().loadDB();
-			sharedData.tryDailyTask();
+			sharedData.getDailyTaskRunnable().run();
 		} catch (Exception e) {
 			System.err.println("MYSQL CONNECT ERROR!");
 			e.printStackTrace();
 		}
-		sharedData.getMathLinkArray().openMathLinks();
+//		sharedData.getMathLinkArray().openMathLinks();
 	}
 
 	@Override

@@ -1,33 +1,44 @@
 package cat.udl.easymodel.controller;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.SortedMap;
 import java.util.TreeMap;
 
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.GridLayout;
-import com.wolfram.jlink.MathLinkException;
+import com.vaadin.ui.Label;
 
-import cat.udl.easymodel.logic.model.FormulaValue;
+import cat.udl.easymodel.logic.formula.FormulaValue;
 import cat.udl.easymodel.logic.model.Model;
 import cat.udl.easymodel.logic.model.Reaction;
 import cat.udl.easymodel.logic.simconfig.CellSizes;
+import cat.udl.easymodel.logic.simconfig.ParamScanEntry;
 import cat.udl.easymodel.logic.simconfig.SimConfig;
 import cat.udl.easymodel.logic.simconfig.SimConfigArray;
+import cat.udl.easymodel.logic.stochastic.ReactantModelLevel;
+import cat.udl.easymodel.logic.stochastic.ReactantReactionLevel;
 import cat.udl.easymodel.logic.types.FormulaValueType;
+import cat.udl.easymodel.logic.types.ParamScanType;
 import cat.udl.easymodel.logic.types.SimType;
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
+import cat.udl.easymodel.mathlink.MathPacketListenerOp;
 import cat.udl.easymodel.mathlink.MathLinkOp;
 import cat.udl.easymodel.sbml.SBMLMan;
 import cat.udl.easymodel.utils.CException;
+import cat.udl.easymodel.utils.MathematicaUtils;
 import cat.udl.easymodel.utils.Utils;
 import cat.udl.easymodel.utils.p;
 import cat.udl.easymodel.utils.buffer.ExportMathCommands;
-import cat.udl.easymodel.utils.buffer.ExportMathCommandsImpl;
+import cat.udl.easymodel.utils.buffer.ExportMathCommands;
 import cat.udl.easymodel.utils.buffer.MathBuffer;
-import cat.udl.easymodel.utils.buffer.MathBufferImpl;
+import cat.udl.easymodel.utils.buffer.MathBuffer;
 import cat.udl.easymodel.vcomponent.common.SpacedLabel;
 import cat.udl.easymodel.vcomponent.results.OutVL;
 
@@ -43,7 +54,7 @@ public class SimulationCtrl {
 	private String indexContext = ContextUtils.indexContext;
 	private String gainContext = ContextUtils.gainContext;
 	private String sensContext = ContextUtils.sensitivityContext;
-	private final String imageExtension = ".jpg";
+	private final String imageExtension = ".gif";
 	private final String imageWidthForResults = "660px";
 
 	private String timeVar = genContext + "t";
@@ -52,8 +63,8 @@ public class SimulationCtrl {
 	private Model m = null;
 	private SimConfig simConfig;
 
-	private MathBuffer mathBuffer = new MathBufferImpl();
-	private ExportMathCommands exportMathCommands = new ExportMathCommandsImpl();
+	private MathBuffer mathBuffer = new MathBuffer();
+	private ExportMathCommands exportMathCommands = new ExportMathCommands();
 	private String mathCommand, mathCommand2, mathCommand3;
 	private String sbmlDataString;
 	private long startNanoTime;
@@ -67,9 +78,11 @@ public class SimulationCtrl {
 		return "";
 	}
 
-	private void executeMathBuffer() throws MathLinkException {
+	private void executeMathBuffer() throws Exception {
 //		p.p(mathBuffer.getString());
-		mathLink.evaluate(mathBuffer.getString());
+		if (SharedData.enableMathExecution) {
+			mathLink.evaluate(mathBuffer.getString());
+		}
 		mathBuffer.reset();
 	}
 
@@ -83,10 +96,28 @@ public class SimulationCtrl {
 		mathBuffer.addCommand(mathCommand);
 	}
 
-	private String getStringOfMathCmd(String mathCommand) throws MathLinkException {
-		String mOut = mathLink.evaluateToString(mathCommand);
-		exportMathCommands.addCommand(mathCommand);
+	private void bufferMathTxt(String filename) throws CException {
+		String txtContent = sharedData.getMathematicaCodeMap().get(filename);
+		if (txtContent == null)
+			throw new CException("Missing Mathematica code");
+		exportMathCommands.addCommand(txtContent);
+		mathBuffer.addCommandRaw(txtContent);
+	}
+
+	private String mathGetString(String mathCommand) throws Exception {
+		String mOut = "Null";
+		if (SharedData.enableMathExecution) {
+			mOut = mathLink.evaluateToString(mathCommand);
+		}
+		exportMathCommands.addCommand(mathCommand + ";");
 		return mOut;
+	}
+
+	private String getFinishedMathList(String mathCommand) {
+		if (mathCommand.charAt(mathCommand.length() - 1) == ',')
+			mathCommand = mathCommand.substring(0, mathCommand.length() - 1);
+		mathCommand += "}";
+		return mathCommand;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -105,50 +136,49 @@ public class SimulationCtrl {
 	}
 
 	private void executePlot(String plotList, String plotLegends, String ndSolveVar, String xLabel, String yLabel,
-			String fileName) throws MathLinkException {
+			String fileName) throws Exception {
 		String cmd = "Plot[Evaluate[" + plotList + " /. " + ndSolveVar + "], {" + timeVar + "," + genContext + "ti,"
 				+ genContext + "tf}, LabelStyle -> {" + /* "FontFamily -> Arial," + */ "FontWeight -> "
-				+ ((Boolean) simConfig.getDeterministicPlotSettings().get("FontWeight").getValue() ? "Bold" : "Plain")
+				+ ((Boolean) simConfig.getPlotSettings().get("FontWeight").getValue() ? "Bold" : "Plain")
 				+ ", FontSlant -> "
-				+ ((Boolean) simConfig.getDeterministicPlotSettings().get("FontSlant").getValue() ? "Italic" : "Plain")
-				+ ", FontSize -> " + simConfig.getDeterministicPlotSettings().get("FontSize").getValue()
-				+ "}, PlotLegends->" + plotLegends
+				+ ((Boolean) simConfig.getPlotSettings().get("FontSlant").getValue() ? "Italic" : "Plain")
+				+ ", FontSize -> " + simConfig.getPlotSettings().get("FontSize").getValue() + "}, PlotLegends->"
+				+ plotLegends
 				+ ", Axes -> False, Frame -> True, FrameTicks -> True, PlotStyle -> Table[{Dashing[0.03 k1/Length["
-				+ plotList + "]], Thickness[" + simConfig.getDeterministicPlotSettings().get("LineThickness").getValue()
+				+ plotList + "]], Thickness[" + simConfig.getPlotSettings().get("LineThickness").getValue()
 				+ "]}, {k1, 1, Length[" + plotList + "]}], FrameLabel -> {\"" + xLabel + "\", \"" + yLabel
 				+ "\"}, PlotRange->Full, ImageSize->" + normalSize + "]";
 		showImageOfMathCmd(cmd, true, fileName, imageWidthForResults);
 	}
 
-	private void showImageOfMathCmd(String cmd, boolean addToGrid, String fileName, String width)
-			throws MathLinkException {
+	private void showImageOfMathCmd(String cmd, boolean addToGrid, String fileName, String width) throws Exception {
 		cmd = "Rasterize[" + cmd + ",RasterSize->2000,ImageResolution->72]";
 		exportMathCommands.addCommand(cmd);
-		byte[] mImage = mathLink.evaluateToImage(cmd);
-		outVL.out(fileName, addToGrid, mImage, width);
+		if (SharedData.enableMathExecution) {
+			byte[] mImage = mathLink.evaluateToImage(cmd);
+			outVL.out(fileName, addToGrid, mImage, width);
+		}
 	}
 
-	private void showTableTxtDownloadButton(String mathCommand, String caption, String filename)
-			throws MathLinkException {
-		String resMath = getStringOfMathCmd(mathCommand);
-		// String sidReplace = "";
-		// for (int i = 0; i < sid.length(); i++)
-		// sidReplace += " ";
-		// fileString = fileString.replace(sid, sidReplace);
-		// fileString = fileString.replace(timeVar+sidReplace, timeVar);
-		// To prevent errors
-		String fileStringOut = "";
+	private void showTableTxtDownloadButton(String mathCommand, String caption, String filename) throws Exception {
+		String resMath = mathGetString(mathCommand);
+		StringBuilder fileStringBuilder = new StringBuilder();
+		boolean isFirstLine = true;
 		for (String line : resMath.split("\n")) {
 			if (!line.equals("")) {
-				fileStringOut += line + sharedData.getNewLine();
+				if (!isFirstLine)
+					fileStringBuilder.append(line.replaceAll("\\.\\s", "  ") + sharedData.getNewLine());
+				else
+					fileStringBuilder.append(line + sharedData.getNewLine());
+				isFirstLine = false;
 			}
 		}
 		resMath = null;
-		outVL.outFile(caption, "", filename, fileStringOut, null, false);
+		outVL.outFile(caption, "", filename, fileStringBuilder.toString(), null, false);
 	}
 
 	private void executeMathTable(String tableName, String columnList, String rowList, boolean isBindTableToDepVars)
-			throws MathLinkException {
+			throws Exception {
 		if (columnList != null)
 			mathCommand = "columnList = {Join[{\" \"},Map[ToString," + columnList + "]]}";
 		else
@@ -175,7 +205,7 @@ public class SimulationCtrl {
 
 		mathCommand = "Grid[" + "tab, Background -> {None, None, "
 				+ "gridColor},ItemStyle->Directive[FontSize->16],Frame->All,ItemSize->9]";
-		showImageOfMathCmd(mathCommand, false, tableName + m.getName() + imageExtension, imageWidthForResults);
+		showImageOfMathCmd(mathCommand, false, tableName + "-" + m.getName() + imageExtension, imageWidthForResults);
 	}
 
 	private void bufferBeginContext() {
@@ -190,30 +220,36 @@ public class SimulationCtrl {
 		// addCommandToMathBuffer("ClearAll[\"Global`*\"]");
 	}
 
-	private void executeInitMathCommands() throws MathLinkException {
-		mathLink.evaluate("JLink`$DefaultImageFormat = \"JPEG\"");
-		// p.p(mathLink.evaluateToString("JLink`$FrontEndLaunchCommand =
-		// FileNameJoin[{$InstallationDirectory, \"Mathematica.exe\"}]"));
-		mathLink.evaluate("JLink`ConnectToFrontEnd[]");
-		mathLink.evaluate("JLink`UseFrontEnd[1]");
+	private void executeInitMathCommands() throws Exception {
+		if (SharedData.enableMathExecution) {
+			// p.p(mathLink.evaluateToString("JLink`$FrontEndLaunchCommand =
+			// FileNameJoin[{$InstallationDirectory, \"Mathematica.exe\"}]"));
+//			mathLink.evaluate("JLink`ConnectToFrontEnd[]");
+//			mathLink.evaluate("JLink`UseFrontEnd[1+1]");
+//			mathLink.evaluate("JLink`$DefaultImageFormat = \"JPEG\"");
+		}
 	}
 
-	private void executeEndMathCommands() throws MathLinkException {
-		mathLink.evaluate("JLink`CloseFrontEnd[]");
+	private void executeEndMathCommands() throws Exception {
+		if (SharedData.enableMathExecution) {
+//			mathLink.evaluate("JLink`CloseFrontEnd[]");
+		}
 	}
 
-	private void outGeneratedFiles() throws MathLinkException {
+	private void outGeneratedFiles() throws Exception {
 		exportMathCommands.end();
 		outVL.out("Generated Files", "textH2");
 		outVL.outNewHorizontalLayout();
-		outVL.outFile("Mathematica Notebook", "Save the generated Mathematica Notebook", m.getName() + ".nb",
+		outVL.outFile("Mathematica Notebook", "Save the generated Mathematica Notebook for the simulation", m.getName() + ".nb",
 				exportMathCommands.getString(), null, true);
-		try {
-			generateSBML();
-			outVL.outFile("SBML", "Save the model converted to a SBML model file", m.getName() + ".xml", sbmlDataString,
-					null, true);
-		} catch (Exception e) {
-			e.printStackTrace();
+		if (SharedData.enableMathExecution) {
+			try {
+				generateSBML();
+				outVL.outFile("SBML", "Save the model converted to an SBML model file", m.getName() + ".xml",
+						sbmlDataString, null, true);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
@@ -223,10 +259,9 @@ public class SimulationCtrl {
 	}
 
 	/////////
-	private void fillSteadyStateSimulationMap(String mathListName, TreeMap<String, String> ssMap)
-			throws MathLinkException {
+	private void fillSteadyStateSimulationMap(String mathListName, TreeMap<String, String> ssMap) throws Exception {
 		mathCommand = mathListName + " // TableForm";
-		String fileString = getStringOfMathCmd(mathCommand);
+		String fileString = mathGetString(mathCommand);
 		fileString = fileString.replace("\n", sharedData.getNewLine());
 		boolean first = true;
 		String eValue = "";
@@ -306,15 +341,15 @@ public class SimulationCtrl {
 	}
 
 	///////////
-	public void simulate() throws CException, MathLinkException {
+	public void simulate() throws Exception {
 		this.mathLink = this.sessionData.getMathLinkOp();
+//		m = new Model(sessionData.getSelectedModel(), 0);
+		m =sessionData.getSelectedModel();
 		if (sharedData.isDebug())
 			startNanoTime = System.nanoTime();
-		m = sessionData.getSelectedModel();
 		executeInitMathCommands();
 		m.checkMathExpressions(mathLink);
 		simConfig = m.getSimConfig();
-		sessionData.getOutVL().out("Results for " + m.getName(), "textH1");
 //			sessionData.getOutVL().out("(click image/s to enlarge)", "textSmall");
 		initSimulation();
 //		System.out.println("1");
@@ -329,76 +364,41 @@ public class SimulationCtrl {
 		} else if (simConfig.getSimType() == SimType.STOCHASTIC) {
 			stochasticSimulation();
 		}
-//		System.out.println("2");
-		executeEndMathCommands();
-		outGeneratedFiles();
-//		System.out.println("3");
+		if (!mathLink.isClosed())
+			executeEndMathCommands();
+		if (!mathLink.isClosed())
+			outGeneratedFiles();
 		exportMathCommands.reset();
 		mathBuffer.reset();
-//		System.out.println("4");
+		if (!mathLink.isClosed())
+			outVL.finish();
 		if (sharedData.isDebug())
 			Utils.debug("Sim took " + ((double) ((System.nanoTime() - startNanoTime) / 1000000000d)) + "s");
-//		sessionData.getUi().push();
 	}
 
-	public boolean quickStochasticSimulationCheck() throws CException, MathLinkException {
+	public void quickStochasticSimulationCheck() throws Exception {
+		if (!SharedData.enableMathExecution)
+			return;
 		this.mathLink = this.sessionData.getMathLinkOp();
 		if (sharedData.isDebug())
 			startNanoTime = System.nanoTime();
 		m = sessionData.getSelectedModel();
 		m.checkMathExpressions(mathLink);
 		simConfig = m.getSimConfig();
+		simConfig.checkAndAdaptToSimulate(m);
 		initSimulation();
-		// code for stochastic simulation check
-		mathCommand = genContext + "multToCellSize = " + CellSizes.getInstance().nameToNum("Prokaryotic Cell");
-		bufferCommand(mathCommand);
-		mathCommand = genContext + "multInvToCellSize = 1/multToCellSize";
-		bufferCommand(mathCommand);
-		mathCommand = genContext + "SMTransposed = Transpose[" + genContext + "SM]";
-		bufferCommand(mathCommand);
-		mathCommand = genContext + "IndVarsInitConc = " + genContext + "IndVars /. " + genContext + "IndVarVals";
-		bufferCommand(mathCommand);
-		mathCommand = genContext + "IndVarsConC = Table[" + genContext + "IndVarVals[[i, 2]], {i, 1, Length["
-				+ genContext + "IndVarVals]}]";
-		bufferCommand(mathCommand);
-		mathCommand = "IndVarsInitConcInt = IntegerPart[IndVarsConC*multToCellSize]";
-		bufferCommand(mathCommand);
-		mathCommand = "DepVarsInitConcVals={";
-		for (String sp : m.getAllSpeciesTimeDependent().keySet())
-			mathCommand += modelContext + sp + "->" + m.getAllSpecies().get(sp).getConcentration() + ",";
-		if (mathCommand.charAt(mathCommand.length() - 1) == ',')
-			mathCommand = mathCommand.substring(0, mathCommand.length() - 1);
-		mathCommand += "}";
-		bufferCommand(mathCommand);
-		mathCommand = "RatesWDepVars = ReleaseHold[Rates/. Join[SubsFormVars,ParVarVals,ParArrayInVars]] /. Join[ParNumVals, IndVarVals]";
-		bufferCommand(mathCommand);
+		bufferCommand("cellSize = " + String.valueOf(
+				CellSizes.getInstance().nameToNum((String) simConfig.getStochastic().get("CellSize").getValue())));
+		bufferMathTxt("quickStochasticCheck.txt");
 		executeMathBuffer();
-		mathCommand = "If[Length[IndVars] == 0 || 4 <= Apply[Plus, IndVarsInitConcInt] < 1500000,\r\n"
-				+ "	DepVarsInitConcInt = IntegerPart[(DepVars /. DepVarsInitConcVals)*multToCellSize];\r\n"
-				+ "	StDepVarVals = Table[DepVars[[i]] -> DepVarsInitConcInt[[i]], {i, 1, Length[DepVars]}];\r\n"
-				+ "	StRatesValues = RatesWDepVars /. StDepVarVals;\r\n" + "	\r\n"
-				+ "	(*select new random reaction*)\r\n" + "	weightedStRatesValues = Accumulate[StRatesValues];\r\n"
-				+ "	sumStRatesValues = Apply[Plus, StRatesValues];\r\n"
-				+ "	randomNumber = RandomReal[Re[sumStRatesValues]];\r\n"
-				+ "	nextReaction = Position[Sort[Join[{randomNumber}, weightedStRatesValues]], randomNumber][[1]][[1]];\r\n"
-				+ "      			\r\n"
-				+ "	newDepVarsValues = Table[StDepVarVals[[i, 2]], {i, Length[StDepVarVals]}]+SMTransposed[[nextReaction]];\r\n"
-				+ "	Ctemp = newDepVarsValues*multInvToCellSize;\r\n"
-				+ "	StDepVarsSubsZeroNegativeChecked = Table[DepVarsInitConcVals[[i, 1]] -> If[Ctemp[[i]] <= 0, DepVarsInitConcVals[[i, 2]], Ctemp[[i]]], {i, 1, Length[DepVarsInitConcVals]}];\r\n"
-				+ "	newStRatesValues = Re[(RatesWDepVars /. StDepVarsSubsZeroNegativeChecked)];\r\n" + "      \r\n"
-				+ "	(*check there is no new negative depvar concentration or rate*)\r\n"
-				+ "	If[Select[newDepVarsValues, (# < 0) &] == {} && Select[newStRatesValues, (# < 0) &] == {},\r\n"
-				+ "		Return[\"ok\"];\r\n" + "	,\r\n" + "		Return[\"ko\"];\r\n" + "	];\r\n" + "];";
-		boolean isStochasticSimOk = mathLink.evaluateToString(mathCommand).equals("Return[ok]");
-//		p.p(mathLink.evaluateToString(mathCommand));
-//		p.p(isStochasticSimOk);
 		if (sharedData.isDebug())
 			Utils.debug("QuickStSim took " + ((double) ((System.nanoTime() - startNanoTime) / 1000000000d)) + "s");
-		return isStochasticSimOk;
+		if (mathGetString("isModelOkForStochasticsSim").equals("False"))
+			throw new Exception("Model is not valid for stochastic simulation");
 	}
 
 	private void initDynamicSimulation() {
-		normalSize = (String) simConfig.getDeterministicPlotSettings().get("ImageSize").getValue().toString();
+		normalSize = (String) simConfig.getPlotSettings().get("ImageSize").getValue().toString();
 		mathCommand = genContext + "EqsToSolve = Join[Table[((" + genContext + "DepVars[[i]]))'[" + timeVar + "] == "
 				+ genContext + "RateEqsAllSubs[[i]], {i, 1, Length[" + genContext + "DepVars]}], " + genContext
 				+ "InitCondDepVars]";
@@ -413,6 +413,7 @@ public class SimulationCtrl {
 
 	private void initSimulation() throws CException {
 //		bufferBeginContext();
+		exportMathCommands.addCommand("(*Model: " + m.getName() + " (Generated with " + SharedData.fullAppName + ")*)");
 		// DECLARE DEPVARS
 		mathCommand = genContext + "DepVars={";
 		for (String sp : m.getAllSpeciesTimeDependent().keySet())
@@ -460,6 +461,8 @@ public class SimulationCtrl {
 		}
 		// mathCommand += ";\n";
 		bufferCommand(mathCommand);
+		bufferCommand("numDepVars = Dimensions[SM][[1]]");
+		bufferCommand("numReactions = Dimensions[SM][[2]]");
 		// DECLARE FORMULAS
 		mathCommand = genContext + "Rates={";
 		for (Reaction r : m) {
@@ -636,9 +639,14 @@ public class SimulationCtrl {
 		mathCommand = genContext + "RateEqsAllSubs = " + genContext + "RateEqsWithT /." + genContext + "ParNumVals/."
 				+ genContext + "IndVarVals";
 		bufferCommand(mathCommand);
-		// mathCommand = "RateEqsAllSubs = ReleaseHold[" +
-		// "RateEqsAllSubs]";
-		// executeMathCommand(mathCommand);
+		mathCommand = "ToStringNumber[x0_] := Module[{num = N@x0},\r\n"
+				+ "	If[num > 10^6 || num < 10^-6,\r\n"
+				+ "		ToString@ScientificForm[num, 10, NumberFormat->(Row[{#1, \"e\", #3}] &)]\r\n"
+				+ "	,\r\n"
+				+ "		ToString@DecimalForm[num]\r\n"
+				+ "	]\r\n"
+				+ "]";
+		bufferCommand(mathCommand);
 	}
 
 	private void bufferParsString() {
@@ -671,9 +679,9 @@ public class SimulationCtrl {
 	}
 
 	@SuppressWarnings("unchecked")
-	private void plotDynamicSim(String ndSolveVar) throws MathLinkException {
-		outVL.outNewGrid(2,1);
-		for (SimConfigArray plotView : simConfig.getDeterministicPlotViews()) {
+	private void plotDynamicSim(String ndSolveVar) throws Exception {
+		outVL.outNewGridLayout(2, 1);
+		for (SimConfigArray plotView : simConfig.getDynamic_PlotViews()) {
 			mathCommand = genContext + "plotVars = {";
 			mathCommand2 = genContext + "plotLegends = {";
 			for (String dvToShow : (ArrayList<String>) plotView.get("DepVarsToShow").getValue()) {
@@ -688,20 +696,17 @@ public class SimulationCtrl {
 			bufferCommand(mathCommand2);
 			executeMathBuffer();
 			executePlot(genContext + "plotVars", genContext + "plotLegends", ndSolveVar, "t", "Concentration",
-					"dyn" + m.getName() + imageExtension);
+					"dyn-" + m.getName() + imageExtension);
 		}
 
-		mathCommand = "tableHeader={Join[{\"t\"}, DepVarsString]};\r\n"+
-						"txtTable= Join[tableHeader,\r\n" + 
-						" Table[Join[{timeI},\r\n" + 
-						"   Table[NumberForm[Evaluate[DepVars[[i]][timeI] /. Sols][[1]], 3], {i, 1,\r\n" + 
-						"      Length[DepVars]}]], {timeI, ti, tf, tStep}]] // TableForm";
-		showTableTxtDownloadButton(mathCommand, "Download Dynamic Simulation Table",
-				"dynamic" + m.getName() + ".txt");
+		mathCommand = "tableHeader={Join[{\"t\"}, DepVarsString]};\r\n" + "txtTable= Join[tableHeader,"
+				+ " Table[Join[{timeI}," + "   Table[N[DepVars[[i]][timeI] /. " + ndSolveVar
+				+ ",10], {i, Length[DepVars]}]], {timeI, ti, tf, tStep}]] // TableForm";
+		showTableTxtDownloadButton(mathCommand, "Download Dynamic Simulation Table", "dynamic-" + m.getName() + ".txt");
 	}
 
 	@SuppressWarnings("unchecked")
-	private void dynamicSimulation() throws CException, MathLinkException {
+	private void dynamicSimulation() throws Exception {
 		// model must have been checked before calling this function
 		outVL.out("Dynamic Simulation", "textH2");
 		mathCommand = genContext + "ti = " + (String) simConfig.getDynamic().get("Ti").getValue();
@@ -712,7 +717,7 @@ public class SimulationCtrl {
 		bufferCommand(mathCommand);
 		if (!((Boolean) simConfig.getDynamic().get("Sensitivities").getValue())
 				&& !((Boolean) simConfig.getDynamic().get("Gains").getValue())) {
-			mathCommand = genContext + "Sols = NDSolve[" + genContext + "EqsToSolve, " + genContext + "DepVars, {"
+			mathCommand = genContext + "Sols = First@NDSolve[" + genContext + "EqsToSolve, " + genContext + "DepVars, {"
 					+ timeVar + ", " + genContext + "ti, " + genContext + "tf}]";
 			bufferCommand(mathCommand);
 			executeMathBuffer();
@@ -776,14 +781,14 @@ public class SimulationCtrl {
 			bufferCommand(mathCommand);
 			mathCommand = "AugVNS = Join[" + "DepVars, Map[Head, Flatten[" + "DynGainVars]]]";
 			bufferCommand(mathCommand);
-			mathCommand = "NAugSol = NDSolve[" + "NumAugFullS, " + "AugVNS, {" + timeVar + "," + "ti," + "tf}]";
+			mathCommand = "NAugSol = First@NDSolve[" + "NumAugFullS, " + "AugVNS, {" + timeVar + "," + "ti," + "tf}]";
 			bufferCommand(mathCommand);
 
 			executeMathBuffer();
 			plotDynamicSim("NAugSol");
 			outVL.out("Absolute Dynamic Gains", "textH2");
-			outVL.outNewGrid(2,1);
-			for (SimConfigArray plotView : simConfig.getDeterministicPlotViews()) {
+			outVL.outNewGridLayout(2, 1);
+			for (SimConfigArray plotView : simConfig.getDynamic_PlotViews()) {
 				mathCommand = "AG = {";
 				mathCommand2 = "plotLegends = {";
 				for (String dvToShow : (ArrayList<String>) plotView.get("DepVarsToShow").getValue()) {
@@ -799,7 +804,8 @@ public class SimulationCtrl {
 				bufferCommand(mathCommand);
 				bufferCommand(mathCommand2);
 				executeMathBuffer();
-				executePlot("AG", "plotLegends", "NAugSol", "t", "Gain", "dynAG" + m.getName() + imageExtension);
+				executePlot("AG", "plotLegends", "NAugSol", "t", "Gain",
+						"dyn-abs-gains-" + m.getName() + imageExtension);
 			}
 
 			// mathCommand = "RG = Table[DynGainVars[[i]]*IndVars/DepVarsWithT[[i]], {i,
@@ -807,8 +813,8 @@ public class SimulationCtrl {
 			// + "DynGainVars]}] /. IndVarVals";
 
 			outVL.out("Relative Dynamic Gains", "textH2");
-			outVL.outNewGrid(2,1);
-			for (SimConfigArray plotView : simConfig.getDeterministicPlotViews()) {
+			outVL.outNewGridLayout(2, 1);
+			for (SimConfigArray plotView : simConfig.getDynamic_PlotViews()) {
 				mathCommand = "RG = {";
 				mathCommand2 = "plotLegends = {";
 				for (String dvToShow : (ArrayList<String>) plotView.get("DepVarsToShow").getValue()) {
@@ -827,7 +833,7 @@ public class SimulationCtrl {
 				bufferCommand(mathCommand2);
 				executeMathBuffer();
 				executePlot("RG", "plotLegends", "NAugSol", "t", "Relative Gain",
-						"dynRG" + m.getName() + imageExtension);
+						"dyn-rel-gains-" + m.getName() + imageExtension);
 			}
 
 		}
@@ -909,7 +915,7 @@ public class SimulationCtrl {
 			bufferCommand(mathCommand);
 			mathCommand = "AugVNS = Join[" + "DepVars, Map[Head, Flatten[" + "DynSensiVars]]]";
 			bufferCommand(mathCommand);
-			mathCommand = "NAugSol = NDSolve[" + "NumAugFullS, " + "AugVNS, {" + timeVar + "," + "ti," + "tf}]";
+			mathCommand = "NAugSol = First@NDSolve[" + "NumAugFullS, " + "AugVNS, {" + timeVar + "," + "ti," + "tf}]";
 			bufferCommand(mathCommand);
 			executeMathBuffer();
 			if (!((Boolean) simConfig.getDynamic().get("Gains").getValue())) {
@@ -917,8 +923,8 @@ public class SimulationCtrl {
 			}
 
 			outVL.out("Absolute Dynamic Sensitivities", "textH2");
-			outVL.outNewGrid(2,1);
-			for (SimConfigArray plotView : simConfig.getDeterministicPlotViews()) {
+			outVL.outNewGridLayout(2, 1);
+			for (SimConfigArray plotView : simConfig.getDynamic_PlotViews()) {
 				mathCommand = "AS = {";
 				mathCommand2 = "plotLegends = {";
 				for (String dvToShow : (ArrayList<String>) plotView.get("DepVarsToShow").getValue()) {
@@ -963,7 +969,8 @@ public class SimulationCtrl {
 				bufferCommand(mathCommand);
 				bufferCommand(mathCommand2);
 				executeMathBuffer();
-				executePlot("AS", "plotLegends", "NAugSol", "t", "Sensitivity", "dynAS" + m.getName() + imageExtension);
+				executePlot("AS", "plotLegends", "NAugSol", "t", "Sensitivity",
+						"dyn-abs-sens-" + m.getName() + imageExtension);
 			}
 
 			// mathCommand = "RS = Table[DynSensiVars[[i]]*Pars/DepVarsWithT[[i]], {i,
@@ -972,8 +979,8 @@ public class SimulationCtrl {
 			// bufferCommand(mathCommand);
 			// executeMathBuffer();
 			outVL.out("Relative Dynamic Sensitivities", "textH2");
-			outVL.outNewGrid(2,1);
-			for (SimConfigArray plotView : simConfig.getDeterministicPlotViews()) {
+			outVL.outNewGridLayout(2, 1);
+			for (SimConfigArray plotView : simConfig.getDynamic_PlotViews()) {
 				mathCommand = "RS = {";
 				mathCommand2 = "plotLegends = {";
 				for (String dvToShow : (ArrayList<String>) plotView.get("DepVarsToShow").getValue()) {
@@ -1023,171 +1030,198 @@ public class SimulationCtrl {
 				bufferCommand(mathCommand2);
 				executeMathBuffer();
 				executePlot("RS", "plotLegends", "NAugSol", "t", "Relative Sens.",
-						"dynRS" + m.getName() + imageExtension);
+						"dyn-rel-sens-" + m.getName() + imageExtension);
 			}
 
 		}
+		// PARAMETER SCAN
+		if (simConfig.getDynamic_ParameterScan().hasParametersToScan(m)) {
+			outVL.out("Dynamic Parameter Scan", "textH2");
+			ArrayList<ParamScanEntry> paramScanEntries = null;
+			for (int iType = 1; iType <= 2; iType++) {
+				// select param scan entries
+				if (iType == 1) {
+					if (simConfig.getDynamic_ParameterScan().getParameters().size() == 0)
+						continue;
+					paramScanEntries = simConfig.getDynamic_ParameterScan().getParameters();
+				} else if (iType == 2) {
+					if (simConfig.getDynamic_ParameterScan().getIndependentVars().size() == 0)
+						continue;
+					paramScanEntries = simConfig.getDynamic_ParameterScan().getIndependentVars();
+				}
+				// scan task
+				for (ParamScanEntry entry : paramScanEntries) {
+					outVL.outNewGridLayout(2, m.getAllSpeciesTimeDependent().size());
+					mathCommand = "paramName="
+							+ entry.getMathematicaParamName() + ";\r\n"
+							+"paramType=\"" + entry.getType().getString() + "\";\r\n"
+							+"beginVal=" + entry.getBeginVal() + ";\r\n"
+							+ "endVal=" + entry.getEndVal() + ";\r\n"
+							+ "numIntervals = " + entry.getNumIntervals() + ";\r\n" 
+							+ "isLogarithmic=" + MathematicaUtils.java2Math(entry.isLogarithmic())+";\n"
+							+ "minLogVal="+MathematicaUtils.minLogVal;
+					bufferCommand(mathCommand);
+					bufferMathTxt("param-scan-dyn.txt");
+					executeMathBuffer();
+					for (int i = 1; i <= m.getAllSpeciesTimeDependent().size(); i++) {
+						mathCommand = "plotList = Table[Transpose[solsList][[" + i
+								+ ", All, 2]][[i]][t], {i, Length@ParamScanVals}];\r\n"
+								+ "plotVar = StringDrop[ToString[Transpose[solsList][[" + i
+								+ ", All, 1]][[1]]], 2];\r\n"
+								+ "plotLegends = Table[ToString@ParamScanVals[[i,2,1]]<>\"=\"<>ToStringNumber@ParamScanVals[[i,2,2]], {i, Length@ParamScanVals}];\r\n"
+								+ " Plot[plotList, {t, ti, tf},"
+								+ "  LabelStyle -> {FontWeight -> "+((Boolean) simConfig.getPlotSettings().get("FontWeight").getValue() ? "Bold" : "Plain")+", FontSlant -> "+((Boolean) simConfig.getPlotSettings().get("FontSlant").getValue() ? "Italic" : "Plain")+", "
+								+ "    FontSize -> "+simConfig.getPlotSettings().get("FontSize").getValue()+"}, PlotLegends -> plotLegends, Axes -> False, "
+								+ "     Frame -> True, FrameTicks -> True, " + "  PlotStyle -> "
+								+ "   Table[{Dashing[0.03*(k1/Length[plotVars])], "
+								+ "     Thickness["+simConfig.getPlotSettings().get("LineThickness").getValue()+"]}, {k1, Length[plotVars]}], "
+								+ "     FrameLabel -> {\"t\", StringJoin[plotVar,\" (concentration)\"]}, "
+								+ "  PlotRange -> Full, ImageSize -> "+normalSize+"]";
+						showImageOfMathCmd(mathCommand, true, "dyn-par-scan-" + m.getName() + imageExtension,
+								imageWidthForResults);
+					}
+				}
+			}
+		}
 	}
 
-	private void stochasticSimulation() throws CException, MathLinkException {
-		normalSize = (String) simConfig.getStochasticPlotSettings().get("ImageSize").getValue().toString();
+	private void stochasticSimulation() throws Exception {
+		normalSize = (String) simConfig.getPlotSettings().get("ImageSize").getValue().toString();
 		outVL.out("Stochastic Simulation", "textH2");
-		mathCommand = genContext + "ti = " + (String) simConfig.getStochastic().get("Ti").getValue();
-		bufferCommand(mathCommand);
-		mathCommand = genContext + "tf = " + (String) simConfig.getStochastic().get("Tf").getValue();
-		bufferCommand(mathCommand);
-		mathCommand = genContext + "tStep = " + (String) simConfig.getStochastic().get("TStep").getValue();
-		bufferCommand(mathCommand);
-		mathCommand = genContext + "internalTimeStep = 0.001";
-		bufferCommand(mathCommand);
-		mathCommand = genContext + "multToCellSize = " + String.valueOf(
-				CellSizes.getInstance().nameToNum((String) simConfig.getStochastic().get("CellSize").getValue()));
-		bufferCommand(mathCommand);
-		mathCommand = genContext + "multInvToCellSize = 1/multToCellSize";
-		bufferCommand(mathCommand);
-		mathCommand = genContext + "stochasticReps = "
-				+ (String) simConfig.getStochastic().get("Iterations").getValue();
-		bufferCommand(mathCommand);
-		mathCommand = genContext + "SMTransposed = Transpose[" + genContext + "SM]";
-		bufferCommand(mathCommand);
-		mathCommand = genContext + "IndVarsInitConc = " + genContext + "IndVars /. " + genContext + "IndVarVals";
-		bufferCommand(mathCommand);
-		mathCommand = genContext + "IndVarsConC = Table[" + genContext + "IndVarVals[[i, 2]], {i, 1, Length["
-				+ genContext + "IndVarVals]}]";
-		bufferCommand(mathCommand);
-		mathCommand = "IndVarsInitConcInt = IntegerPart[IndVarsConC*multToCellSize]";
-		bufferCommand(mathCommand);
-		mathCommand = "DepVarsInitConcVals={";
-		for (String sp : m.getAllSpeciesTimeDependent().keySet())
-			mathCommand += modelContext + sp + "->" + m.getAllSpecies().get(sp).getConcentration() + ",";
-		if (mathCommand.charAt(mathCommand.length() - 1) == ',')
-			mathCommand = mathCommand.substring(0, mathCommand.length() - 1);
-		mathCommand += "}";
-		bufferCommand(mathCommand);
-		mathCommand = "RatesWDepVars = ReleaseHold[Rates/. Join[SubsFormVars,ParVarVals,ParArrayInVars]] /. Join[ParNumVals, IndVarVals]";
-		bufferCommand(mathCommand);
-		executeMathBuffer();
-		if (!getStringOfMathCmd("If[Length[IndVars] == 0 || 4 <= Apply[Plus, IndVarsInitConcInt] < 1500000,Return[\"ok\"]]").equals("Return[ok]"))
-			throw new CException("Model can't be simulated due to\nthe independent variables concentrations values");
-		mathCommand = "stInternalLists = Table[{}, {i, 1, Length[DepVars]}];\r\n" + 
-				"stPlotLists = stInternalLists;\r\n" + 
-				"DepVarsInitConcInt = IntegerPart[(DepVars /. DepVarsInitConcVals)*multToCellSize];\r\n" + 
-				"For[stRep = 1, stRep <= stochasticReps, stRep++,\r\n" + 
-				"	Print[\""+SharedData.mathPrintPrefix+"Calculating iteration \" <> ToString[stRep] <> \"/\" <> ToString[stochasticReps] <> \"...\"];\r\n" + 
-				"	intTimeVals = {};\r\n" + 
-				"	intDepVals = {};\r\n" + 
-				"	\r\n" + 
-				"	StDepVarVals = Table[DepVars[[i]] -> DepVarsInitConcInt[[i]], {i, 1, Length[DepVars]}];\r\n" + 
-				"	StRatesValues = RatesWDepVars /. StDepVarVals;\r\n" + 
-				"	\r\n" + 
-				"	plotTimeVals = {};\r\n" + 
-				"	plotDepVals = {};\r\n" + 
-				"	nextTStep = ti;\r\n" + 
-				"	For[stTime = ti, stTime <= tf, stTime += internalTimeStep*Log[1/RandomReal[]],\r\n" + 
-				"		If [stTime > ti, (*simulate after first iteration*)\r\n" + 
-				"			(*select new random reaction*)\r\n" + 
-				"			weightedStRatesValues = Accumulate[StRatesValues];\r\n" + 
-				"			sumStRatesValues = Apply[Plus, StRatesValues];\r\n" + 
-				"			randomNumber = RandomReal[Re[sumStRatesValues]];\r\n" + 
-				"			nextReaction = Position[Sort[Join[{randomNumber}, weightedStRatesValues]], randomNumber][[1]][[1]];	\r\n" + 
-				"			\r\n" + 
-				"			newDepVarsValues = Table[StDepVarVals[[i, 2]], {i, Length[StDepVarVals]}] + SMTransposed[[nextReaction]];\r\n" + 
-				"			Ctemp = newDepVarsValues*multInvToCellSize;\r\n" + 
-				"			StDepVarsSubsZeroNegativeChecked = Table[DepVarsInitConcVals[[i, 1]] -> If[Ctemp[[i]] <= 0, DepVarsInitConcVals[[i, 2]], Ctemp[[i]]], {i, 1, Length[DepVarsInitConcVals]}];\r\n" + 
-				"			newStRatesValues = Re[(RatesWDepVars /. StDepVarsSubsZeroNegativeChecked)];\r\n" + 
-				"			\r\n" + 
-				"			(*check there is no new negative depvar concentration or rate*)\r\n" + 
-				"			If[Select[newDepVarsValues, (# < 0) &] == {} && Select[newStRatesValues, (# < 0) &] == {},\r\n" + 
-				"				(*step validated, update values*)\r\n" + 
-				"				StDepVarVals = Table[StDepVarVals[[i, 1]] -> newDepVarsValues[[i]], {i, 1, Length[StDepVarVals]}];\r\n" + 
-				"				StRatesValues = Re[newStRatesValues];\r\n" + 
-				"			];\r\n" + 
-				"		];\r\n" + 
-				"		AppendTo[intTimeVals, stTime];\r\n" + 
-				"		AppendTo[intDepVals, Table[StDepVarVals[[i, 2]], {i, 1, Length[StDepVarVals]}]];\r\n" + 
-				"		(*plot*)\r\n" + 
-				"		While[stTime >= nextTStep,\r\n" + 
-				"			AppendTo[plotTimeVals, nextTStep];\r\n" + 
-				"			AppendTo[plotDepVals, Last[intDepVals]];\r\n" + 
-				"			nextTStep += tStep;\r\n" + 
-				"		];\r\n" + 
-				"	];\r\n" + 
-				"	While[tf >= nextTStep,\r\n" + 
-				"		AppendTo[plotTimeVals, nextTStep];\r\n" + 
-				"		AppendTo[plotDepVals, Last[intDepVals]];\r\n" + 
-				"		nextTStep += tStep;\r\n" + 
-				"	];\r\n" + 
-				"	For[i = 1, i <= Length[DepVars], i++,\r\n" + 
-				"		AppendTo[stInternalLists[[i]], TimeSeries[Transpose[intDepVals][[i]], {intTimeVals}]];\r\n" + 
-				"	];\r\n" + 
-				"	For[i = 1, i <= Length[DepVars], i++,\r\n" + 
-				"		AppendTo[stPlotLists[[i]], TimeSeries[Transpose[plotDepVals][[i]], {plotTimeVals}]];\r\n" + 
-				"	];\r\n" + 
-				"]";
-		bufferCommand(mathCommand);
-		executeMathBuffer();
-		if (!getStringOfMathCmd("If[Length[stPlotLists] > 0,Return[\"ok\"]]").equals("Return[ok]"))
-			throw new CException("There was some error within the simulation procedure");
-		boolean isCalcNoise=getStringOfMathCmd("If[Dimensions[stPlotLists][[2]]>1,Return[\"ok\"]]").equals("Return[ok]");
-		if (isCalcNoise) {
-			// calc noise
-			isCalcNoise=true;
-			bufferCommand("NoiseQ025=Table[TimeSeries[Quantile[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}],0.25],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
-			bufferCommand("NoiseMedian=Table[TimeSeries[Median[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}]],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
-			bufferCommand("NoiseQ075=Table[TimeSeries[Quantile[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}],0.75],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
-			bufferCommand("NoiseStdDev=Table[TimeSeries[StandardDeviation[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}]],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
-			bufferCommand("NoiseMean=Table[TimeSeries[Mean[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}]],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
-			bufferCommand("PIN=Table[TimeSeries[NoiseStdDev[[k]][\"Values\"]/NoiseMean[[k]][\"Values\"],{NoiseMean[[1]][\"Times\"]}],{k,1,Length[NoiseMean]}]");
-			bufferCommand("NPIN=Table[TimeSeries[(NoiseQ075[[k]][\"Values\"]-NoiseQ025[[k]][\"Values\"])/NoiseMedian[[k]][\"Values\"],{NoiseQ075[[1]][\"Times\"]}],{k,1,Length[NoiseQ075]}]");
-			executeMathBuffer();
-		}
-		Integer numPlotsByDepVars = Integer.valueOf(getStringOfMathCmd("Length[stPlotLists]"));
-		plotStochasticSim(numPlotsByDepVars, isCalcNoise);
-		
-		mathCommand = "tableHeader = {Flatten[{\"t\",\r\n" + 
-						"    Table[Table[\r\n" + 
-						"      DepVarsString[[k]] <> \"_\" <> ToString[k2], {k2, 1,\r\n" + 
-						"       Length[stPlotLists[[k]]]}], {k, 1, Length[stPlotLists]}]}]};\r\n" +
-						"txtTable=Join[tableHeader,\r\n " + 
-						" Transpose[\r\n" + 
-						"  Join[{stPlotLists[[1]][[1]][\"Times\"]},\r\n" + 
-						"   Flatten[Table[\r\n" + 
-						"     Table[stPlotLists[[k]][[k2]][\"Values\"], {k2, 1,\r\n" + 
-						"       Length[stPlotLists[[k]]]}], {k, 1, Length[stPlotLists]}], 1]]]] // TableForm";
-		showTableTxtDownloadButton(mathCommand, "Download Simulation Table",
-				"stochastic" + m.getName() + ".txt");
+		outVL.outNewStochasticGrid(Integer.valueOf((String) simConfig.getStochastic().get("Iterations").getValue()));
+		if ((Boolean) simConfig.getStochastic().get("TauLeaping").getValue())
+			stochasticTauLeaping();
+		else
+			stochasticClassic();
 	}
 
-	private void plotStochasticSim(Integer numPlotsByDepVars, boolean isNoiseCalculated) throws MathLinkException {
-		bufferCommand("Print[\"" + SharedData.mathPrintPrefix + "Plotting graphics...\"];");
+	private void stochasticTauLeaping() throws Exception {
+		bufferCommand(genContext + "ti = " + (String) simConfig.getStochastic().get("Ti").getValue());
+		bufferCommand(genContext + "tf = " + (String) simConfig.getStochastic().get("Tf").getValue());
+		bufferCommand(genContext + "tStep = " + (String) simConfig.getStochastic().get("TStep").getValue());
+		bufferCommand(
+				genContext + "stochasticReps = " + (String) simConfig.getStochastic().get("Iterations").getValue());
+		bufferCommand(genContext + "cellSize = " + String.valueOf(
+				CellSizes.getInstance().nameToNum((String) simConfig.getStochastic().get("CellSize").getValue())));
+		bufferMathTxt("stochastic-tau-leaping.txt");
 		executeMathBuffer();
-		for (int i = 1; i <= numPlotsByDepVars; i++) {
-			outVL.outNewGrid(2,2);
-			bufferCommand("plotLegends = Table[DepVarsString[[" + i + "]]<>\"_\"<>ToString[i],{i,1,stochasticReps}]");
+
+		if (SharedData.enableMathExecution
+				&& mathGetString("Catch[If[Length[stPlotLists] < 1,Throw[\"error\"]]]").equals("error"))
+			throw new CException("There was some error within the simulation procedure");
+		boolean isCalcNoise = SharedData.enableMathExecution
+				&& mathGetString("Catch[If[Dimensions[stPlotLists][[2]]>1,Throw[\"CalculateNoise\"]]]")
+						.equals("CalculateNoise");
+		if (isCalcNoise) {
+			bufferCommand(
+					"NoiseQ025=Table[TimeSeries[Quantile[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}],0.25],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
+			bufferCommand(
+					"NoiseMedian=Table[TimeSeries[Median[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}]],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
+			bufferCommand(
+					"NoiseQ075=Table[TimeSeries[Quantile[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}],0.75],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
+			bufferCommand(
+					"NoiseStdDev=Table[TimeSeries[StandardDeviation[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}]],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
+			bufferCommand(
+					"NoiseMean=Table[TimeSeries[Mean[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}]],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
+			bufferCommand("Off[Infinity::indet];Off[Power::infy]");
+			bufferCommand(
+					"PIN=Table[TimeSeries[(NoiseStdDev[[k]][\"Values\"]/NoiseMean[[k]][\"Values\"])/.{Indeterminate -> 0},{NoiseMean[[1]][\"Times\"]}],{k,1,Length[NoiseMean]}]");
+			bufferCommand(
+					"NPIN=Table[TimeSeries[((NoiseQ075[[k]][\"Values\"]-NoiseQ025[[k]][\"Values\"])/NoiseMedian[[k]][\"Values\"])/.{Indeterminate -> 0},{NoiseQ075[[1]][\"Times\"]}],{k,1,Length[NoiseQ075]}]");
+			bufferCommand("On[Infinity::indet];On[Power::infy]");
 			executeMathBuffer();
-			executeListLinePlot("stPlotLists[["+i+"]]","t","Concentration", "stoch" + m.getName() + imageExtension);
+		}
+		if (SharedData.enableMathExecution) {
+			Integer numPlotsByDepVars = Integer.valueOf(mathGetString("Length[stPlotLists]"));
+			plotStochasticSim(numPlotsByDepVars, isCalcNoise);
+
+			mathCommand = "tableHeader = {Flatten[{\"t\"," + "    Table[Table["
+					+ "      DepVarsString[[k]] <> \"_\" <> ToString[k2], {k2, 1,"
+					+ "       Length[stPlotLists[[k]]]}], {k, 1, Length[stPlotLists]}]}]};\r\n"
+					+ "txtTable=Join[tableHeader, " + " Transpose[" + "  Join[{stPlotLists[[1]][[1]][\"Times\"]},"
+					+ "   Flatten[Table[" + "     Table[stPlotLists[[k]][[k2]][\"Values\"], {k2, 1,"
+					+ "       Length[stPlotLists[[k]]]}], {k, 1, Length[stPlotLists]}], 1]]]] // TableForm";
+			showTableTxtDownloadButton(mathCommand, "Download Simulation Table", "stochastic-" + m.getName() + ".txt");
+		}
+	}
+
+	private void stochasticClassic() throws Exception {
+		bufferCommand(genContext + "ti = " + (String) simConfig.getStochastic().get("Ti").getValue());
+		bufferCommand(genContext + "tf = " + (String) simConfig.getStochastic().get("Tf").getValue());
+		bufferCommand(genContext + "tStep = " + (String) simConfig.getStochastic().get("TStep").getValue());
+		bufferCommand(
+				genContext + "stochasticReps = " + (String) simConfig.getStochastic().get("Iterations").getValue());
+		bufferCommand(genContext + "cellSize = " + String.valueOf(
+				CellSizes.getInstance().nameToNum((String) simConfig.getStochastic().get("CellSize").getValue())));
+		bufferMathTxt("stochastic-ssa.txt");
+		executeMathBuffer();
+		if (mathGetString("Catch[If[ValueQ[stPlotLists]==False,Throw[\"error\"]]]").equals("error"))
+			throw new CException("There was some error within the simulation procedure");
+		boolean isCalcNoise = mathGetString("Catch[If[Dimensions[stPlotLists][[2]]>1,Throw[\"CalculateNoise\"]]]")
+				.equals("CalculateNoise");
+		if (isCalcNoise) {
+			bufferCommand(
+					"NoiseQ025=Table[TimeSeries[Quantile[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}],0.25],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
+			bufferCommand(
+					"NoiseMedian=Table[TimeSeries[Median[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}]],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
+			bufferCommand(
+					"NoiseQ075=Table[TimeSeries[Quantile[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}],0.75],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
+			bufferCommand(
+					"NoiseStdDev=Table[TimeSeries[StandardDeviation[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}]],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
+			bufferCommand(
+					"NoiseMean=Table[TimeSeries[Mean[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}]],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
+			bufferCommand("Off[Infinity::indet];Off[Power::infy]");
+			bufferCommand(
+					"PIN=Table[TimeSeries[(NoiseStdDev[[k]][\"Values\"]/NoiseMean[[k]][\"Values\"])/.{Indeterminate -> 0},{NoiseMean[[1]][\"Times\"]}],{k,1,Length[NoiseMean]}]");
+			bufferCommand(
+					"NPIN=Table[TimeSeries[((NoiseQ075[[k]][\"Values\"]-NoiseQ025[[k]][\"Values\"])/NoiseMedian[[k]][\"Values\"])/.{Indeterminate -> 0},{NoiseQ075[[1]][\"Times\"]}],{k,1,Length[NoiseQ075]}]");
+			bufferCommand("On[Infinity::indet];On[Power::infy]");
+			executeMathBuffer();
+		}
+		Integer numPlotsByDepVars = Integer.valueOf(mathGetString("Length[stPlotLists]"));
+		plotStochasticSim(numPlotsByDepVars, isCalcNoise);
+
+		mathCommand = "tableHeader = {Flatten[{\"t\"," + "    Table[Table["
+				+ "      DepVarsString[[k]] <> \"_\" <> ToString[k2], {k2, 1,"
+				+ "       Length[stPlotLists[[k]]]}], {k, 1, Length[stPlotLists]}]}]};\r\n"
+				+ "txtTable=Join[tableHeader, " + " Transpose[" + "  Join[{stPlotLists[[1]][[1]][\"Times\"]},"
+				+ "   Flatten[Table[" + "     Table[stPlotLists[[k]][[k2]][\"Values\"], {k2, 1,"
+				+ "       Length[stPlotLists[[k]]]}], {k, 1, Length[stPlotLists]}], 1]]]] // TableForm";
+		showTableTxtDownloadButton(mathCommand, "Download Simulation Table", "stochastic-" + m.getName() + ".txt");
+	}
+
+	private void plotStochasticSim(Integer numPlotsByDepVars, boolean isNoiseCalculated) throws Exception {
+		bufferCommand("Print[\"" + MathPacketListenerOp.printPrefix + "Plotting graphics...\"];");
+		executeMathBuffer();
+		ArrayList<String> depVarList = m.getDepVarArrayList();
+		for (int i = 1; i <= numPlotsByDepVars; i++) {
+			outVL.outNewGridLayout(2, 3);
+			executeListLinePlot("stPlotLists[[" + i + "]]", "\"t\"", "\"# Molecules \"<>DepVarsString[[" + i + "]]",
+					"{}", "stoch-" + depVarList.get(i - 1) + "-" + m.getName() + imageExtension);
 			if (isNoiseCalculated) {
-				bufferCommand("plotLegends = {DepVarsString[["+i+"]] <> \"_Q0.25\",DepVarsString[["+i+"]] <> \"_Median\", DepVarsString[["+i+"]] <> \"_Q0.75\"}");
-				executeMathBuffer();
-				executeListLinePlot("{NoiseQ025[["+i+"]],NoiseMedian[["+i+"]],NoiseQ075[["+i+"]]}","t","Concentration", "stochNoise1" + m.getName() + imageExtension);
-				
-				bufferCommand("plotLegends={DepVarsString[["+i+"]] <> \"_PIN\",DepVarsString[["+i+"]] <> \"_NPIN\"}");
-				executeMathBuffer();
-				executeListLinePlot("{PIN[["+i+"]],NPIN[["+i+"]]}", "t", "Coefficient of Variation", "stochNoise2" + m.getName() + imageExtension);
+				executeListLinePlot("{NoiseQ025[[" + i + "]],NoiseMedian[[" + i + "]],NoiseQ075[[" + i + "]]}", "\"t\"",
+						"\"# Molecules \"<>DepVarsString[[" + i + "]]",
+						"Placed[{Style[\"Quantile_0.25\",FontSize->12], Style[\"Median\",FontSize->12], Style[\"Quantile_0.75\",FontSize->12]},Below]",
+						"stoch-noise" + depVarList.get(i - 1) + "-" + m.getName() + imageExtension);
+
+				executeListLinePlot("{PIN[[" + i + "]],NPIN[[" + i + "]]}", "\"t\"",
+						"\"Coefficient of Variation \"<>DepVarsString[[" + i + "]]",
+						"Placed[{Style[\"Parametric [\\[Sigma]/\\[Mu]]\", FontSize->12], Style[\"Non parametric [(Quantile_0.75-Quantile_0.25)/Median]\", FontSize->12]}, Below]",
+						"stoch-var-" + depVarList.get(i - 1) + "-" + m.getName() + imageExtension);
 			}
 		}
 	}
 
-	private void executeListLinePlot(String symbolToPlot, String xLabel, String yLabel, String fileName) throws MathLinkException {
-		String cmd = "ListLinePlot["+symbolToPlot+", LabelStyle -> {" + "FontWeight -> "
-				+ ((Boolean) simConfig.getStochasticPlotSettings().get("FontWeight").getValue() ? "Bold" : "Plain")
+	private void executeListLinePlot(String symbolToPlot, String xLabel, String yLabel, String legend, String fileName)
+			throws Exception {
+		String cmd = "ListLinePlot[" + symbolToPlot + ", LabelStyle -> {" + "FontWeight -> "
+				+ ((Boolean) simConfig.getPlotSettings().get("FontWeight").getValue() ? "Bold" : "Plain")
 				+ ", FontSlant -> "
-				+ ((Boolean) simConfig.getStochasticPlotSettings().get("FontSlant").getValue() ? "Italic" : "Plain")
-				+ ", FontSize -> " + simConfig.getStochasticPlotSettings().get("FontSize").getValue()
-				+ "}, PlotLegends->plotLegends"
-				+ ", Axes -> False, Frame -> True, FrameTicks -> True, PlotStyle -> Thickness["
-				+ simConfig.getStochasticPlotSettings().get("LineThickness").getValue() + "], FrameLabel -> {\""
-				+ xLabel + "\", \"" + yLabel + "\"}, PlotRange->Full, ImageSize->" + normalSize + "]";
+				+ ((Boolean) simConfig.getPlotSettings().get("FontSlant").getValue() ? "Italic" : "Plain")
+				+ ", FontSize -> " + simConfig.getPlotSettings().get("FontSize").getValue() + "}, PlotLegends->"
+				+ legend + ", Axes -> False, Frame -> True, FrameTicks -> True, PlotStyle -> Thickness["
+				+ simConfig.getPlotSettings().get("LineThickness").getValue() + "], FrameLabel -> {" + xLabel + ", "
+				+ yLabel + "}, PlotRange->Full, ImageSize->" + normalSize + "]";
 		showImageOfMathCmd(cmd, true, fileName, imageWidthForResults);
 	}
 	///////// utils
@@ -1199,11 +1233,10 @@ public class SimulationCtrl {
 	}
 
 	@SuppressWarnings("unchecked")
-	private Map<String, String> getDepVarsToShowDynGain(Map<String, Object> map, String dynGainVars)
-			throws MathLinkException {
+	private Map<String, String> getDepVarsToShowDynGain(Map<String, Object> map, String dynGainVars) throws Exception {
 		Map<String, String> resMap = new HashMap<>();
 		String plotList = "{";
-		String list = getStringOfMathCmd("Flatten[" + dynGainVars + "]").replaceAll("\\{", "").replaceAll("\\}", "")
+		String list = mathGetString("Flatten[" + dynGainVars + "]").replaceAll("\\{", "").replaceAll("\\}", "")
 				.replaceAll("\\s", "");
 		for (String part : list.split(",")) {
 			for (String dv : (ArrayList<String>) map.get("DepVarsToShow")) {
@@ -1221,57 +1254,31 @@ public class SimulationCtrl {
 	}
 
 	@SuppressWarnings("unchecked")
-	private void steadyStateSimulation() throws CException, MathLinkException {
+	private void steadyStateSimulation() throws Exception {
 		// model must have been checked before calling this function
 		TreeMap<String, String> ssMap = new TreeMap<>();
 		executeMathBuffer();
 		outVL.out("Steady State Simulation", "textH2");
 
-		mathCommand = genContext + "ssri = 10^-32;\n" + genContext + "ssrf = 1;\n" + genContext + "thresholdCondition="
-				+ simConfig.getSteadyState().get("Threshold") + ";\n" + genContext + "isSteadyState = 0;\n" + genContext
-				+ "SSSol=FindRoot[" + genContext + "RateEqsAllSubs == 0, Table[{" + genContext
-				+ "DepVarsWithT[[k1]], Random[Real, {" + genContext + "ssri," + genContext + "ssrf}]}, {k1, 1, Length["
-				+ genContext + "DepVarsWithT]}]];\n" + "If[Select[" + genContext + "RateEqsAllSubs /. " + genContext
-				+ "SSSol, (Abs[#] > " + genContext + "thresholdCondition) &] == {},\n" + genContext
-				+ "isSteadyState =1\n" + ",(*else*)\n" + "" + genContext + "newTime = 500000;\n" + "" + genContext
-				+ "timesTried = 0;\n" + "While[" + genContext + "timesTried < 2 && " + genContext
-				+ "isSteadyState == 0,\n" + "  " + genContext + "SSSolN = NDSolve[" + genContext + "EqsToSolve, "
-				+ genContext + "DepVars, {" + timeVar + ", " + genContext + "newTime-1, " + genContext
-				+ "newTime+1}];\n" + "  " + genContext + "TestVar1 = (Select[Flatten[" + genContext
-				+ "RateEqsAllSubs /. " + genContext + "SSSolN /. {" + timeVar + "->" + genContext
-				+ "newTime}], (Abs[#] > " + genContext + "thresholdCondition) &] == {});\n" + "  If[" + genContext
-				+ "TestVar1 == True,\n" + "" + genContext + "SSSol = FindRoot[" + genContext
-				+ "RateEqsAllSubs == 0, Table[{" + genContext + "DepVarsWithT[[k1]], (" + genContext + "DepVars[[k1]]["
-				+ genContext + "newTime] /. " + genContext + "SSSolN)[[1]]}, {k1, 1, Length[" + genContext
-				+ "DepVarsWithT]}]];\n" + "       " + genContext + "TestVar2 = (Select[" + genContext
-				+ "RateEqsAllSubs /. " + genContext + "SSSol, (Abs[#] > " + genContext
-				+ "thresholdCondition) &] == {});\n" + "       If[" + genContext + "TestVar2 == True, " + genContext
-				+ "isSteadyState = 1];\n" + "  ];\n" + "  " + genContext + "newTime = " + genContext + "newTime*2;\n"
-				+ "  " + genContext + "timesTried++;\n" + "];\n" + "];\n" + "If[" + genContext + "isSteadyState==1,\n"
-				+ "Evaluate[true];\n" + "If[Select[Re[Eigenvalues[" + genContext + "Jac /. Join[" + genContext
-				+ "ParNumVals, " + genContext + "IndVarVals, " + genContext + "SSSol]]], (# >= 0) &] != {},\n"
-				+ "	Print[\"" + SharedData.mathPrintPrefix
-				+ "WARNING: Unstable Steady State!\"]; Return[\"unstable\"]\n" + ",\n" + "Print[\""
-				+ SharedData.mathPrintPrefix + "Stable Steady State\"]; Return[\"stable\"]\n" + "];\n" + ",\n"
-				+ "Print[\"" + SharedData.mathPrintPrefix
-				+ "System doesn't reach Steady State\"]; Return[\"notFound\"];\n" + "];";
-		String mathRes = getStringOfMathCmd(mathCommand);
-		if (mathRes.equals("Return[stable]") || mathRes.equals("Return[unstable]")) {
+		bufferCommand("thresholdCondition=" + simConfig.getSteadyState().get("Threshold"));
+		bufferMathTxt("steady-state.txt");
+		executeMathBuffer();
+		String steadyStateType = mathGetString("typeSS");
+		if (steadyStateType.equals("stable") || steadyStateType.equals("unstable")) {
 			fillSteadyStateSimulationMap(genContext + "SSSol", ssMap);
 			showSteadyStateSimulationGridAndButton("Download Steady State Simulation",
-					"steadystate" + m.getName() + ".txt", ssMap);
+					"steadystate-" + m.getName() + ".txt", ssMap);
 			if (((Boolean) simConfig.getSteadyState().get("Stability").getValue())) {
 				outVL.out("Stability Analysis", "textH2");
-				if (mathRes.equals("Return[stable]")) {
+				if (steadyStateType.equals("stable")) {
 					outVL.out("Stable: All real parts are negative");
-				} else if (mathRes.equals("Return[unstable]")) {
+				} else if (steadyStateType.equals("unstable")) {
 					outVL.out("Unstable: At least one real part is non-negative");
 				}
 
 				mathCommand = "" + genContext + "eigenValues = Eigenvalues[" + genContext + "Jac /. Join[" + genContext
 						+ "ParNumVals, " + genContext + "IndVarVals, " + genContext + "SSSol]]";
 				bufferCommand(mathCommand);
-				// String eigenValues = executeMathCommandString(mathCommand);
 				mathCommand = "" + genContext + "eigenValues=Table[Join[{Re[" + genContext + "eigenValues[[i]]]},{Im["
 						+ genContext + "eigenValues[[i]]]}], {i,1,Length[" + genContext + "eigenValues]}]";
 				bufferCommand(mathCommand);
@@ -1287,7 +1294,7 @@ public class SimulationCtrl {
 		// outVL.out("Steady State: Overshooting attenuated
 		// oscillations");
 
-		if (mathRes.equals("Return[stable]")) {
+		if (steadyStateType.equals("stable")) {
 			// Steady State Gains (D=>derivative)
 			if (((Boolean) simConfig.getSteadyState().get("Gains").getValue())) {
 				mathCommand = "JacIV = Outer[D, " + "RateEqsWithT, " + "IndVars]";
@@ -1312,7 +1319,7 @@ public class SimulationCtrl {
 				// outVL.showGrid();
 
 				mathCommand = "DepVarsToShow = {";
-				for (String dv : simConfig.getUnifiedDepVarsFromPlotViews().keySet())
+				for (String dv : simConfig.getDynamic_PlotViews().getUnifiedDepVars().keySet())
 					mathCommand += dv + ",";
 				mathCommand = removeLastComma(mathCommand);
 				mathCommand += "}";
@@ -1344,7 +1351,7 @@ public class SimulationCtrl {
 				bufferCommand(mathCommand);
 				outVL.out("Absolute Steady State Sensitivities", "textH2");
 				mathCommand = "DepVarsToShow = {";
-				for (String dv : simConfig.getUnifiedDepVarsFromPlotViews().keySet())
+				for (String dv : simConfig.getDynamic_PlotViews().getUnifiedDepVars().keySet())
 					mathCommand += dv + ",";
 				mathCommand = removeLastComma(mathCommand);
 				mathCommand += "}";
@@ -1357,6 +1364,55 @@ public class SimulationCtrl {
 				bufferCommand(mathCommand);
 				outVL.out("Relative Steady State Sensitivities", "textH2");
 				executeMathTable("SSSR", "ParsString", "DepVarsToShow", true);
+			}
+		}
+		// PARAMETER SCAN
+		if (simConfig.getSteadyState_ParameterScan().hasParametersToScan(m)) {
+			outVL.out("Steady State Parameter Scan", "textH2");
+			ArrayList<ParamScanEntry> paramScanEntries = null;
+			for (int iType = 1; iType <= 2; iType++) {
+				// select param scan entries
+				if (iType == 1) {
+					if (simConfig.getSteadyState_ParameterScan().getParameters().size() == 0)
+						continue;
+					paramScanEntries = simConfig.getSteadyState_ParameterScan().getParameters();
+				} else if (iType == 2) {
+					if (simConfig.getSteadyState_ParameterScan().getIndependentVars().size() == 0)
+						continue;
+					paramScanEntries = simConfig.getSteadyState_ParameterScan().getIndependentVars();
+				}
+				// scan task
+				for (ParamScanEntry entry : paramScanEntries) {
+					outVL.outNewGridLayout(2, m.getAllSpeciesTimeDependent().size());
+					mathCommand = "paramName="
+							+ entry.getMathematicaParamName() + ";\r\n"
+							+"paramType=\"" + entry.getType().getString() + "\";\r\n"
+							+"beginVal=" + entry.getBeginVal() + ";\r\n"
+							+ "endVal=" + entry.getEndVal() + ";\r\n"
+							+ "numIntervals = " + entry.getNumIntervals() + ";\r\n" 
+							+ "isLogarithmic=" + MathematicaUtils.java2Math(entry.isLogarithmic())+";\n"
+							+ "minLogVal="+MathematicaUtils.minLogVal;
+					bufferCommand(mathCommand);
+					bufferMathTxt("param-scan-steady-state.txt");
+					executeMathBuffer();
+					if ("False".equals(mathGetString("isEmptyResults"))) {
+						for (int i = 1; i <= m.getAllSpeciesTimeDependent().size(); i++) {
+							mathCommand = "plotLegends = {\"Stable Steady State\", \"Unstable Steady State\"};\n"
+									+ "ListPlot[{stablePoints[["+i+"]], unstablePoints[["+i+"]]}, "
+									+ "LabelStyle -> {FontWeight -> "+((Boolean) simConfig.getPlotSettings().get("FontWeight").getValue() ? "Bold" : "Plain")+", FontSlant -> " + ((Boolean) simConfig.getPlotSettings().get("FontSlant").getValue() ? "Italic" : "Plain")+", "
+									+ "FontSize -> "+simConfig.getPlotSettings().get("FontSize").getValue()+"}, PlotLegends -> plotLegends, Axes -> False, "
+									+ "Frame -> True, FrameTicks -> True, "
+									+ "PlotStyle -> {RGBColor[0.18, 0.63, 1], Hue[0, 0.54, 1]}, "
+									+ "FrameLabel -> {ToString[paramName], "
+									+ "DepVarsString[["+i+"]] <> \" (concentration)\"}, PlotRange -> Full, "
+									+ "ImageSize -> "+normalSize+"]";
+							showImageOfMathCmd(mathCommand, true, "ss-par-scan-" + m.getName() + imageExtension,
+									imageWidthForResults);
+						}
+					} else {
+						outVL.addToGridLayout(new Label("No Steady States found for "+entry.getMathematicaParamName()));
+					}
+				}
 			}
 		}
 	}

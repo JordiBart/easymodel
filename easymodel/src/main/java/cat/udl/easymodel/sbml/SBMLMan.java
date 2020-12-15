@@ -35,10 +35,9 @@ import com.vaadin.ui.UI;
 
 import cat.udl.easymodel.controller.ContextUtils;
 import cat.udl.easymodel.logic.formula.Formula;
+import cat.udl.easymodel.logic.formula.FormulaArrayValue;
 import cat.udl.easymodel.logic.formula.FormulaUtils;
-import cat.udl.easymodel.logic.model.FormulaArrayValue;
-import cat.udl.easymodel.logic.model.FormulaValue;
-import cat.udl.easymodel.logic.model.FormulaValueImpl;
+import cat.udl.easymodel.logic.formula.FormulaValue;
 import cat.udl.easymodel.logic.types.FormulaType;
 import cat.udl.easymodel.logic.types.FormulaValueType;
 import cat.udl.easymodel.logic.types.RepositoryType;
@@ -104,7 +103,7 @@ public class SBMLMan {
 			speciesMap.get(spKey).setName(speciesMap.get(spKey).getId());
 			speciesMap.get(spKey).setHasOnlySubstanceUnits(false); // if true, can only contain amount, not
 																	// concentration
-			if (sp.getVarType() == SpeciesVarTypeType.INDEP) {
+			if (sp.getVarType() == SpeciesVarTypeType.INDEPENDENT) {
 				speciesMap.get(spKey).setBoundaryCondition(true);
 				speciesMap.get(spKey).setConstant(true);
 			} else {
@@ -142,7 +141,7 @@ public class SBMLMan {
 					lp.setName(lp.getId());
 					lp.setValue(Double.valueOf(fv.getConstantValue()));
 					kl.addLocalParameter(lp);
-//					p.p(lp.toString());
+//					System.out.println(lp.toString());
 				}
 			}
 			for (String par : r.getFormulaSubstratesArrayParameters().keySet()) {
@@ -316,7 +315,7 @@ public class SBMLMan {
 						+ " was lacking and concentration was set to 1\n");// (rule?
 				// "+(model.getRuleByVariable(sp.getId())!=null?"y":"n")+")\n");
 			}
-			emSp.setVarType(sp.isConstant() ? SpeciesVarTypeType.INDEP : SpeciesVarTypeType.TIMEDEP);
+			emSp.setVarType(sp.isConstant() ? SpeciesVarTypeType.INDEPENDENT : SpeciesVarTypeType.TIME_DEP);
 		}
 		// set formulas + pars
 		int i = 0;
@@ -351,23 +350,23 @@ public class SBMLMan {
 //				p.p(f.getFormulaDef() + " " +rs.getKineticLaw().getFormula()+ " "+par);
 				LocalParameter lp = findLocalPar(rs, par);
 				if (lp != null) {
-					r.getFormulaGenPars().put(par, new FormulaValueImpl(FormulaValueType.CONSTANT,
+					r.getFormulaGenPars().put(par, new FormulaValue(par, FormulaValueType.CONSTANT,
 							getDoubleWithStandardNotation(lp.getValue())));
 				} else {
 					if (r.getLeftPartSpecies().containsKey(par)) {
-						r.getFormulaGenPars().put(par, new FormulaValueImpl(FormulaValueType.SUBSTRATE, par));
+						r.getFormulaGenPars().put(par, new FormulaValue(par, FormulaValueType.SUBSTRATE, par));
 					} else if (r.getModifiers().containsKey(par)) {
-						r.getFormulaGenPars().put(par, new FormulaValueImpl(FormulaValueType.MODIFIER, par));
+						r.getFormulaGenPars().put(par, new FormulaValue(par, FormulaValueType.MODIFIER, par));
 					} else if (m.getAllSpecies().containsKey(par)) {
 //						throw new Exception("Product detected as par " + par + " in formula " + f.getFormulaDef()
 //								+ " in XMLreaction " + rs.getId());
 						r.setReactionStr(r.getReactionStr() + ";" + par); // add product also as modifier
-						r.getFormulaGenPars().put(par, new FormulaValueImpl(FormulaValueType.MODIFIER, par));
+						r.getFormulaGenPars().put(par, new FormulaValue(par, FormulaValueType.MODIFIER, par));
 					} else {
 						// check global SBML compartments
 						for (Compartment c : model.getListOfCompartments()) {
 							if (par.equals(getFixedSBMLId(c.getId()))) {
-								r.getFormulaGenPars().put(par, new FormulaValueImpl(FormulaValueType.CONSTANT, "1"));
+								r.getFormulaGenPars().put(par, new FormulaValue(par, FormulaValueType.CONSTANT, "1"));
 								continue formulaParsLoop;
 							}
 						}
@@ -375,11 +374,11 @@ public class SBMLMan {
 						for (Parameter p : model.getListOfParameters()) {
 							if (par.equals(getFixedSBMLId(p.getId()))) {
 								if (!Double.isNaN(p.getValue())) {
-									r.getFormulaGenPars().put(par, new FormulaValueImpl(FormulaValueType.CONSTANT,
+									r.getFormulaGenPars().put(par, new FormulaValue(par, FormulaValueType.CONSTANT,
 											getDoubleWithStandardNotation(p.getValue())));
 								} else {
 									r.getFormulaGenPars().put(par,
-											new FormulaValueImpl(FormulaValueType.CONSTANT, "1"));
+											new FormulaValue(par, FormulaValueType.CONSTANT, "1"));
 									report.append(
 											"Global parameter " + par + " value was lacking and it was reset to 1\n");
 //									ExplicitRule er = model.getRuleByVariable(p.getId());
@@ -404,14 +403,14 @@ public class SBMLMan {
 							if (par.equals(getFixedSBMLId(sp.getId()))) {
 								if (sp.isConstant()
 										&& !"NaN".equals(getDoubleWithStandardNotation(sp.getInitialConcentration()))) {
-									r.getFormulaGenPars().put(par, new FormulaValueImpl(FormulaValueType.CONSTANT,
+									r.getFormulaGenPars().put(par, new FormulaValue(par, FormulaValueType.CONSTANT,
 											getDoubleWithStandardNotation(sp.getInitialConcentration())));
 									continue formulaParsLoop;
 								} else if (sp.isConstant()
 										&& !"NaN".equals(getDoubleWithStandardNotation(sp.getInitialAmount()))
 										&& sp.getInitialAmount() != 0) {
 									r.getFormulaGenPars().put(par,
-											new FormulaValueImpl(FormulaValueType.CONSTANT, "0"));
+											new FormulaValue(par, FormulaValueType.CONSTANT, "0"));
 									continue formulaParsLoop;
 								}
 //								else
@@ -423,7 +422,7 @@ public class SBMLMan {
 						String resetVal = "1";
 						if ("pi".equals(par))
 							resetVal = "3.14";
-						r.getFormulaGenPars().put(par, new FormulaValueImpl(FormulaValueType.CONSTANT, resetVal));
+						r.getFormulaGenPars().put(par, new FormulaValue(par, FormulaValueType.CONSTANT, resetVal));
 						report.append("Parameter value for parameter " + par + " was lacking and it was reset to "
 								+ resetVal + "\n");
 //						throw new Exception("Can't find par val for " + par + " in formula " + f.getFormulaDef()

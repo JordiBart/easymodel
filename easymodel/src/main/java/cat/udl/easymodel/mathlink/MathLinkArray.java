@@ -14,35 +14,48 @@ public class MathLinkArray extends ArrayList<MathLinkOp> {
 	public MathLinkArray() {
 	}
 
-	public MathLinkOp getFreeMathLink() {
+	public void cleanMathLinks() {
+		ArrayList<MathLinkOp> toRemove = new ArrayList<MathLinkOp>();
 		for (MathLinkOp op : this) {
-			if (!op.isLocked()) {
-				try {
-					op.openMathLink(); //for checking
-					op.lock();
-					return op;
-				} catch (MathLinkException e) {
-				}
+			op.tryTimeout();
+			if (op.isClosed()) {
+				toRemove.add(op);
 			}
 		}
-		return null;
+		for (MathLinkOp op : toRemove)
+			this.remove(op);
 	}
-
-	public void openMathLinks() {
-		for (int i = 0; i < SharedData.maxMathLinks; i++) {
-			try {
-				MathLinkOp ml = new MathLinkOp();
-				ml.openMathLink();
-				this.add(ml);
-			} catch (MathLinkException e) {
-				break;
-			}
-		}
+	
+	public void addMathLink(MathLinkOp op) {
+		cleanMathLinks();
+		this.add(op);
 	}
-
+	
 	public void closeMathLinks() {
 		for (MathLinkOp op : this) {
 			op.closeMathLink();
 		}
 	}
+	
+//	public MathLinkOp getFreeMathLink() {
+//		for (MathLinkOp op : this) {
+//			if (op.isReadyToUse()) {
+//				op.lock();
+//				return op;
+//			}
+//		}
+//		return null;
+//	}
+//
+//	public void openMathLinks() {
+//		for (int i = 0; i < SharedData.maxMathLinks; i++) {
+//			try {
+//				MathLinkOp ml = new MathLinkOp();
+//				ml.openMathLink();
+//				this.add(ml);
+//			} catch (MathLinkException e) {
+//				break;
+//			}
+//		}
+//	}
 }

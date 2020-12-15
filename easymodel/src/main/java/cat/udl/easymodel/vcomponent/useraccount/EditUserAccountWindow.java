@@ -92,7 +92,7 @@ public class EditUserAccountWindow extends Window {
 			@Override
 			public void blur(BlurEvent event) {
 				String newVal = ((PasswordField) event.getComponent()).getValue();
-				user.setPass(newVal);
+				user.setPassForRegister(newVal);
 			}
 		});
 
@@ -107,7 +107,7 @@ public class EditUserAccountWindow extends Window {
 			@Override
 			public void blur(BlurEvent event) {
 				String newVal = ((PasswordField) event.getComponent()).getValue();
-				user.setRetypePass(newVal);
+				user.setRetypePassForRegister(newVal);
 			}
 		});
 
@@ -131,8 +131,6 @@ public class EditUserAccountWindow extends Window {
 	}
 
 	private void checkForm() throws Exception {
-		if (user==SharedData.getInstance().getGuestUser())
-			throw new Exception("Guest user can't change password");
 		if (!user.matchLogin(user.getName(), currentPass.getValue()))
 			throw new Exception("Incorrect current password");
 		user.validateForRegister(null);

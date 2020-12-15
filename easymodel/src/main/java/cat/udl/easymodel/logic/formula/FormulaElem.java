@@ -11,6 +11,11 @@ public class FormulaElem {
 		this.value = value;
 	}
 
+	public FormulaElem(FormulaElem from) {
+		fet = from.fet;
+		value = from.value;
+	}
+
 	public FormulaElemType getFormulaElemType() {
 		return fet;
 	}

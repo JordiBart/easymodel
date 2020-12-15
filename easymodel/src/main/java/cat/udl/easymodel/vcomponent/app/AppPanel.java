@@ -1,5 +1,6 @@
 package cat.udl.easymodel.vcomponent.app;
 
+import java.sql.SQLException;
 import java.util.HashMap;
 
 import com.vaadin.server.BrowserWindowOpener;
@@ -14,6 +15,7 @@ import com.vaadin.ui.Component;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.MenuBar;
 import com.vaadin.ui.MenuBar.MenuItem;
+import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Panel;
 import com.vaadin.ui.UI;
@@ -28,6 +30,9 @@ import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.ui.TutorialUI;
 import cat.udl.easymodel.utils.DownFileStreamSource;
+import cat.udl.easymodel.utils.ToolboxVaadin;
+import cat.udl.easymodel.utils.p;
+import cat.udl.easymodel.vcomponent.common.AreYouSureWindow;
 import cat.udl.easymodel.vcomponent.login.RegisterWindow;
 import cat.udl.easymodel.vcomponent.model.ModelEditorVL;
 import cat.udl.easymodel.vcomponent.model.window.ValidateModelWindow;
@@ -38,7 +43,7 @@ import cat.udl.easymodel.vcomponent.simulation.SimulationVL;
 import cat.udl.easymodel.vcomponent.useraccount.EditUserAccountWindow;
 import cat.udl.easymodel.view.AdminView;
 import cat.udl.easymodel.view.AppView;
-import cat.udl.easymodel.view.LoginView;
+import cat.udl.easymodel.view.CoverView;
 import cat.udl.easymodel.view.TutorialView;
 
 public class AppPanel extends Panel {
@@ -60,7 +65,8 @@ public class AppPanel extends Panel {
 		super();
 
 		this.sessionData = (SessionData) UI.getCurrent().getData();
-		resultsVL = new ResultsVL(globalThis);
+		this.sessionData.setAppPanel(this);
+		resultsVL = new ResultsVL();
 
 		HorizontalLayout stepButtonsHL = new HorizontalLayout();
 		stepButtonsHL.setMargin(false);
@@ -80,7 +86,7 @@ public class AppPanel extends Panel {
 		stepButtonsHL.addComponent(stepButtons.get("Results"));
 		HorizontalLayout spacer = new HorizontalLayout();
 		stepButtonsHL.addComponent(spacer);
-		if (sessionData.getUser().getUserType() == UserType.ADMIN)
+		if (sessionData.isUserSet() && sessionData.getUser().getUserType() == UserType.ADMIN)
 			stepButtonsHL.addComponent(getSwitchAdminAppButton());
 		stepButtonsHL.addComponents(getToolsMenuBar(), getExitButton());
 		stepButtonsHL.setExpandRatio(spacer, 1f);
@@ -198,21 +204,23 @@ public class AppPanel extends Panel {
 		MenuBar menu = new MenuBar();
 		menu.setStyleName("appTools");
 		MenuItem tools = menu.addItem("Tools", null, null);
-		
+
 		MenuBar.Command userCommand = new MenuBar.Command() {
 			private static final long serialVersionUID = 1L;
 
 			public void menuSelected(MenuItem selectedItem) {
-		    	EditUserAccountWindow win = new EditUserAccountWindow();
+				EditUserAccountWindow win = new EditUserAccountWindow();
 				UI.getCurrent().addWindow(win);
-		    }
+			}
 		};
-		
-		MenuItem userAccount = tools.addItem("Account Settings", null, userCommand);
-		userAccount.setDescription("Change User Account Settings");
+		if (sessionData.getUser() != null) {
+			MenuItem userAccount = tools.addItem("Account Settings", null, userCommand);
+			userAccount.setDescription("Change User Account Settings");
+		}
 		MenuItem tutorial = tools.addItem("Tutorial", null, null);
 		tutorial.setDescription("Open Tutorial in a new window");
 		BrowserWindowOpener opener = new BrowserWindowOpener(TutorialUI.class);
+		opener.setUrl("app://tutorial-popup");
 		opener.extend(tutorial);
 		return menu;
 	}
@@ -239,6 +247,24 @@ public class AppPanel extends Panel {
 
 			@Override
 			public void buttonClick(ClickEvent event) {
+				if (sessionData.isSimulating()) {
+					AreYouSureWindow win = new AreYouSureWindow("Simulation is in progress", "Changing view will cancel the current simulation.\nAre you sure to cancel the current simulation?");
+					win.addCloseListener(new CloseListener() {
+						@Override
+						public void windowClose(CloseEvent e) {
+							if ((WStatusType) e.getWindow().getData() == WStatusType.OK) {
+								sessionData.cancelSimulationByUser();
+								getSelectModelButtonAction();
+							}
+						}
+					});
+					ToolboxVaadin.removeAllWindows();
+					UI.getCurrent().addWindow(win);
+				} else
+					getSelectModelButtonAction();
+
+			}
+			private void getSelectModelButtonAction() {
 				selectedButton = stepButtons.get("Select Model");
 				updateStepButtonsStyle();
 				conPanel.setContent(selectModelVL);
@@ -257,14 +283,31 @@ public class AppPanel extends Panel {
 
 			@Override
 			public void buttonClick(ClickEvent event) {
+				if (sessionData.isSimulating()) {
+					AreYouSureWindow win = new AreYouSureWindow("Simulation is in progress", "Changing view will cancel the current simulation.\nAre you sure to cancel the current simulation?");
+					win.addCloseListener(new CloseListener() {
+						@Override
+						public void windowClose(CloseEvent e) {
+							if ((WStatusType) e.getWindow().getData() == WStatusType.OK) {
+								sessionData.cancelSimulationByUser();
+								getModelButtonAction();
+							}
+						}
+					});
+					ToolboxVaadin.removeAllWindows();
+					UI.getCurrent().addWindow(win);
+				} else
+					getModelButtonAction();
+			}
+			private void getModelButtonAction() {
 				selectedButton = stepButtons.get("Model");
 				updateStepButtonsStyle();
 				conPanel.setContent(modelEditorVL);
 			}
-
 		});
 		return btn;
 	}
+	
 
 	private Button getSimulationButton() {
 		Button btn = new Button();
@@ -276,22 +319,35 @@ public class AppPanel extends Panel {
 
 			@Override
 			public void buttonClick(ClickEvent event) {
+				if (sessionData.isSimulating()) {
+					AreYouSureWindow win = new AreYouSureWindow("Simulation is in progress", "Changing view will cancel the current simulation.\nAre you sure to cancel the current simulation?");
+					win.addCloseListener(new CloseListener() {
+						@Override
+						public void windowClose(CloseEvent e) {
+							if ((WStatusType) e.getWindow().getData() == WStatusType.OK) {
+								sessionData.cancelSimulationByUser();
+								getSimulationButtonAction();
+							}
+						}
+					});
+					ToolboxVaadin.removeAllWindows();
+					UI.getCurrent().addWindow(win);
+				} else
+					getSimulationButtonAction();
+				
+			}
+			private void getSimulationButtonAction() {
 				try {
 					sessionData.getSelectedModel().checkValidModel();
-					// if pass then:
-					changeToSimulation();
+					selectedButton = stepButtons.get("Simulation");
+					updateStepButtonsStyle();
+					conPanel.setContent(simulationVL);
 				} catch (Exception e) {
 					validateModel();
 				}
 			}
 		});
 		return btn;
-	}
-
-	public void changeToSimulation() {
-		selectedButton = stepButtons.get("Simulation");
-		updateStepButtonsStyle();
-		conPanel.setContent(simulationVL);
 	}
 
 	private Button getResultsButton() {
@@ -322,8 +378,6 @@ public class AppPanel extends Panel {
 
 			@Override
 			public void buttonClick(ClickEvent event) {
-				UI.getCurrent().getNavigator().removeView(AppView.NAME);
-				UI.getCurrent().getNavigator().addView(AdminView.NAME, AdminView.class);
 				UI.getCurrent().getNavigator().navigateTo(AdminView.NAME);
 			}
 
@@ -333,6 +387,10 @@ public class AppPanel extends Panel {
 
 	private Button getExitButton() {
 		Button btn = new Button();
+		if (sessionData.isUserSet())
+			btn.setDescription("Log out");
+		else
+			btn.setDescription("Exit");
 		btn.setStyleName("exitBtn");
 		btn.setHeight("100%");
 		btn.setWidth("32px");
@@ -341,9 +399,9 @@ public class AppPanel extends Panel {
 
 			@Override
 			public void buttonClick(ClickEvent event) {
+				sessionData.cancelSimulationByCode();
 				sessionData.clear();
-				UI.getCurrent().getNavigator().removeView(AppView.NAME);
-				UI.getCurrent().getNavigator().navigateTo(LoginView.NAME);
+				UI.getCurrent().getNavigator().navigateTo(CoverView.NAME);
 			}
 		});
 		return btn;
@@ -358,7 +416,7 @@ public class AppPanel extends Panel {
 					selectedButton = stepButtons.get("Simulation");
 					selectedButton.setEnabled(true);
 					updateStepButtonsStyle();
-					simulationVL = new SimulationVL(globalThis);
+					simulationVL = new SimulationVL();
 					conPanel.setContent(simulationVL);
 				} else {
 					stepButtons.get("Simulation").setEnabled(false);
@@ -366,6 +424,7 @@ public class AppPanel extends Panel {
 				}
 			}
 		});
+		ToolboxVaadin.removeAllWindows();
 		UI.getCurrent().addWindow(vmw);
 	}
 

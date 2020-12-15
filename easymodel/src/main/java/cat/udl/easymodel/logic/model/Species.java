@@ -1,18 +1,37 @@
 package cat.udl.easymodel.logic.model;
 
 import cat.udl.easymodel.logic.types.SpeciesVarTypeType;
+import cat.udl.easymodel.main.SharedData;
 
 public class Species {
-
-	private String concentration = "1";
-	private SpeciesVarTypeType varType = SpeciesVarTypeType.TIMEDEP;
+	private String name = null;
+	private String concentration = SharedData.defaultInitialConcentration;
+	private SpeciesVarTypeType varType = SpeciesVarTypeType.TIME_DEP;
 	private boolean isStochastic = false;
 	private String amount = null;
 
-	public Species() {
+	public Species(String name) {
+		this.name=name;
+		if (name == null)
+			System.err.print("WARNING: Species name cannot be null!");
 	}
 
+	public Species(Species from) {
+		copyFrom(from);
+	}
+
+	public void copyFrom(Species from) {
+		name = from.name;
+		concentration = from.concentration;
+		varType = from.varType;
+		isStochastic = from.isStochastic;
+		amount = from.amount;
+	}
 	
+	public String getName() {
+		return name;
+	}
+
 	public boolean isSet() {
 		if (concentration == null || varType == null)
 			return false;
@@ -58,10 +77,9 @@ public class Species {
 
 	
 	public Species getCopy() {
-		Species copy = new Species();
+		Species copy = new Species(this.name);
 		copy.setConcentration(this.getConcentration());
 		copy.setVarType(this.getVarType());
 		return copy;
 	}
-
 }

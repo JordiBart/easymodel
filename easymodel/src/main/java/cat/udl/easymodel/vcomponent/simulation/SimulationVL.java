@@ -1,12 +1,17 @@
 package cat.udl.easymodel.vcomponent.simulation;
 
+import com.vaadin.server.Resource;
+import com.vaadin.server.ThemeResource;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
+import com.vaadin.ui.MenuBar.Command;
+import com.vaadin.ui.MenuBar.MenuItem;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
+import com.vaadin.ui.MenuBar;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.Panel;
@@ -22,6 +27,7 @@ import cat.udl.easymodel.logic.types.SimType;
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.utils.CException;
+import cat.udl.easymodel.utils.p;
 import cat.udl.easymodel.vcomponent.app.AppPanel;
 
 public class SimulationVL extends VerticalLayout {
@@ -39,44 +45,45 @@ public class SimulationVL extends VerticalLayout {
 	private AppPanel mainPanel;
 
 	private SimPlotViewsVL plotViewsVL;
-	
+
 	private VerticalLayout dynVisVL;
 	private VerticalLayout ssVisVL;
 
 	private PopupView infoDynPopup = new PopupView(null, getInfoDynLayout());
 	private PopupView infoSSPopup = new PopupView(null, getInfoSSLayout());
 
-	public SimulationVL(AppPanel mainPanel) {
+	public SimulationVL() {
 		super();
 		this.sessionData = (SessionData) UI.getCurrent().getData();
+		this.mainPanel = this.sessionData.getAppPanel();
 		this.selectedModel = sessionData.getSelectedModel();
-		this.mainPanel = mainPanel;
-		this.simDeterministicVL = new SimDeterministicVL(mainPanel);
-		this.simStochasticVL = new SimStochasticVL(mainPanel);
-		
+		this.simDeterministicVL = new SimDeterministicVL();
+		this.simStochasticVL = new SimStochasticVL();
+
 		setSpacing(false);
 		setMargin(true);
 		setSizeFull();
-
+		
 		HorizontalLayout hl = new HorizontalLayout();
 		hl.setSpacing(true);
 		hl.setMargin(false);
 		hl.setSizeFull();
 		conVL = new VerticalLayout();
 		conVL.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
-		conVL.setSpacing(true);
+		conVL.setSpacing(false);
 		conVL.setMargin(true);
-		conVL.setWidth("100%");
+		conVL.setSizeUndefined();
 		conPanel = new Panel();
-		//conPanel.setStyleName("reactionsPanel");
+		// conPanel.setStyleName("reactionsPanel");
 		conPanel.setSizeFull();
 		conPanel.setContent(conVL);
-		hl.addComponents(new SimSelectTypeVL(this), conPanel);
+		conPanel.getContent().setSizeUndefined();
+		hl.addComponents(new SimLeftMenuVL(this), conPanel);
 		hl.setExpandRatio(conPanel, 1f);
 		this.addComponent(hl);
-		
+
 		updateConPanel();
-		
+
 //		super();
 //		this.sessionData = (SessionData) UI.getCurrent().getData();
 //		this.selectedModel = selectedModel;
@@ -122,20 +129,18 @@ public class SimulationVL extends VerticalLayout {
 		} else if (selectedModel.getSimConfig().getSimType() == SimType.STOCHASTIC) {
 //			boolean stochasticCheck = new QuickStochasticMathematicaCheck(sessionData).checkStochastic();
 			SimulationCtrl simCtrl = new SimulationCtrl(sessionData);
-			boolean stochasticCheck=true;
-			try {
-				if (!this.sessionData.loadMathLinkOpFromShared())
-					throw new CException("webMathematica is busy, please try again later");
-				stochasticCheck = simCtrl.quickStochasticSimulationCheck();
-				sessionData.freeMathLinkOp();
-			} catch (CException e) {
-				if (!e.getMessage().equals("webMathematica is busy, please try again later"))
-					e.printStackTrace();
-			} catch (MathLinkException e) {
-				e.printStackTrace();
+			if (this.sessionData.createMathLinkOp()) {
+				try {
+					simCtrl.quickStochasticSimulationCheck();
+				} catch (Exception e) {
+					// e.printStackTrace();
+					Notification.show(
+							"This model isn't supported for stochastic simulation with the current parameters",
+							Type.WARNING_MESSAGE);
+				} finally {
+					sessionData.closeMathLinkOp();
+				}
 			}
-			if (!stochasticCheck)
-				Notification.show("This model can't be stochastically simulated with the current parameters", Type.WARNING_MESSAGE);
 			conVL.addComponent(simStochasticVL);
 		}
 	}
@@ -389,7 +394,7 @@ public class SimulationVL extends VerticalLayout {
 //		});
 //		return btn;
 //	}
-	
+
 	private VerticalLayout getSelectTypeInfoLayout() {
 		VerticalLayout vlt = new VerticalLayout();
 		vlt.addComponent(new Label("Select simulation type:"));
@@ -397,25 +402,29 @@ public class SimulationVL extends VerticalLayout {
 		vlt.addComponent(new Label("-Stochastic: More reallistic simulation based on random reactions sequence"));
 		return vlt;
 	}
-	
+
 	private VerticalLayout getDeterministicInfoLayout() {
 		VerticalLayout vlt = new VerticalLayout();
 		vlt.addComponent(new Label("Deterministic simulation configuration:"));
 		vlt.addComponent(new Label("1. Add and configure the needed types of simulations from the accordeon"));
-		vlt.addComponent(new Label("2. (Optional) Configure the plot settings. Plot views allow to output multiple different plots from each generated plot"));
-		vlt.addComponent(new Label("3. Run Simulation (in results tab, left click on any image to view it on a new tab)"));
+		vlt.addComponent(new Label(
+				"2. (Optional) Configure the plot settings. Plot views allow to output multiple different plots from each generated plot"));
+		vlt.addComponent(
+				new Label("3. Run Simulation (in results tab, left click on any image to view it on a new tab)"));
 		return vlt;
 	}
-	
+
 	private VerticalLayout getStochasticInfoLayout() {
 		VerticalLayout vlt = new VerticalLayout();
 		vlt.addComponent(new Label("Stochastic simulation configuration:"));
 		vlt.addComponent(new Label("1. Configure the stochastic simulation"));
-		vlt.addComponent(new Label("2. (Optional) Configure the plot settings. Plot views allow to output multiple different plots from each generated plot"));
-		vlt.addComponent(new Label("3. Run Simulation (in results tab, left click on any image to view it on a new tab)"));
+		vlt.addComponent(new Label(
+				"2. (Optional) Configure the plot settings. Plot views allow to output multiple different plots from each generated plot"));
+		vlt.addComponent(
+				new Label("3. Run Simulation (in results tab, left click on any image to view it on a new tab)"));
 		return vlt;
 	}
-	
+
 	private Button getInfoButton() {
 		Button btn = new Button();
 		btn.setDescription("How to configure simulation");

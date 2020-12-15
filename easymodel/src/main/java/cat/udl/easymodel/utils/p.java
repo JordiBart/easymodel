@@ -3,7 +3,7 @@ package cat.udl.easymodel.utils;
 import java.util.Map;
 import java.util.SortedMap;
 
-import cat.udl.easymodel.logic.model.FormulaValue;
+import cat.udl.easymodel.logic.formula.FormulaValue;
 import cat.udl.easymodel.logic.types.FormulaValueType;
 
 public class p {

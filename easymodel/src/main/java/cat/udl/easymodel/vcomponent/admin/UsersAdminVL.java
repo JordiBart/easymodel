@@ -118,7 +118,7 @@ public class UsersAdminVL extends VerticalLayout {
 				if (field.equals("name"))
 					u.setName(newVal);
 				else if (field.equals("password"))
-					u.setPass(newVal);
+					u.setPassForRegister(newVal);
 			}
 		});
 		return tf;
@@ -180,8 +180,6 @@ public class UsersAdminVL extends VerticalLayout {
 							for (User u2 : usersCopy)
 								if (u != u2 && u.getName().equals(u2.getName()))
 									throw new Exception("Username \"" + u.getName() + "\" duplicated");
-							if (u.getName().equals(sharedData.getGuestUser().getName()))
-								throw new Exception("Username \"" + u.getName() + "\" is reserved");
 						}
 					}
 					sharedData.getUsers().updateFrom(usersCopy);

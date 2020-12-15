@@ -17,7 +17,7 @@ import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.vcomponent.model.window.ValidateModelWindow;
 import cat.udl.easymodel.view.AdminView;
 import cat.udl.easymodel.view.AppView;
-import cat.udl.easymodel.view.LoginView;
+import cat.udl.easymodel.view.CoverView;
 
 public class AdminPanel extends Panel {
 	private static final long serialVersionUID = 1L;
@@ -55,7 +55,7 @@ public class AdminPanel extends Panel {
 		allButtonsHL.addComponent(spacer);
 		allButtonsHL.setExpandRatio(spacer, 1);
 		allButtonsHL.addComponent(getSwitchAdminAppButton());
-		allButtonsHL.addComponent(getUserButton());
+//		allButtonsHL.addComponent(getUserButton());
 		allButtonsHL.addComponent(getExitButton());
 
 		conPanel = new Panel();
@@ -150,8 +150,6 @@ public class AdminPanel extends Panel {
 
 			@Override
 			public void buttonClick(ClickEvent event) {
-				UI.getCurrent().getNavigator().removeView(AdminView.NAME);
-				UI.getCurrent().getNavigator().addView(AppView.NAME, AppView.class);
 				UI.getCurrent().getNavigator().navigateTo(AppView.NAME);
 			}
 
@@ -169,9 +167,8 @@ public class AdminPanel extends Panel {
 
 			@Override
 			public void buttonClick(ClickEvent event) {
-				sessionData.setUser(null);
-				UI.getCurrent().getNavigator().removeView(AdminView.NAME);
-				UI.getCurrent().getNavigator().navigateTo(LoginView.NAME);
+				sessionData.clear();
+				UI.getCurrent().getNavigator().navigateTo(CoverView.NAME);
 			}
 		});
 		return btn;

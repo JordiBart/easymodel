@@ -1,7 +1,7 @@
 package cat.udl.easymodel.logic.types;
 
 public enum SpeciesVarTypeType {
-	 TIMEDEP(0), INDEP(1);
+	 TIME_DEP(0), INDEPENDENT(1);
     private int value;
 
     private SpeciesVarTypeType(int value) {
@@ -11,9 +11,9 @@ public enum SpeciesVarTypeType {
     public static SpeciesVarTypeType fromInt(int value) {
         switch(value) {
         case 0:
-            return TIMEDEP;
+            return TIME_DEP;
         case 1:
-            return INDEP;
+            return INDEPENDENT;
         }
         return null;
     }
@@ -22,10 +22,10 @@ public enum SpeciesVarTypeType {
     	String type = "";
     	switch (value) {
     	case 0:
-    		type = "Time dependent";
+    		type = "Time Dependent";
     		break;
     	case 1:
-    		type = "Constant";
+    		type = "Independent";
     		break;
     	}
     	return type;

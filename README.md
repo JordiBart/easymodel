@@ -1,7 +1,7 @@
-# EasyModel v1.2
+# EasyModel v2.0
 Official public repository
 
-EasyModel is a web application for kinetic modeling of biological systems.
+EasyModel is a web application for modeling and simulation of systems biology models.
 
 Project is written in Java EE using the Eclipse IDE.
 Dependencies: Wolfram webMathematica, MySQL, Java 8 JDK, Vaadin 8 and Apache Tomcat 9.

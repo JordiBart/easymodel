@@ -1,20 +1,28 @@
 package cat.udl.easymodel.utils;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+
+import javax.servlet.http.Cookie;
+
 import com.vaadin.server.ExternalResource;
 import com.vaadin.server.ThemeResource;
+import com.vaadin.server.VaadinService;
 import com.vaadin.shared.ui.ContentMode;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.Layout;
 import com.vaadin.ui.Link;
+import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.Window;
 
 public class ToolboxVaadin {
 	public static final String usernameCharRegex = "[a-zA-Z0-9]";
-	public static final String usernameRegex = "^(?=.*[A-Za-z])"+usernameCharRegex+"{3,20}$";
+	public static final String usernameRegex = "^(?=.*[A-Za-z])" + usernameCharRegex + "{3,20}$";
 	public static final String usernameRegexInfo = "Username: 3-20 alphanumeric characters, at least one letter";
 	public static final String passwordCharRegex = "[A-Za-z\\d\\._!]";
-	public static final String passwordRegex = "^(?=.*[A-Za-z])(?=.*\\d)"+passwordCharRegex+"{8,50}$";
+	public static final String passwordRegex = "^(?=.*[A-Za-z])(?=.*\\d)" + passwordCharRegex + "{8,50}$";
 	public static final String passwordRegexInfo = "Password: 8-50 characters, at least one letter and one number";
 
 	private ToolboxVaadin() {
@@ -24,13 +32,13 @@ public class ToolboxVaadin {
 //	HorizontalLayout spacer = new HorizontalLayout();
 //	allButtonsHL.addComponent(spacer);
 //	allButtonsHL.setExpandRatio(spacer, 1);
-	
+
 	public static Label getHR() {
 		Label hr = new Label("<hr />", ContentMode.HTML);
 		hr.setWidth("100%");
 		return hr;
 	}
-	
+
 	public static VerticalLayout getRawVL(String styleName) {
 		VerticalLayout vl = new VerticalLayout();
 		vl.setMargin(false);
@@ -39,7 +47,7 @@ public class ToolboxVaadin {
 			vl.setStyleName(styleName);
 		return vl;
 	}
-	
+
 	public static HorizontalLayout getRawHL(String styleName) {
 		HorizontalLayout hl = new HorizontalLayout();
 		hl.setMargin(false);
@@ -48,7 +56,7 @@ public class ToolboxVaadin {
 			hl.setStyleName(styleName);
 		return hl;
 	}
-	
+
 	public static HorizontalLayout getIndentedVLLayout(Layout lay) {
 		VerticalLayout indentVL = new VerticalLayout();
 		indentVL.setMargin(false);
@@ -78,18 +86,40 @@ public class ToolboxVaadin {
 		else
 			return null;
 	}
-	
+
 	public static Link getStandardWebMathematicaLink() {
 		Link link = new Link("", new ExternalResource("http://www.wolfram.com/webmathematica/sitelink"));
 		link.setIcon(new ThemeResource("img/webm-white-plain.png"));
 		link.setTargetName("_blank");
 		return link;
 	}
-	
+
 	public static Link getTinyWebMathematicaLink() {
 		Link link = new Link("", new ExternalResource("http://www.wolfram.com/webmathematica/sitelink"));
 		link.setIcon(new ThemeResource("img/webm-white-tiny.png"));
 		link.setTargetName("_blank");
 		return link;
+	}
+
+	public static void removeAllWindows() {
+		UI ui = UI.getCurrent();
+		ArrayList<Window> windowsToRemove = new ArrayList<>();
+		for (Window w : ui.getWindows())
+			windowsToRemove.add(w);
+		for (Window w : windowsToRemove)
+			ui.removeWindow(w);
+	}
+
+	public static Cookie getClientCookieByName(String name) {
+		if (name == null)
+			return null;
+		Cookie[] cookies = VaadinService.getCurrentRequest().getCookies();
+		if (cookies != null) {
+			for (Cookie cookie : cookies) {
+				if (cookie.getName() != null && name.equals(cookie.getName()))
+					return cookie;
+			}
+		}
+		return null;
 	}
 }

@@ -21,9 +21,14 @@
     	-webkit-box-shadow: none;
     	box-shadow: none;
     	border: none;
+		border-radius: 0 5px 0 0; 
 	}
 	.v-button-tutorialSkip:after {
 		content: none;
+	}
+	.v-button-tutorialSkip:hover {
+  		background-color: rgba(0, 151, 243, 0.8);
+		color: #fff;
 	}
 	.v-button-tutorialNext, .v-button-tutorialPrev {
 		background-color: transparent;
@@ -44,77 +49,76 @@
 	.v-button-tutorialNext:after, .v-button-tutorialPrev:after {
 		content: none;
 	}
-	/* On hover, add a black background color with a little bit see-through */
 	.v-button-tutorialPrev:hover, .v-button-tutorialNext:hover {
   		background-color: rgba(0, 151, 243, 0.8);
 		color: #fff;
 		font-size: 60px;
 	}
 	.v-horizontallayout-tutorial1 {
-		background-image: url("tutorial/1.png");
+		background-image: url("tutorial/Slide1.PNG");
 		-webkit-animation-name: tutorialFade1;
 		-webkit-animation-duration: 1.5s;
 		animation-name: tutorialFade1;
 		animation-duration: 1.5s;
 	}
 	.v-horizontallayout-tutorial2 {
-		background-image: url("tutorial/2.png");
+		background-image: url("tutorial/Slide2.PNG");
 		-webkit-animation-name: tutorialFade2;
 		-webkit-animation-duration: 1.5s;
 		animation-name: tutorialFade2;
 		animation-duration: 1.5s;
 	}
 	.v-horizontallayout-tutorial3 {
-		background-image: url("tutorial/3.png");
+		background-image: url("tutorial/Slide3.PNG");
 		-webkit-animation-name: tutorialFade1;
 		-webkit-animation-duration: 1.5s;
 		animation-name: tutorialFade1;
 		animation-duration: 1.5s;
 	}
 	.v-horizontallayout-tutorial4 {
-		background-image: url("tutorial/4.png");
+		background-image: url("tutorial/Slide4.PNG");
 		-webkit-animation-name: tutorialFade2;
 		-webkit-animation-duration: 1.5s;
 		animation-name: tutorialFade2;
 		animation-duration: 1.5s;
 	}
 	.v-horizontallayout-tutorial5 {
-		background-image: url("tutorial/5.png");
+		background-image: url("tutorial/Slide5.PNG");
 		-webkit-animation-name: tutorialFade1;
 		-webkit-animation-duration: 1.5s;
 		animation-name: tutorialFade1;
 		animation-duration: 1.5s;
 	}
 	.v-horizontallayout-tutorial6 {
-		background-image: url("tutorial/6.png");
+		background-image: url("tutorial/Slide6.PNG");
 		-webkit-animation-name: tutorialFade2;
 		-webkit-animation-duration: 1.5s;
 		animation-name: tutorialFade2;
 		animation-duration: 1.5s;
 	}
 	.v-horizontallayout-tutorial7 {
-		background-image: url("tutorial/7.png");
+		background-image: url("tutorial/Slide7.PNG");
 		-webkit-animation-name: tutorialFade1;
 		-webkit-animation-duration: 1.5s;
 		animation-name: tutorialFade1;
 		animation-duration: 1.5s;
 	}
 	.v-horizontallayout-tutorial8 {
-		background-image: url("tutorial/8.png");
+		background-image: url("tutorial/Slide8.PNG");
 		-webkit-animation-name: tutorialFade2;
 		-webkit-animation-duration: 1.5s;
 		animation-name: tutorialFade2;
 		animation-duration: 1.5s;
 	}
 	.v-horizontallayout-tutorial9 {
-		background-image: url("tutorial/9.png");
+		background-image: url("tutorial/Slide9.PNG");
 		-webkit-animation-name: tutorialFade1;
 		-webkit-animation-duration: 1.5s;
 		animation-name: tutorialFade1;
 		animation-duration: 1.5s;
 	}
 	.v-horizontallayout-tutorial10 {
-		background-image: url("tutorial/10.png");
+		background-image: url("tutorial/Slide10.PNG");
 		-webkit-animation-name: tutorialFade2;
 		-webkit-animation-duration: 1.5s;
 		animation-name: tutorialFade2;

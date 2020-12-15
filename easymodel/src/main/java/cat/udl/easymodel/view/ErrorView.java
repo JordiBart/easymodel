@@ -32,12 +32,12 @@ public class ErrorView extends CustomComponent implements View {
 
 		VerticalLayout viewLayout = new VerticalLayout();
 		viewLayout.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
-		Button btn = new Button("Go back to login page");
+		Button btn = new Button("Go back to start page");
 		btn.addClickListener(new ClickListener() {
 
 			@Override
 			public void buttonClick(ClickEvent event) {
-				UI.getCurrent().getNavigator().navigateTo(LoginView.NAME);
+				UI.getCurrent().getNavigator().navigateTo(CoverView.NAME);
 			}
 		});
 		viewLayout.addComponents(new Label("Ups, there was some error :("), btn);

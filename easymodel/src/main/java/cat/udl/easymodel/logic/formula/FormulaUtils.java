@@ -1,6 +1,7 @@
 package cat.udl.easymodel.logic.formula;
 
 import java.util.ArrayList;
+import java.util.regex.Pattern;
 
 import cat.udl.easymodel.sbml.SBMLMan;
 import cat.udl.easymodel.utils.p;
@@ -16,6 +17,7 @@ public class FormulaUtils {
 	public static final String mathFormulaOperators = "\\+\\-\\*\\/^";
 	public static final String variableRegex = "[a-zA-Z][a-zA-Z0-9]*";
 	public static final String mathFormulaExpressionRegex = "(?!.*[a-zA-Z0-9]+\\(.*)^[a-zA-Z0-9\\[\\],{}\\(\\)\\s\\.:"+mathFormulaOperators+"]+$";
+	public static final Pattern powerPattern = Pattern.compile("^\\^(\\w+).*$");
 	//in mathFormulaExpressionRegex: (?!.*[a-zA-Z0-9]+\\(.*) <- negative look ahead to avoid "function(..."
 	private ArrayList<String> builtInVars = new ArrayList<>();
 	private ArrayList<String> generalVars = new ArrayList<>();
@@ -41,6 +43,10 @@ public class FormulaUtils {
 		return thisSingleton;
 	}
 
+	public ArrayList<String> getKeywords() {
+		return keywords;
+	}
+	
 	public String getToNotParseRegEx() {
 		return getKeywordsRegEx()+"|"+realNumberRegex+"|("+mathematicaSymbolPrefix+"[a-zA-Z]\\w*)|("+mathematicaIndexPrefix+"[a-zA-Z]\\w*)";
 	}
@@ -51,6 +57,16 @@ public class FormulaUtils {
 	
 	public String getMathematicaIndexRegex() {
 		return "("+mathematicaIndexPrefix+"[a-zA-Z]\\w*)";
+	}
+	
+	public String getKeywordsRegEx() {
+		String res = "";
+		for (int i = 0; i < keywords.size(); i++) {
+			if (i > 0)
+				res += "|";
+			res += keywords.get(i);
+		}
+		return res;
 	}
 	
 	public String getBuiltInVarsRegEx() {
@@ -80,16 +96,6 @@ public class FormulaUtils {
 	// }
 	// return res;
 	// }
-
-	public String getKeywordsRegEx() {
-		String res = "";
-		for (int i = 0; i < keywords.size(); i++) {
-			if (i > 0)
-				res += "|";
-			res += keywords.get(i);
-		}
-		return res;
-	}
 
 	public static boolean isValid(String formulaStr) {
 		return formulaStr.matches(mathFormulaExpressionRegex);

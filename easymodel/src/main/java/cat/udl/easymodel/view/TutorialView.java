@@ -47,12 +47,12 @@ public class TutorialView extends CustomComponent implements View {
 		this.sessionData = (SessionData) UI.getCurrent().getData();
 		int i = 1;
 		titleMap.put(i++, "");
-		titleMap.put(i++, "Create a new model");
-		titleMap.put(i++, "Define the model name and reactions");
-		titleMap.put(i++, "Define the rates to be used in the model");
-		titleMap.put(i++, "Complete the model and validate");
-		titleMap.put(i++, "Configure the simulation (1)");
-		titleMap.put(i++, "Configure the simulation (2)");
+		titleMap.put(i++, "Create or select a model");
+		titleMap.put(i++, "Define the model reactions and rates I");
+		titleMap.put(i++, "Define the model reactions and rates II");
+		titleMap.put(i++, "Configure Deterministic Simulation I");
+		titleMap.put(i++, "Configure Deterministic Simulation II");
+		titleMap.put(i++, "Configure Stochastic Simulation");
 		titleMap.put(i++, "Simulation results");
 		titleMap.put(i++, "");
 
@@ -127,15 +127,13 @@ public class TutorialView extends CustomComponent implements View {
 
 	private void skip() {
 		if (getUI() instanceof MainUI) {
-			getUI().getNavigator().removeView(TutorialView.NAME);
-			getUI().getNavigator().addView(AppView.NAME, AppView.class);
 			getUI().getNavigator().navigateTo(AppView.NAME);
 		} else
 			showSwitchBackToApp();
 	}
 	
 	private void showSwitchBackToApp() {
-		Notification.show("Please switch back to "+SharedData.appName+" window to continue using it", Type.WARNING_MESSAGE);
+		Notification.show("Please switch back to the "+SharedData.appName+" window", Type.WARNING_MESSAGE);
 	}
 	
 	private Component getSkipBtn() {
@@ -192,8 +190,7 @@ public class TutorialView extends CustomComponent implements View {
 		} else {
 			if (getUI() instanceof MainUI) {
 				sessionData.clear();
-				UI.getCurrent().getNavigator().removeView(TutorialView.NAME);
-				UI.getCurrent().getNavigator().navigateTo(LoginView.NAME);
+				UI.getCurrent().getNavigator().navigateTo(CoverView.NAME);
 			} else
 				showSwitchBackToApp();
 		}
@@ -205,8 +202,6 @@ public class TutorialView extends CustomComponent implements View {
 			updateSlide();
 		} else {
 			if (getUI() instanceof MainUI) {
-				UI.getCurrent().getNavigator().removeView(TutorialView.NAME);
-				UI.getCurrent().getNavigator().addView(AppView.NAME, AppView.class);
 				UI.getCurrent().getNavigator().navigateTo(AppView.NAME);
 			} else
 				showSwitchBackToApp();

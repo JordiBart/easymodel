@@ -17,22 +17,19 @@ import cat.udl.easymodel.view.TutorialView;
 
 @Theme("easymodel")
 public class TutorialUI extends UI {
-	private static final long serialVersionUID = 5450243963241053258L;
-
-//	@WebServlet(urlPatterns = "/tutorial", name = "TutorialUIServlet", asyncSupported = true)
-//	@VaadinServletConfiguration(ui = TutorialUI.class, productionMode = true)
-//	public static class TutorialUIServlet extends VaadinServlet {
-//	}
+	@WebServlet(urlPatterns = "/tutorial-popup/*", name = "TutorialUIServlet", asyncSupported = true)
+	@VaadinServletConfiguration(ui = TutorialUI.class, productionMode = true)
+	
+	public static class TutorialUIServlet extends VaadinServlet {
+	}
 
 	@Override
 	protected void init(VaadinRequest request) {
-		getPage().setTitle("Tutorial");
+		getPage().setTitle(SharedData.appName+" Tutorial");
 		this.setNavigator(new Navigator(this, this));
-		this.getNavigator().addView(TutorialView.NAME, TutorialView.class);
-		this.getNavigator().navigateTo(TutorialView.NAME);
+		this.getNavigator().addView("", TutorialView.class);
+		
 		this.getNavigator().addViewChangeListener(new ViewChangeListener() {
-			private static final long serialVersionUID = 1L;
-
 			@Override
 			public void afterViewChange(ViewChangeEvent event) {
 				Notification.show("This tutorial has been opened in a new window", Type.WARNING_MESSAGE);

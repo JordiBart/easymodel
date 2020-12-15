@@ -1,0 +1,38 @@
+fSteadyState := Function[{isPrint},
+	ssri = 10^-32;
+	ssrf = 1;
+	maxTries=2;
+	isSteadyState = False;
+	SSSol=FindRoot[RateEqsAllSubs == 0, Table[{DepVarsWithT[[k1]], Random[Real, {ssri,ssrf}]}, {k1, 1, Length[DepVarsWithT]}]];
+	If[Select[RateEqsAllSubs /. SSSol, (Abs[#] > thresholdCondition) &] == {},
+		isSteadyState=True;
+	,(*else*)
+		newTime = 500000;
+		timesTried = 0;
+		While[timesTried < maxTries && !isSteadyState,
+			SSSolN = NDSolve[EqsToSolve, DepVars, {t, newTime-1, newTime+1}];
+			If[Select[Flatten[RateEqsAllSubs /. SSSolN /. {t->newTime}], (Abs[#] > thresholdCondition) &] == {},
+				SSSol = FindRoot[RateEqsAllSubs == 0, Table[{DepVarsWithT[[k1]], (DepVars[[k1]][newTime] /. SSSolN)[[1]]}, {k1, 1, Length[DepVarsWithT]}]];
+				If[Select[RateEqsAllSubs /. SSSol, (Abs[#] > thresholdCondition) &] == {},
+					isSteadyState = True;
+				];
+			];
+			newTime = newTime*2;
+			timesTried++;
+		];
+	];
+	(*result: typeSS and SSSol*)
+	If[isSteadyState,
+		If[Select[Re[Eigenvalues[Jac /. Join[ParNumVals, IndVarVals, SSSol]]], (# >= 0) &] != {},
+			If[isPrint,Print["MSG::WARNING: Unstable Steady State!"];];
+			typeSS="unstable";
+		,
+			If[isPrint,Print["MSG::Stable Steady State"];];
+			typeSS="stable";
+		];
+	,
+		If[isPrint,Print["MSG::System doesn't reach Steady State"];];
+		typeSS="notFound";
+	];
+];
+fSteadyState[True]

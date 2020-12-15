@@ -27,6 +27,7 @@ import cat.udl.easymodel.logic.formula.FormulaUtils;
 import cat.udl.easymodel.logic.model.Model;
 import cat.udl.easymodel.logic.types.FormulaType;
 import cat.udl.easymodel.main.SessionData;
+import cat.udl.easymodel.utils.p;
 
 public class FormulaEditWindow extends Window {
 
@@ -56,7 +57,7 @@ public class FormulaEditWindow extends Window {
 			this.setCaption("New Rate");
 		}
 
-		this.setData(new Boolean(false)); // for window close callback
+		this.setData(false); // for window close callback
 		this.setClosable(true);
 		this.setWidth("500px");
 		this.setHeight("500px");
@@ -86,8 +87,10 @@ public class FormulaEditWindow extends Window {
 
 			@Override
 			public void focus(FocusEvent event) {
-				if (isSaveAndClose)
-					saveAndClose();
+				if (isSaveAndClose) {
+					isSaveAndClose=false;
+					getOkButtonFunction();
+				}
 			}
 		});
 
@@ -210,10 +213,14 @@ public class FormulaEditWindow extends Window {
 
 	private void checkData() throws Exception {
 		if ("".equals(nameTF.getValue())) {
-			throw new Exception("Name can't be empty");
+			throw new Exception("Rate name can't be empty");
 		}
 		if (!FormulaUtils.isValid(definitionTF.getValue())) {
 			throw new Exception("Invalid Rate definition");
+		}
+		Formula searchFormula = selModel.getFormulas().getFormulaByName(nameTF.getValue());
+		if (searchFormula != null && searchFormula != formula) {
+			throw new Exception("Rate name is already in use");
 		}
 	}
 
@@ -234,7 +241,7 @@ public class FormulaEditWindow extends Window {
 		if (isNewFormula) {
 			selModel.getFormulas().addFormula(formula);
 		}
-		this.setData(new Boolean(true)); // for window close callback
+		this.setData(true); // for window close callback
 		close();
 	}
 
@@ -242,17 +249,19 @@ public class FormulaEditWindow extends Window {
 		Button button = new Button("Ok");
 		button.setId("okButton");
 		button.addClickListener(new Button.ClickListener() {
-			private static final long serialVersionUID = 1L;
-
 			public void buttonClick(ClickEvent event) {
-				try {
-					checkData();
-					saveAndClose();
-				} catch (Exception e) {
-					Notification.show(e.getMessage(), Type.WARNING_MESSAGE);
-				}
+				getOkButtonFunction();
 			}
 		});
 		return button;
+	}
+	
+	private void getOkButtonFunction(){
+		try {
+			checkData();
+			saveAndClose();
+		} catch (Exception e) {
+			Notification.show(e.getMessage(), Type.WARNING_MESSAGE);
+		}
 	}
 }

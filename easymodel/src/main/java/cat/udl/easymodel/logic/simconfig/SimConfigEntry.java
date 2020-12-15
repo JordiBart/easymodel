@@ -12,7 +12,7 @@ public class SimConfigEntry {
 	private String caption;
 	private String description;
 	private boolean mandatory=true;
-	private ValueRange valueRange = null;
+	private SimValueRange valueRange = null;
 
 	public SimConfigEntry(String id, Object value, InputType type, String caption, String description) {
 		this.id = id;
@@ -90,6 +90,6 @@ public class SimConfigEntry {
 	}
 
 	public void setValueRange(String min, String max) {
-		this.valueRange = new ValueRange(min, max);
+		this.valueRange = new SimValueRange(min, max);
 	}
 }

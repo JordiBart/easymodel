@@ -1,11 +1,27 @@
 package cat.udl.easymodel.utils.buffer;
 
-public interface MathBuffer {
+public class MathBuffer {
+	private StringBuffer buf;
 
-	void reset();
+	public MathBuffer() {
+		buf = new StringBuffer();
+	}
 
-	void addCommand(String com);
+	public void reset() {
+		buf.delete(0, buf.length());
+	}
 
-	String getString();
+	public void addCommand(String com) {
+		buf.append(com + ";\n");
+	}
 
+	public void addCommandRaw(String com) {
+		buf.append(com + "\n");
+	}
+	
+	public String getString() {
+		if (buf.length() - 1 >= 0)
+			buf.deleteCharAt(buf.length() - 1);
+		return buf.toString();
+	}
 }

@@ -6,8 +6,10 @@ import java.io.OutputStream;
 
 import com.vaadin.data.HasValue.ValueChangeEvent;
 import com.vaadin.data.HasValue.ValueChangeListener;
+import com.vaadin.icons.VaadinIcons;
 import com.vaadin.server.ErrorHandler;
 import com.vaadin.server.Page;
+import com.vaadin.server.SerializablePredicate;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
@@ -35,6 +37,7 @@ import cat.udl.easymodel.sbml.SBMLMan;
 import cat.udl.easymodel.utils.ToolboxVaadin;
 import cat.udl.easymodel.vcomponent.app.AppPanel;
 import cat.udl.easymodel.vcomponent.common.InfoWindow;
+import cat.udl.easymodel.vcomponent.common.InfoWindowButton;
 
 public class SelectModelRepositoryVL extends VerticalLayout {
 	private static final long serialVersionUID = 1L;
@@ -54,7 +57,7 @@ public class SelectModelRepositoryVL extends VerticalLayout {
 		this.selectModelListVL = sm;
 		this.sessionData = (SessionData) UI.getCurrent().getData();
 
-		this.setWidth("170px");
+		this.setWidth("200px");
 		this.setHeight("100%");
 		this.setSpacing(true);
 		this.setMargin(true);
@@ -77,7 +80,16 @@ public class SelectModelRepositoryVL extends VerticalLayout {
 
 	private RadioButtonGroup<RepositoryType> getPubPrivOptionGroup() {
 		RadioButtonGroup<RepositoryType> group = new RadioButtonGroup<>("Model Repository");
+		group.setIcon(VaadinIcons.DATABASE);
 		group.setItems(RepositoryType.PUBLIC, RepositoryType.PRIVATE);
+		group.setItemEnabledProvider(new SerializablePredicate<RepositoryType>() {
+			@Override
+			public boolean test(RepositoryType t) {
+				if (!sessionData.isUserSet() && t == RepositoryType.PRIVATE)
+					return false;
+				return true;
+			}
+		});
 		group.setItemCaptionGenerator(RepositoryType::getString);
 		group.addValueChangeListener(new ValueChangeListener<RepositoryType>() {
 			@Override
@@ -86,8 +98,8 @@ public class SelectModelRepositoryVL extends VerticalLayout {
 				selectModelListVL.update();
 			}
 		});
-		if (sessionData.getRepository() != null)
-			group.setSelectedItem(sessionData.getRepository());
+		if (sessionData.isUserSet())
+			group.setSelectedItem(RepositoryType.PRIVATE);
 		else
 			group.setSelectedItem(RepositoryType.PUBLIC);
 		return group;
@@ -102,12 +114,13 @@ public class SelectModelRepositoryVL extends VerticalLayout {
 		hl.setExpandRatio(spacer, 1f);
 		return hl;
 	}
+	
 	// SBML import
-
 	private Upload getUpload() {
 		Upload upload = new Upload("Import SBML file", getReceiver());
-		upload.setButtonCaption("Import SBML");
+		upload.setButtonCaption("Select SBML");
 		upload.setDescription("Import SBML model file");
+		upload.setIcon(VaadinIcons.FILE);
 		upload.setWidth("100%");
 		upload.addSucceededListener(getSucceededListener());
 		upload.addFailedListener(getFailedListener());
@@ -170,22 +183,13 @@ public class SelectModelRepositoryVL extends VerticalLayout {
 
 	// INFO
 	private Button getInfoButton() {
-		Button btn = new Button();
-		btn.setDescription("About repositories");
-		btn.setWidth("36px");
-		btn.setStyleName("infoBtn");
-		btn.addClickListener(new ClickListener() {
-			private static final long serialVersionUID = 1L;
-
-			public void buttonClick(ClickEvent event) {
-				sessionData.showInfoWindow("-Public repository: Public data. Changes won't be saved into database.\n"
+		return new InfoWindowButton("About repositories",
+				"-Public repository: Public data. Changes won't be saved into database.\n"
 						+ "-Private repository: Private user's data. Changes will be saved into database when model is validated. Private models will automatically become public after "
 						+ SharedData.getInstance().getProperties().getProperty("privateWeeks")
 						+ " weeks since last modification. To avoid publishing a model, please delete it before this time frame.\n"
 						+ "-Importing SBML model: Model will be imported but data won't be saved into database.\n"
-						+ "(Guest users can't save any data)\n", 800, 300);
-			}
-		});
-		return btn;
+						+ "(Guest users can't save any data)\n",
+				800, 300);
 	}
 }

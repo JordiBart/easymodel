@@ -78,8 +78,9 @@ public class InfoWindow extends Window {
 		});
 	}
 
-	public void updateContent(String message, int w, int h) {
+	public void updateContent(String tittle, String message, int w, int h) {
 		// reset position/size
+		this.setCaption(tittle);
 		this.setWindowMode(WindowMode.NORMAL);
 		this.setWidth(w + "px");
 		this.setHeight(h + "px");

@@ -17,13 +17,10 @@ import cat.udl.easymodel.utils.Utils;
 import cat.udl.easymodel.utils.p;
 
 public class Formulas extends ArrayList<Formula> {
-	private static final long serialVersionUID = 4969553820024899827L;
-
 	private FormulaType formulaType=null; // null: mixed types of formulas 
 	private Model model = null;
-//	private SessionData sessionData;
 	// dynamic data
-	private ArrayList<Integer> formulaIdsToDelete = new ArrayList<>();
+	private ArrayList<Integer> formulaIdsToDeleteFromDB = new ArrayList<>();
 
 	public Formulas(FormulaType ft) {
 		super();
@@ -36,14 +33,21 @@ public class Formulas extends ArrayList<Formula> {
 //		this.sessionData = (SessionData) UI.getCurrent().getData();
 		this.formulaType = FormulaType.MODEL;
 		this.model = model;
-
+	}
+	
+	public Formulas(Formulas from) {
+		super();
+		formulaType=from.getFormulaType(); 
+		model = null;
+		for (Formula f : from)
+			this.addFormula(new Formula(f));
 	}
 
 	public void reset() {
 		for (Formula f : this)
 			f.reset();
 		this.clear();
-		formulaIdsToDelete.clear();
+		formulaIdsToDeleteFromDB.clear();
 	}
 
 	public Model getModel() {
@@ -55,7 +59,7 @@ public class Formulas extends ArrayList<Formula> {
 	}
 
 	public boolean addFormula(Formula f) {
-		if (f != null) {
+		if (f != null && getFormulaByName(f.getNameRaw()) == null) {
 			boolean isDirty = f.isDirty();
 			f.setIdJava(this.size() + 1);
 			f.setModel(this.model);
@@ -68,7 +72,7 @@ public class Formulas extends ArrayList<Formula> {
 	public boolean removeFormula(Formula f) {
 		if (f != null && remove(f)) {
 			if (f.getId() != null)
-				formulaIdsToDelete.add(f.getId());
+				formulaIdsToDeleteFromDB.add(f.getId());
 			int i = 1;
 			for (Formula f2 : this)
 				f2.setIdJava(i++);
@@ -110,7 +114,7 @@ public class Formulas extends ArrayList<Formula> {
 				String relModel = f.getNameRaw().substring(0, splitIndex);
 				try {
 					num = Integer.valueOf(f.getNameRaw().substring(splitIndex + numSeparator.length()));
-					if (relModel.equals(modelShortName))
+					if (relModel.equals(modelShortName) && num>res)
 						res = num;
 				} catch (Exception e) {
 					continue;
@@ -139,10 +143,10 @@ public class Formulas extends ArrayList<Formula> {
 	 * only callable from a GENERIC type Formulas
 	 */
 	public void mergeGenericFormulasFrom(ArrayList<Formula> from) {
-		if (formulaType != FormulaType.GENERIC)
+		if (this.formulaType != FormulaType.GENERIC)
 			return;
 		for (Formula f1 : from) {
-			if (f1.getFormulaType() == FormulaType.PREDEFINED)
+			if (f1.getFormulaType() != FormulaType.MODEL || f1.getFormulaDef().contains(":"))
 				continue;
 			boolean found = false;
 			for (Formula f2 : this) {
@@ -154,16 +158,14 @@ public class Formulas extends ArrayList<Formula> {
 			if (!found) {
 				Formula f3 = new Formula(f1);
 //				System.out.println(f3.getFormulaType().toString());
-				if (f3.getFormulaType() == FormulaType.MODEL) {
-					f3.setName(getNextGenericFormulaName());
-					f3.setFormulaDef(f3.getGenericFormulaDef());
-				}
+				f3.setName(getNextGenericFormulaName());
+				f3.setFormulaDef(f3.getGenericFormulaDef());
 				f3.setId(null);
 				f3.setFormulaType(FormulaType.GENERIC);
 				f3.setModel(null);
 				f3.setDirty(true);
 				this.addFormula(f3);
-//				System.out.println(f3.getName());
+//				System.out.println(f1.getFormulaDef()+" -> "+f3.getFormulaDef());
 			}
 		}
 //		p.p("original: " + from.size() + " compacted: " + this.size());
@@ -215,7 +217,7 @@ public class Formulas extends ArrayList<Formula> {
 		int p;
 		try {
 			// DELETE USER DELETED FORMULAS
-			for (Integer idDel : formulaIdsToDelete) {
+			for (Integer idDel : formulaIdsToDeleteFromDB) {
 				pre2 = con.prepareStatement("DELETE FROM formula WHERE id=?");
 				pre2.setInt(1, idDel);
 				pre2.executeUpdate();

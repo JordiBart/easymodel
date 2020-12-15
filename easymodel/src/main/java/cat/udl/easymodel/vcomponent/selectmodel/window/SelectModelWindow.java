@@ -178,8 +178,8 @@ public class SelectModelWindow extends Window {
 
 			public void buttonClick(ClickEvent event) {
 				try {
-					if (sessionData.getUser().isGuest())
-						throw new Exception("Guest user cannot do this operation");
+					if (sessionData.getUser()==null)
+						throw new Exception("A user account is required for this operation");
 					if (modelListSelect.getValue() == null)
 						throw new Exception("Please select a model");
 					Model m = modelListSelect.getValue();
@@ -246,8 +246,8 @@ public class SelectModelWindow extends Window {
 
 			public void buttonClick(ClickEvent event) {
 				try {
-					if (sessionData.getUser().isGuest())
-						throw new Exception("Guest user cannot do this operation");
+					if (sessionData.getUser()==null)
+						throw new Exception("A user account is required for this operation");
 					if (modelListSelect.getValue() == null)
 						throw new Exception("Please select a model");
 					Model m = modelListSelect.getValue();

@@ -1,17 +1,26 @@
 package cat.udl.easymodel.main;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+
+import javax.servlet.http.Cookie;
+
 import com.vaadin.server.VaadinService;
 import com.vaadin.ui.UI;
+import com.wolfram.jlink.MathLinkException;
 
 import cat.udl.easymodel.controller.BioModelsLogs;
 import cat.udl.easymodel.logic.model.Model;
 import cat.udl.easymodel.logic.model.Models;
 import cat.udl.easymodel.logic.types.RepositoryType;
 import cat.udl.easymodel.logic.user.User;
+import cat.udl.easymodel.logic.user.UserCookie;
 import cat.udl.easymodel.mathlink.MathLinkOp;
 import cat.udl.easymodel.thread.SimulationCancelThread;
 import cat.udl.easymodel.thread.SimulationManagerThread;
+import cat.udl.easymodel.utils.ToolboxVaadin;
 import cat.udl.easymodel.utils.p;
+import cat.udl.easymodel.vcomponent.app.AppPanel;
 import cat.udl.easymodel.vcomponent.common.InfoWindow;
 import cat.udl.easymodel.vcomponent.results.OutVL;
 import cat.udl.easymodel.vcomponent.results.SimStatusHL;
@@ -21,11 +30,13 @@ public class SessionData {
 	private VaadinService vaadinService = null;
 	private BioModelsLogs bioModelsLogs = null;
 	private Models models = null;
-	private RepositoryType modelsRepo;
+	private RepositoryType modelsRepo = null;
 	private Model selectedModel;
 	private User user;
+	private UserCookie userCookie = null;
 	private InfoWindow infoWindow = null;
 	private OutVL outVL = null;
+	private AppPanel appPanel = null;
 	private SimStatusHL simStatusHL = null;
 	private MathLinkOp mathLinkOp = null;
 	private SimulationManagerThread simulationManager = null;
@@ -43,6 +54,7 @@ public class SessionData {
 		simStatusHL = new SimStatusHL(this);
 		infoWindow = new InfoWindow(this);
 		respawnSimulationManager();
+		loadUserFromCookies();
 	}
 
 	public void clear() {
@@ -51,16 +63,17 @@ public class SessionData {
 		setSelectedModel(null);
 		models.resetModels();
 		outVL.reset();
-		freeMathLinkOp();
+		closeMathLinkOp();
 		respawnSimulationManager();
-	}
-
-	public boolean isUserSet() {
-		return user != null;
+		userCookie = null;
 	}
 
 	public Models getModels() {
 		return models;
+	}
+
+	public boolean isUserSet() {
+		return user != null;
 	}
 
 	public User getUser() {
@@ -69,6 +82,45 @@ public class SessionData {
 
 	public void setUser(User user) {
 		this.user = user;
+
+		if (user != null) {
+			if (userCookie != null) {
+				userCookie.resetCookieValues();
+			} else {
+				userCookie = new UserCookie(user);
+				SharedData.getInstance().getUserCookies().add(userCookie);
+			}
+			userCookie.saveCookieInClient();
+		} else {
+			if (userCookie != null) {
+				userCookie.clearCookieInClient();
+				SharedData.getInstance().getUserCookies().remove(userCookie);
+			}
+		}
+	}
+
+	public void loadUserFromCookies() {
+		Cookie clientUserCookie = ToolboxVaadin.getClientCookieByName("user");
+		if (clientUserCookie != null && clientUserCookie.getValue() != null) {
+			String token = clientUserCookie.getValue();
+			for (UserCookie sharedDataUserCookie : SharedData.getInstance().getUserCookies()) {
+				if (sharedDataUserCookie.getToken().equals(token)) {
+					if (!sharedDataUserCookie.hasExpired()) {
+						setUserCookie(sharedDataUserCookie);
+						setUser(sharedDataUserCookie.getUser());
+					}
+					break;
+				}
+			}
+		}
+	}
+
+	public UserCookie getUserCookie() {
+		return userCookie;
+	}
+
+	public void setUserCookie(UserCookie userCookie) {
+		this.userCookie = userCookie;
 	}
 
 	public Model getSelectedModel() {
@@ -77,6 +129,7 @@ public class SessionData {
 
 	public void setSelectedModel(Model selectedModel) {
 		this.selectedModel = selectedModel;
+		closeMathLinkOp();
 	}
 
 	public RepositoryType getRepository() {
@@ -160,33 +213,43 @@ public class SessionData {
 		this.bioModelsLogs = bioModelsLogs;
 	}
 
-	public UI getUi() {
+	public UI getUI() {
 		return ui;
 	}
-///////////////////////////////////
-	public boolean loadMathLinkOpFromShared() {
-		if (mathLinkOp != null && mathLinkOp.isLocked())
-			return false;
-		this.mathLinkOp = SharedData.getInstance().getMathLinkArray().getFreeMathLink();
-		if (mathLinkOp != null)
-			mathLinkOp.getCustomPacketListener().setSessionData(this);
-		return (mathLinkOp != null);
-	}
 
+///////////////////////////////////
 	public MathLinkOp getMathLinkOp() {
 		return mathLinkOp;
 	}
 
-	public void freeMathLinkOp() {
-		if (mathLinkOp != null) {
-			mathLinkOp.resetMathLink();
-			mathLinkOp = null;
+	public boolean createMathLinkOp() {
+		if (mathLinkOp != null)
+			return false;
+		try {
+			MathLinkOp ml = new MathLinkOp();
+			ml.openMathLink();
+			ml.getCustomPacketListener().setSessionData(this);
+			mathLinkOp = ml;
+			SharedData.getInstance().getMathLinkArray().addMathLink(mathLinkOp);
+			return true;
+		} catch (Exception e) {
+			return false;
 		}
 	}
+
+	public void closeMathLinkOp() {
+		if (mathLinkOp != null) {
+			mathLinkOp.closeMathLink();
+			mathLinkOp = null;
+			SharedData.getInstance().getMathLinkArray().cleanMathLinks();
+		}
+	}
+
 ///////////////////////////////////
 	public void respawnSimulationManager() {
 		simulationManager = new SimulationManagerThread(this);
 	}
+
 	public boolean isSimulating() {
 		return this.simulationManager.isAlive();
 	}
@@ -195,10 +258,16 @@ public class SessionData {
 		this.simulationManager.start();
 	}
 
-	public void cancelSimulation() {
+	public void cancelSimulationByUser() {
 		if (isSimulating())
 			new SimulationCancelThread(this.simulationManager).start();
 	}
+
+	public void cancelSimulationByCode() {
+		if (isSimulating())
+			this.simulationManager.interrupt();
+	}
+
 ////////////////////////////////////
 	public SimStatusHL getSimStatusHL() {
 		return simStatusHL;
@@ -208,9 +277,9 @@ public class SessionData {
 		this.simStatusHL = simStatusHL;
 	}
 
-	public void showInfoWindow(String message, int w, int h) {
+	public void showInfoWindow(String tittle, String message, int w, int h) {
 		if (!infoWindow.isAttached()) {
-			infoWindow.updateContent(message, w, h);
+			infoWindow.updateContent(tittle, message, w, h);
 			UI.getCurrent().addWindow(infoWindow);
 			infoWindow.focus();
 		}
@@ -218,5 +287,13 @@ public class SessionData {
 
 	public VaadinService getVaadinService() {
 		return vaadinService;
+	}
+
+	public AppPanel getAppPanel() {
+		return appPanel;
+	}
+
+	public void setAppPanel(AppPanel appPanel) {
+		this.appPanel = appPanel;
 	}
 }

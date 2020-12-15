@@ -7,30 +7,24 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.vaadin.ui.UI;
 
 import cat.udl.easymodel.controller.ContextUtils;
-import cat.udl.easymodel.logic.model.FormulaArrayValue;
-import cat.udl.easymodel.logic.model.FormulaValue;
-import cat.udl.easymodel.logic.model.FormulaValueImpl;
 import cat.udl.easymodel.logic.model.Model;
 import cat.udl.easymodel.logic.model.Reaction;
-import cat.udl.easymodel.logic.model.Species;
 import cat.udl.easymodel.logic.types.FormulaElemType;
 import cat.udl.easymodel.logic.types.FormulaType;
 import cat.udl.easymodel.logic.types.FormulaValueType;
-import cat.udl.easymodel.logic.types.RepositoryType;
-import cat.udl.easymodel.logic.types.SpeciesVarTypeType;
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.utils.Utils;
+import cat.udl.easymodel.utils.p;
 
 public class Formula {
 
@@ -40,7 +34,7 @@ public class Formula {
 	private String formula;
 	private FormulaType formulaType;
 	private Model model;
-	private Map<String, FormulaValueType> genParams;
+	private Map<String, FormulaParameter> fParameters;
 
 	// DB related
 	private boolean isDBDelete;
@@ -68,18 +62,26 @@ public class Formula {
 
 	public Formula(Formula from) {
 		reset();
-		this.id = from.getId();
-		this.idJava = from.getIdJava();
-		this.name = from.getNameRaw();
-		this.setFormulaType(from.getFormulaType());
-		this.setModel(from.getModel());
-		this.setFormulaDef(from.getFormulaDef()); // parse
-		this.oneSubstrateOnly = from.isOneSubstrateOnly();
-		this.noProducts = from.isNoProducts();
-		this.oneModifierOnly = from.isOneModifierOnly();
-		this.genParams.putAll(from.getGenericParameters());
-		this.isDBDelete = from.isDBDelete();
-		this.setDirty(from.isDirty());
+		id = from.id;
+		idJava = from.idJava;
+		name = from.name;
+		formula=from.formula;
+		formulaType=from.formulaType;
+		model=from.model;
+		for (String key : from.fParameters.keySet())
+			fParameters.put(key, new FormulaParameter(from.fParameters.get(key)));
+		isDBDelete=from.isDBDelete;
+		isDirty=from.isDirty;
+		oneSubstrateOnly=from.oneSubstrateOnly;
+		noProducts=from.noProducts;
+		oneModifierOnly=from.oneModifierOnly;
+		loadedFormula=from.loadedFormula;
+		for (String key : from.keyWords)
+			keyWords.add(key);
+		for (FormulaElem key : from.formulaElements)
+			formulaElements.add(new FormulaElem(key));
+		for (String key : from.paramsBySubsAndModif)
+			paramsBySubsAndModif.add(key);
 	}
 
 	public void reset() {
@@ -90,7 +92,7 @@ public class Formula {
 		formula = "";
 		model = null;
 		keyWords = new ArrayList<>();
-		genParams = new LinkedHashMap<>();
+		fParameters = new LinkedHashMap<>();
 		formulaElements = new ArrayList<>();
 		paramsBySubsAndModif = new ArrayList<>();
 		formulaType = null;
@@ -104,28 +106,28 @@ public class Formula {
 	private void initGenericFormula() {
 		if (formulaType == FormulaType.PREDEFINED || formulaType == FormulaType.MODEL) {
 			if (getNameRaw().equals("Power Laws"))
-				setTypeOfGenericParameter("a", FormulaValueType.CONSTANT);
+				setTypeOfParameter("a", FormulaValueType.CONSTANT);
 			else if (getNameRaw().equals("Saturating Cooperative"))
-				setTypeOfGenericParameter("v", FormulaValueType.CONSTANT);
+				setTypeOfParameter("v", FormulaValueType.CONSTANT);
 			else if (getNameRaw().equals("Saturating"))
-				setTypeOfGenericParameter("v", FormulaValueType.CONSTANT);
+				setTypeOfParameter("v", FormulaValueType.CONSTANT);
 			else if (getNameRaw().equals("Mass action"))
-				setTypeOfGenericParameter("a", FormulaValueType.CONSTANT);
+				setTypeOfParameter("a", FormulaValueType.CONSTANT);
 			else if (getNameRaw().equals("Henri-Michaelis menten")) {
-				setTypeOfGenericParameter("v", FormulaValueType.CONSTANT);
-				setTypeOfGenericParameter("k", FormulaValueType.CONSTANT);
+				setTypeOfParameter("v", FormulaValueType.CONSTANT);
+				setTypeOfParameter("k", FormulaValueType.CONSTANT);
 			} else if (getNameRaw().equals("Hill Cooperativity")) {
-				setTypeOfGenericParameter("v", FormulaValueType.CONSTANT);
-				setTypeOfGenericParameter("n", FormulaValueType.CONSTANT);
-				setTypeOfGenericParameter("k", FormulaValueType.CONSTANT);
+				setTypeOfParameter("v", FormulaValueType.CONSTANT);
+				setTypeOfParameter("n", FormulaValueType.CONSTANT);
+				setTypeOfParameter("k", FormulaValueType.CONSTANT);
 			} else if (getNameRaw().equals("Catalytic activation")) {
-				setTypeOfGenericParameter("v", FormulaValueType.CONSTANT);
-				setTypeOfGenericParameter("k", FormulaValueType.CONSTANT);
-				setTypeOfGenericParameter("k2", FormulaValueType.CONSTANT);
+				setTypeOfParameter("v", FormulaValueType.CONSTANT);
+				setTypeOfParameter("k", FormulaValueType.CONSTANT);
+				setTypeOfParameter("k2", FormulaValueType.CONSTANT);
 			} else if (getNameRaw().equals("Competititve inhibition")) {
-				setTypeOfGenericParameter("v", FormulaValueType.CONSTANT);
-				setTypeOfGenericParameter("k", FormulaValueType.CONSTANT);
-				setTypeOfGenericParameter("k2", FormulaValueType.CONSTANT);
+				setTypeOfParameter("v", FormulaValueType.CONSTANT);
+				setTypeOfParameter("k", FormulaValueType.CONSTANT);
+				setTypeOfParameter("k2", FormulaValueType.CONSTANT);
 			}
 		}
 	}
@@ -156,9 +158,10 @@ public class Formula {
 //			return false;
 //		}
 
+		FormulaUtils formulaUtils = FormulaUtils.getInstance();
 		// get constants
 		formulaElements.clear();
-		genParams.clear();
+		fParameters.clear();
 		paramsBySubsAndModif.clear();
 		resetRestrictions();
 		String part = "";
@@ -168,14 +171,23 @@ public class Formula {
 				currentChar = String.valueOf(formula.charAt(i));
 			if (!currentChar.matches("\\w|:|\\.") || i == formula.length()) {
 				if (!part.isEmpty()) {
-					if (!part.matches(FormulaUtils.getInstance().getToNotParseRegEx())) {
+					if (!part.matches(formulaUtils.getToNotParseRegEx())) {
 						// var names
-						if (!formula.substring(i).matches("\\[\\[.+\\]\\].*")) {
-							genParams.put(part, null);
+						if (formula.substring(i).matches("\\[\\[.+\\]\\].*")) {
+							if (!paramsBySubsAndModif.contains(part)) {
+								paramsBySubsAndModif.add(part);
+								formulaElements.add(new FormulaElem(FormulaElemType.PARAMBYSUBSANDMODS, part));
+							}
+						} else {
+							// formula element
 							formulaElements.add(new FormulaElem(FormulaElemType.GENPARAM, part));
-						} else if (!paramsBySubsAndModif.contains(part)) {
-							paramsBySubsAndModif.add(part);
-							formulaElements.add(new FormulaElem(FormulaElemType.PARAMBYSUBSANDMODS, part));
+							// formula parameter properties
+							fParameters.put(part, new FormulaParameter(part));
+							Matcher powerMatcher = FormulaUtils.powerPattern.matcher(formula.substring(i));
+							if (powerMatcher.matches())
+								fParameters.get(part).setPower(powerMatcher.group(1));
+//							p.p("Power: "+fParameters.get(part).getPower());
+							// end power value
 						}
 					} else {
 						if (part.matches(FormulaUtils.realNumberRegex))
@@ -226,14 +238,15 @@ public class Formula {
 	}
 
 	public String getGenericFormulaDef() {
-		LinkedHashMap<String, String> genParamsMap = new LinkedHashMap<>();
+		LinkedHashMap<String, String> newParamsMap = new LinkedHashMap<>();
 		int numVars = 0, numKVars = 0, numExpVars = 0;
 		String newParName;
 		String lastOperator = null;
+		// fill newParamsMap
 		for (FormulaElem fe : getFormulaElements()) {
 			if (fe.getFormulaElemType() == FormulaElemType.OPERATOR) {
 				lastOperator = fe.getValue();
-			} else if (fe.getFormulaElemType() == FormulaElemType.GENPARAM && genParamsMap.get(fe.getValue()) == null) {
+			} else if (fe.getFormulaElemType() == FormulaElemType.GENPARAM && newParamsMap.get(fe.getValue()) == null) {
 				if ("^".equals(lastOperator)) {
 					numExpVars++;
 					newParName = "g" + numExpVars;
@@ -244,13 +257,14 @@ public class Formula {
 					numVars++;
 					newParName = "x" + numVars;
 				}
-				genParamsMap.put(fe.getValue(), newParName);
+				newParamsMap.put(fe.getValue(), newParName);
 			}
 		}
+		// create getGenericFormulaDef
 		String newFormulaDef = "";
 		for (FormulaElem fe : getFormulaElements()) {
 			if (fe.getFormulaElemType() == FormulaElemType.GENPARAM) {
-				newFormulaDef += genParamsMap.get(fe.getValue());
+				newFormulaDef += newParamsMap.get(fe.getValue());
 			} else
 				newFormulaDef += fe.getValue();
 		}
@@ -292,13 +306,13 @@ public class Formula {
 		this.parse();
 	}
 
-	public Map<String, FormulaValueType> getGenericParameters() {
-		return genParams;
+	public Map<String, FormulaParameter> getParameters() {
+		return fParameters;
 	}
 
-	public void setTypeOfGenericParameter(String genPar, FormulaValueType fvt) {
-		if (genParams.containsKey(genPar)) {
-			genParams.put(genPar, fvt);
+	public void setTypeOfParameter(String fPar, FormulaValueType fvt) {
+		if (fParameters.get(fPar) != null) {
+			fParameters.get(fPar).setForcedFormulaValueType(fvt);
 			setDirty(true);
 		}
 	}
@@ -489,7 +503,7 @@ public class Formula {
 			}
 			rs.close();
 			preparedStatement.close();
-			
+
 			setDirty(false);
 		} catch (SQLException e) {
 			System.err.println(e.getMessage());
@@ -548,7 +562,7 @@ public class Formula {
 				}
 				preparedStatement.close();
 			}
-			
+
 			setDirty(false);
 		} catch (SQLException e) {
 			System.err.println(e.getMessage());
@@ -582,7 +596,7 @@ public class Formula {
 				preparedStatement.setInt(1, f.getId());
 				preparedStatement.executeUpdate();
 				preparedStatement.close();
-				
+
 				f.reset();
 			} catch (SQLException e) {
 				System.err.println(e.getMessage());
