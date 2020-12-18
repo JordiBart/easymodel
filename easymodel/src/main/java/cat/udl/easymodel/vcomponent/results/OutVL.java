@@ -120,6 +120,7 @@ public class OutVL extends VerticalLayout {
 			public void run() {
 				gridLayout = new GridLayout(cols, (int) Math.ceil((float) numItems / (float) cols));
 				gridLayout.setSpacing(true);
+				gridLayout.setDefaultComponentAlignment(Alignment.TOP_LEFT);
 				globalThis.addComponent(gridLayout);
 			}
 		});

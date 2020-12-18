@@ -8,11 +8,13 @@ import com.vaadin.server.VaadinService;
 
 import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.utils.RandomString;
+import cat.udl.easymodel.utils.p;
 
 public class UserCookie {
 	private User user;
 	private String token;
 	private LocalDateTime lastAccess;
+	private final String cookieName="user";
 	
 	public UserCookie(User user) {
 		this.user=user;
@@ -46,19 +48,25 @@ public class UserCookie {
 	}
 	
 	public void saveCookieInClient() {
-		Cookie cookie = new Cookie("user", token);
+		Cookie cookie = new Cookie(cookieName, token);
 		cookie.setMaxAge((int) SharedData.userCookiesExpireDays * 24 * 60 * 60); // seconds
-		cookie.setPath(VaadinService.getCurrentRequest().getContextPath());
+		cookie.setPath(getContextPathFixed());
 		VaadinService.getCurrentResponse().addCookie(cookie);
 	}
 	public void clearCookieInClient() {
 		//clear cookie in client browser
-		Cookie cookie = new Cookie("user", "");
+		Cookie cookie = new Cookie(cookieName, "");
 		cookie.setMaxAge(1); // seconds
-		cookie.setPath(VaadinService.getCurrentRequest().getContextPath());
+		cookie.setPath(getContextPathFixed());
 		VaadinService.getCurrentResponse().addCookie(cookie);
 	}
 	public boolean hasExpired() {
 		return this.getLastAccess().plusDays(SharedData.userCookiesExpireDays).isBefore(LocalDateTime.now());
+	}
+	public String getContextPathFixed() {
+		String pathFromVaadin = VaadinService.getCurrentRequest().getContextPath();
+		if (pathFromVaadin == null || pathFromVaadin.equals(""))
+			return "/";
+		return pathFromVaadin;
 	}
 }

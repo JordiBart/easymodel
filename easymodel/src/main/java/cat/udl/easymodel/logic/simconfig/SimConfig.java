@@ -59,7 +59,7 @@ public class SimConfig {
 
 		steadyState.clear();
 		steadyState.add(new SimConfigEntry("Enable", false, InputType.CHECKBOX, "Enable", "Enable this simulation"));
-		steadyState.add(new SimConfigEntry("Threshold", "10^-30", InputType.MATHEXPRESSION, "Threshold",
+		steadyState.add(new SimConfigEntry("Threshold", "10^-12", InputType.MATHEXPRESSION, "Threshold",
 				"Threshold condition for the Steady State finding calculus. Low values results in a low tolerance against finding the Steady State."));
 		steadyState.add(new SimConfigEntry("Stability", false, InputType.CHECKBOX, "Stability analysis",
 				"Add further stability analysis to simulation"));
