@@ -15735,8 +15735,15 @@ div.v-layout.v-horizontal.v-widget {
 	font-size: 15px;
 }
 
-.easymodel .v-verticallayout.formulasVL {
+.easymodel .v-verticallayout-formulasVL {
 	padding: 5px 5px 5px 5px;
+}
+
+.easymodel .v-verticallayout-simHeaderVL {
+	padding: 5px 5px 5px 10px;
+	border: 1px solid #c5c5c5;
+	border-radius: 5px;
+	overflow: hidden;
 }
 
 .easymodel .v-verticallayout#outPanelConsoleVL {
@@ -15812,6 +15819,12 @@ div.v-layout.v-horizontal.v-widget {
 
 .easymodel .v-image.results {
 	box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.2);
+}
+
+.easymodel .v-image.results:hover {
+	cursor: pointer;
+	border: 1px solid #bcbcbc;
+	box-shadow: 0 0 10px 0 #7b7b7b;
 }
 
 .easymodel .v-verticallayout.resultsOuterPanel {
@@ -16003,8 +16016,8 @@ div.v-layout.v-horizontal.v-widget {
 	text-decoration: none;
 }
 
-.easymodel .v-button-contact {
-	background: transparent url(img/contactBtn.png);
+.easymodel .v-button-coverContact {
+	background: transparent url('img/contactBtn.png');
 	background-size: contain;
 	background-repeat: no-repeat;
 	background-position: center;
@@ -16016,7 +16029,41 @@ div.v-layout.v-horizontal.v-widget {
 	border-radius: 5px;
 }
 
-.easymodel .v-button-contact:after {
+.easymodel .v-button-coverContact:after {
+	content: none;
+}
+
+.easymodel .v-button-coverBrowserCompability {
+	background: transparent url('img/browserCompabilityBtn.png');
+	background-size: contain;
+	background-repeat: no-repeat;
+	background-position: center;
+	width: 40px;
+	height: 40px;
+	-webkit-box-shadow: none;
+	box-shadow: none;
+	border: solid #acadae 1px;
+	border-radius: 5px;
+}
+
+.easymodel .v-button-coverBrowserCompability:after {
+	content: none;
+}
+
+.easymodel .v-button-coverInfo {
+	background: transparent url('img/info.png');
+	background-size: contain;
+	background-repeat: no-repeat;
+	background-position: center;
+	width: 40px;
+	height: 40px;
+	-webkit-box-shadow: none;
+	box-shadow: none;
+	border: solid #acadae 1px;
+	border-radius: 5px;
+}
+
+.easymodel .v-button-coverInfo:after {
 	content: none;
 }
 
@@ -16160,15 +16207,14 @@ div.v-layout.v-horizontal.v-widget {
 	font-weight: 600;
 }
 
-.easymodel .v-verticallayout.simConfig {
+.easymodel .v-verticallayout-simConfig {
 	width: 100%;
 	max-width: 500px;
 }
 
-.easymodel .v-verticallayout.selectModel {
+.easymodel .v-verticallayout-panelBorder {
 	border: 1px solid #c5c5c5;
 	border-radius: 5px;
-	overflow: hidden;
 }
 
 .easymodel .v-horizontallayout-maxButton {

@@ -15,7 +15,6 @@ fGenPlotVals=Function[
 	prevIntTime=intTimeVals[[prevIntTimePos]];
 	nextIntTime=intTimeVals[[prevIntTimePos+1]];
 	For[plotTime = ti, plotTime <= tf, plotTime += tStep,
-		fUpdateProgressBar[plotTime,2];
 		(*update int time*)
 		While[plotTime>=nextIntTime,
 			prevIntTimePos++;
@@ -34,23 +33,29 @@ fGenPlotVals=Function[
 		];
 	];
 ];
-fUpdateProgressBar=Function[{curProgressAbs, stage},
-	tryProgress = Round[(curProgressAbs/progressStages[[stage]])*(1/Length[progressStages])+((stage-1)/Length[progressStages]), progressIncrement];
+fUpdateProgressBar=Function[{curProgressAbs},
+	tryProgress = Round[(curProgressAbs/progressTotalTime), progressIncrement];
 	If[tryProgress >= curProgress+progressIncrement,
 		curProgress = tryProgress;
 		Print["PGS::",stRep,":",curProgress];
 	];
 ];
 fFillProgressBar=Function[Print["PGS::",stRep,":1"];];
+fFillUntilTheEnd=Function[
+	fillTStep=(tf-ti)/1000;
+	While[stTime <= tf,
+		stTime += fillTStep;
+		fStAddDepVarStateToInternalList[stTime];
+	];
+];
 
 (*MAIN CODE*)
-cellSizeInv=1/cellSize;
 SMTransposed = Transpose[SM];
-RatesWJustDepVars = ReleaseHold[(Rates /. Join[SubsFormVars, ParVarVals, ParArrayInVars])]/.Join[ParNumVals, IndVarVals];
+RatesWJustDepVars = ReleaseHold[(Rates /. Join[SubsFormVars, ParVarVals, ParArrayInVars])] /. Join[ParNumVals, IndVarVals];
 DepVarsInitSubs = Table[DepVars[[i]] -> IntegerPart[InitCondDepVars[[i, 2]]*cellSize], {i,Length[DepVars]}];
 DepVarsInitVals = DepVars /. DepVarsInitSubs;
 RatesInitVals = RatesWJustDepVars /. DepVarsInitSubs;
-progressStages = {tf-ti,tf-ti};
+progressTotalTime = tf-ti;
 progressIncrement = 0.05;
 
 Catch[
@@ -64,6 +69,7 @@ If[Select[DepVarsInitVals, (# < 0) &] != {} || Select[RatesInitVals, (# < 0) &] 
 stInternalLists = Table[{}, {i, Length[DepVars]}];
 stPlotLists = Table[{}, {i, Length[DepVars]}];
 For[stRep = 1, stRep <= stochasticReps, stRep++,
+	$t0 = AbsoluteTime[];
 	intTimeVals = {};	intDepVals = {};
 	plotTimeVals = {};	plotDepVals = {};
 
@@ -74,17 +80,27 @@ For[stRep = 1, stRep <= stochasticReps, stRep++,
 	fStAddDepVarStateToInternalList[stTime];
 	curProgress=0;
 	While[stTime <= tf,
-		fUpdateProgressBar[stTime,1];
-		fireCandidates=Table[i, {i, numReactions}];
+		(*Print[stTime];*)
+		fUpdateProgressBar[stTime];
 		stSumRatesVals=Apply[Plus, stRatesVals];
+		If[stSumRatesVals==0,
+			fFillUntilTheEnd[];
+			Break[];
+		];
+		fireCandidates=Table[i, {i, numReactions}];
 		While[Length[fireCandidates] > 0,
 			(*select new random reaction*)
 			roundRatesVals = Extract[stRatesVals, Partition[fireCandidates,1]];
-			randomRoundSumRates = RandomReal[Apply[Plus,roundRatesVals]];
+			roundSumRatesVals=Apply[Plus,roundRatesVals];
+			If[roundSumRatesVals==0,
+				fireCandidates={};
+				Break[];
+			];
+			roundRandomSumRates = RandomReal[roundSumRatesVals];
 			curSum=0;
 			For[posInFireCandidates=1, posInFireCandidates < Length[roundRatesVals], posInFireCandidates++,
 				curSum += roundRatesVals[[posInFireCandidates]];
-				If[curSum > randomRoundSumRates,
+				If[curSum > roundRandomSumRates,
 					Break[];
 				];
 			];
@@ -107,14 +123,13 @@ For[stRep = 1, stRep <= stochasticReps, stRep++,
 			];
 		];
 		If[Length[fireCandidates] == 0,
-			(*cannot continue simulation, fill until the end*)
-			While[stTime <= tf,
-				stTime += (1/stSumRatesVals)*Log[1/RandomReal[{0.001,0.999}]];
-				fStAddDepVarStateToInternalList[stTime];
-			];
+			fFillUntilTheEnd[];
 			Break[];
 		];
 	];
+	fFillProgressBar[];
+	Print["GRSTST::",stRep,":",DecimalForm[AbsoluteTime[]-$t0,{Infinity,4}]];
+	(*wrap up values for plotting. this may take some extra time*)
 	(*append internal vals to general list*)
 	For[i = 1, i <= Length[DepVars], i++,
 		AppendTo[stInternalLists[[i]], TimeSeries[Transpose[intDepVals][[i]], {intTimeVals}]];
@@ -125,6 +140,5 @@ For[stRep = 1, stRep <= stochasticReps, stRep++,
 	For[i = 1, i <= Length[DepVars], i++,
 		AppendTo[stPlotLists[[i]], TimeSeries[Transpose[plotDepVals][[i]], {plotTimeVals}]];
 	];
-	fFillProgressBar[];
 ];
 ]

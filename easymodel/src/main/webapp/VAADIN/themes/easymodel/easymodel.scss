@@ -113,8 +113,14 @@
 		font-weight: 600;
 		font-size: 15px;
   	}
-  	.v-verticallayout.formulasVL {
+  	.v-verticallayout-formulasVL {
   		padding: 5px 5px 5px 5px;
+  	}
+  	.v-verticallayout-simHeaderVL {
+  		padding: 5px 5px 5px 10px;
+		border: 1px solid #c5c5c5;
+		border-radius:5px;
+		overflow: hidden;
   	}
 	.v-verticallayout#outPanelConsoleVL {
 		padding: 0px 5px 5px 5px;
@@ -187,6 +193,11 @@
 	//RESULTS***************************
 	.v-image.results {
 		box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.2);
+	}
+	.v-image.results:hover {
+		cursor: pointer;
+		border: 1px solid #bcbcbc;
+		box-shadow: 0 0 10px 0 rgb(123, 123, 123);
 	}
 	.v-verticallayout.resultsOuterPanel {
 		padding: 5px;
@@ -357,8 +368,8 @@
 		border-radius: 5px;
 		text-decoration: none;
 	}
-	.v-button-contact {
-		background: transparent url(img/contactBtn.png);
+	.v-button-coverContact {
+		background: transparent url('img/contactBtn.png');
 		background-size: contain;
 		background-repeat: no-repeat;
 		background-position: center;
@@ -369,7 +380,37 @@
 		border: solid #acadae 1px;
 		border-radius: 5px;
 	}
-	.v-button-contact:after {
+	.v-button-coverContact:after {
+		content: none;
+	}
+	.v-button-coverBrowserCompability {
+		background: transparent url('img/browserCompabilityBtn.png');
+		background-size: contain;
+		background-repeat: no-repeat;
+		background-position: center;
+		width: 40px;
+		height: 40px;
+    	-webkit-box-shadow: none;
+    	box-shadow: none;
+		border: solid #acadae 1px;
+		border-radius: 5px;
+	}
+	.v-button-coverBrowserCompability:after {
+		content: none;
+	}
+	.v-button-coverInfo {
+		background: transparent url('img/info.png');
+		background-size: contain;
+		background-repeat: no-repeat;
+		background-position: center;
+		width: 40px;
+		height: 40px;
+    	-webkit-box-shadow: none;
+    	box-shadow: none;
+		border: solid #acadae 1px;
+		border-radius: 5px;
+	}
+	.v-button-coverInfo:after {
 		content: none;
 	}
 	// STEPS ////////////////////////////////////////////
@@ -504,14 +545,13 @@
 		font-size: 15px;
 		font-weight: 600;	
 	}
-    .v-verticallayout.simConfig {
+    .v-verticallayout-simConfig {
     	width: 100%;
 	    max-width: 500px;
     }
-    .v-verticallayout.selectModel {
+	.v-verticallayout-panelBorder {
 		border: 1px solid #c5c5c5;
 		border-radius:5px;
-		overflow: hidden;
 	}
 	.v-horizontallayout-maxButton {
     	border: none;

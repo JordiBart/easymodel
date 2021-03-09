@@ -20,6 +20,7 @@ import com.vaadin.ui.VerticalLayout;
 import cat.udl.easymodel.utils.ByteArrayStreamSource;
 import cat.udl.easymodel.utils.DownFileStreamSource;
 import cat.udl.easymodel.utils.ToolboxVaadin;
+import cat.udl.easymodel.vcomponent.common.SpacedLabel;
 
 public class OutVL extends VerticalLayout {
 	private static final long serialVersionUID = 1L;
@@ -159,23 +160,37 @@ public class OutVL extends VerticalLayout {
 	}
 
 /////////////////////////////////
-	public void outNewStochasticGrid(Integer numIterations) {
+	public void outNewStochasticGrid(Integer numIterations, boolean isTauLeaping) {
 		this.ui.access(new Runnable() {
 			@Override
 			public void run() {
 				stProgressBars.clear();
-				GridLayout stGrid = new GridLayout(2, numIterations);
-				stGrid.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
-				stGrid.addStyleName("stochastic");
-				stGrid.setSpacing(true);
+				if (!isTauLeaping) {
+					gridForStochastic = new GridLayout(3, numIterations+1);
+					gridForStochastic.addComponent(new SpacedLabel("Iteration"));
+					gridForStochastic.addComponent(new SpacedLabel("Progress"));
+					gridForStochastic.addComponent(new SpacedLabel("Execution time (s)"));
+				}
+				else {
+					gridForStochastic = new GridLayout(5, numIterations+1);
+					gridForStochastic.addComponent(new SpacedLabel("Iteration"));
+					gridForStochastic.addComponent(new SpacedLabel("Progress"));
+					gridForStochastic.addComponent(new SpacedLabel("Execution time (s)"));
+					gridForStochastic.addComponent(new SpacedLabel("Total leaped time"));
+					gridForStochastic.addComponent(new SpacedLabel("Total leaps"));
+				}
+				gridForStochastic.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
+//				gridForStochastic.addStyleName("table");
+				gridForStochastic.setSpacing(false);
+				gridForStochastic.setMargin(false);
 				for (int i = 1; i <= numIterations; i++) {
-					stGrid.addComponent(new Label("Iteration " + i + " progress", ContentMode.TEXT));
+					gridForStochastic.addComponent(new SpacedLabel(String.valueOf(i)),0,i);
 					ProgressBar pb = new ProgressBar();
 					pb.setWidth("500px");
 					stProgressBars.add(pb);
-					stGrid.addComponent(pb);
+					gridForStochastic.addComponent(pb, 1, i);
 				}
-				globalThis.addComponent(stGrid);
+				globalThis.addComponent(gridForStochastic);
 			}
 		});
 	}
@@ -191,6 +206,12 @@ public class OutVL extends VerticalLayout {
 		});
 	}
 
+	public void updateStochasticStatistics(String[] vals) {
+		int row=Integer.valueOf(vals[0]);
+		for (int i=1;i<vals.length;i++) {
+			gridForStochastic.addComponent(new SpacedLabel(vals[i]),i+1,row);
+		}
+	}
 	////////////////////////////////
 	public void out(String filename, boolean addToGrid, byte[] imageArray, String imWidth) {
 		this.ui.access(new Runnable() {

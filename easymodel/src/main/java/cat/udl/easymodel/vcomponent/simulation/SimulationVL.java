@@ -27,8 +27,10 @@ import cat.udl.easymodel.logic.types.SimType;
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.utils.CException;
+import cat.udl.easymodel.utils.ToolboxVaadin;
 import cat.udl.easymodel.utils.p;
 import cat.udl.easymodel.vcomponent.app.AppPanel;
+import cat.udl.easymodel.vcomponent.common.SpacedLabel;
 
 public class SimulationVL extends VerticalLayout {
 	private SessionData sessionData;
@@ -63,6 +65,11 @@ public class SimulationVL extends VerticalLayout {
 		setSpacing(false);
 		setMargin(true);
 		setSizeFull();
+
+		VerticalLayout vl = new VerticalLayout();
+		vl.setSpacing(true);
+		vl.setMargin(false);
+		vl.setSizeFull();
 		
 		HorizontalLayout hl = new HorizontalLayout();
 		hl.setSpacing(true);
@@ -78,9 +85,16 @@ public class SimulationVL extends VerticalLayout {
 		conPanel.setSizeFull();
 		conPanel.setContent(conVL);
 		conPanel.getContent().setSizeUndefined();
-		hl.addComponents(new SimLeftMenuVL(this), conPanel);
+		
+		SimLeftMenuVL simLeftMenuVL = new SimLeftMenuVL(this);
+		
+		hl.addComponents(simLeftMenuVL, conPanel);
 		hl.setExpandRatio(conPanel, 1f);
-		this.addComponent(hl);
+		
+		VerticalLayout headerVL = getHeaderVL();
+		vl.addComponents(headerVL, hl);
+		vl.setExpandRatio(hl, 1f);
+		this.addComponent(vl);
 
 		updateConPanel();
 
@@ -122,6 +136,17 @@ public class SimulationVL extends VerticalLayout {
 //		this.setComponentAlignment(conPanel, Alignment.MIDDLE_CENTER);
 	}
 
+	private VerticalLayout getHeaderVL() {
+		VerticalLayout vl = new VerticalLayout();
+//		vl.setMargin(true);
+		vl.setSpacing(false);
+		vl.setWidth("100%");
+		vl.setHeight("38px");
+		vl.setStyleName("simHeaderVL");
+		vl.addComponent(ToolboxVaadin.getStyledLabel("Simulation configuration for "+selectedModel.getName(),"textH2"));
+		return vl;
+	}
+
 	void updateConPanel() {
 		conVL.removeAllComponents();
 		if (selectedModel.getSimConfig().getSimType() == SimType.DETERMINISTIC) {
@@ -131,7 +156,8 @@ public class SimulationVL extends VerticalLayout {
 			SimulationCtrl simCtrl = new SimulationCtrl(sessionData);
 			if (this.sessionData.createMathLinkOp()) {
 				try {
-					simCtrl.quickStochasticSimulationCheck();
+					boolean isTauLeapEfficient = simCtrl.quickStochasticSimulationCheck();
+					simStochasticVL.setTauLeapingCBValue(isTauLeapEfficient);
 				} catch (Exception e) {
 					// e.printStackTrace();
 					Notification.show(

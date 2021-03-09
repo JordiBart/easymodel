@@ -86,16 +86,17 @@ public class SimConfig {
 		entry = new SimConfigEntry("Tf", "100", InputType.DECIMAL, "Final time", "Simulation ending time");
 		entry.setValueRange("0", null);
 		stochastic.add(entry);
-		entry = new SimConfigEntry("TStep", "0.1", InputType.DECIMAL, "Time step", "Simulation stepping");
-		entry.setValueRange("0.000001", "100");
-		stochastic.add(entry);
-		entry = new SimConfigEntry("Iterations", "3", InputType.NATURAL, "Iterations",
-				"Number of stochastic iterations");
-		entry.setValueRange("1", null);
+//		entry = new SimConfigEntry("TStep", "0.1", InputType.DECIMAL, "Time step", "Simulation stepping");
+//		entry.setValueRange("0.000001", "100");
+//		stochastic.add(entry);
+//		entry = new SimConfigEntry("Iterations", new SimConfigSlider("3", "1", "10", 1),
+//				InputType.SLIDER, "Iterations", "Number of stochastic iterations");
+		entry = new SimConfigEntry("Iterations", "3", InputType.NATURAL, "Iterations","");
+		entry.setValueRange("1", "8");
 		stochastic.add(entry);
 		stochastic.add(new SimConfigEntry("CellSize", "Prokaryotic Cell", InputType.SELECT, "Cell size", "Cell size"));
-		stochastic.add(new SimConfigEntry("TauLeaping", false, InputType.CHECKBOX, "Use Tau-leaping optimization",
-				"Use Tau-Leaping optimization to speed up simulation time"));
+		stochastic.add(new SimConfigEntry("TauLeaping", false, InputType.CHECKBOX, "Use Tau-leaping method",
+				"Use Tau-Leaping optimization to speed up simulation time. Not all models can benefit from this feature."));
 	}
 
 	public void checkAndAdaptToSimulate(Model model) throws Exception {

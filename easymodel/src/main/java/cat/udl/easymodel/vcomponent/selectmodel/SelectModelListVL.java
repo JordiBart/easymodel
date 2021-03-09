@@ -52,7 +52,7 @@ public class SelectModelListVL extends VerticalLayout {
 		this.setSpacing(true);
 		this.setMargin(true);
 		this.setSizeFull();
-		this.setStyleName("selectModel");
+		this.setStyleName("panelBorder");
 		this.setDefaultComponentAlignment(Alignment.TOP_LEFT);
 
 		update();
@@ -90,7 +90,11 @@ public class SelectModelListVL extends VerticalLayout {
 		this.addComponent(contentVL);
 		this.addComponent(getFooterHL());
 		this.setExpandRatio(contentVL, 1.0f);
-
+		
+		tryFocus();
+	}
+	
+	public void tryFocus(){
 		if (modelListSelect.getValue() != null)
 			modelListSelect.focus();
 	}

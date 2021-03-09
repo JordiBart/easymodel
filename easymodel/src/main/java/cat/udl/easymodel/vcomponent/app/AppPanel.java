@@ -268,6 +268,7 @@ public class AppPanel extends Panel {
 				selectedButton = stepButtons.get("Select Model");
 				updateStepButtonsStyle();
 				conPanel.setContent(selectModelVL);
+				selectModelVL.tryFocus();
 			}
 		});
 		return btn;

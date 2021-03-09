@@ -43,6 +43,7 @@ public class SimStochasticVL extends VerticalLayout {
 	private SharedData sharedData = SharedData.getInstance();
 	private Accordion accordion;
 	private Button runSimBtn;
+	private CheckBox tauLeapingCB;
 
 	private Model selectedModel;
 	private SimConfig simConfig;
@@ -90,6 +91,8 @@ public class SimStochasticVL extends VerticalLayout {
 		for (SimConfigEntry en : simConfig.getStochastic()) {
 			comp = SimConfigToComponent.convert(en, null);
 			leftVL.addComponent(comp);
+			if (en.getId().equals("TauLeaping"))
+				tauLeapingCB = (CheckBox) comp;
 		}
 
 		VerticalLayout rightVL = new VerticalLayout();
@@ -119,6 +122,10 @@ public class SimStochasticVL extends VerticalLayout {
 		return mainVL;
 	}
 
+	public void setTauLeapingCBValue(boolean val) {
+		tauLeapingCB.setValue(val);
+	}
+	
 	private Button getInfoStochButton() {
 		return new InfoWindowButton("Stochastic simulation",
 				"Stochastic simulation calculates the number of molecules in your system at each time step.", 800, 200);

@@ -14,6 +14,7 @@ import cat.udl.easymodel.main.SharedData;
 public class MathPacketListenerOp implements PacketListener {
 	public static final String printPrefix = "MSG::";
 	public static final String percentagePrefix = "PGS::";
+	public static final String gridStochasticStatisticsPrefix = "GRSTST::";
 	public static final String gridCaptionPrefix = "GRCAP::";
 
 	private SessionData sessionData = null;
@@ -38,6 +39,9 @@ public class MathPacketListenerOp implements PacketListener {
 				} else if (msg.startsWith(percentagePrefix)) {
 					String vals[] = msg.substring(percentagePrefix.length()).split(":");
 					sessionData.getOutVL().updateStochasticProgressBar(Integer.valueOf(vals[0]), Float.valueOf(vals[1]));
+				} else if (msg.startsWith(gridStochasticStatisticsPrefix)) {
+					String vals[] = msg.substring(gridStochasticStatisticsPrefix.length()).split(":");
+					sessionData.getOutVL().updateStochasticStatistics(vals);
 				} else if (msg.startsWith(gridCaptionPrefix)) {
 						msg = mathPrintToOneLine(msg);
 						sessionData.getOutVL().setCaptionToGridLayout(msg.substring(gridCaptionPrefix.length()));

@@ -7,6 +7,7 @@ import cat.udl.easymodel.vcomponent.app.AppPanel;
 
 public class SelectModelVL extends VerticalLayout {
 	private static final long serialVersionUID = 1L;
+	private SelectModelListVL selectModelListVL;
 
 //	public AppIntroVL(ClickListener selectModelClickListener) {
 //		super();
@@ -37,9 +38,13 @@ public class SelectModelVL extends VerticalLayout {
 		hl.setSpacing(true);
 		hl.setMargin(false);
 		hl.setSizeFull();
-		SelectModelListVL sm = new SelectModelListVL(mainPanel);
-		hl.addComponents(new SelectModelRepositoryVL(mainPanel, sm), sm);
-		hl.setExpandRatio(sm, 1f);
+		selectModelListVL = new SelectModelListVL(mainPanel);
+		hl.addComponents(new SelectModelRepositoryVL(mainPanel, selectModelListVL), selectModelListVL);
+		hl.setExpandRatio(selectModelListVL, 1f);
 		this.addComponent(hl);
+	}
+
+	public void tryFocus() {
+		selectModelListVL.tryFocus();
 	}
 }

@@ -38,6 +38,8 @@ import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.utils.ToolboxVaadin;
 import cat.udl.easymodel.utils.p;
+import cat.udl.easymodel.vcomponent.login.AppInfoWindow;
+import cat.udl.easymodel.vcomponent.login.BrowserCompabilityWindow;
 import cat.udl.easymodel.vcomponent.login.ContactWindow;
 import cat.udl.easymodel.vcomponent.login.RegisterWindow;
 
@@ -101,6 +103,7 @@ public class CoverView extends CustomComponent implements View {
 			@Override
 			public void buttonClick(ClickEvent event) {
 				RegisterWindow registerWindow = getRegisterWindow();
+				ToolboxVaadin.removeAllWindows();
 				UI.getCurrent().addWindow(registerWindow);
 			}
 		});
@@ -166,7 +169,7 @@ public class CoverView extends CustomComponent implements View {
 		Label lbl = new Label();
 		lbl.setContentMode(ContentMode.HTML);
 		lbl.setValue(
-				"Welcome to "+SharedData.appName+", a user-friendly server for model building, simulation, and analysis in systems biology. Calculation core powered by webMathematica.");
+				"Welcome to "+SharedData.appName+", a user-friendly web server for model building, simulation, and analysis in systems biology. Calculus core powered by webMathematica.");
 		lbl.setWidth("440px");
 		lbl.setStyleName("coverAppDescription");
 		return lbl;
@@ -272,8 +275,8 @@ public class CoverView extends CustomComponent implements View {
 		hl.setSpacing(false);
 		hl.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
 
-		hl.addComponents(getUdlLink(), getWebMathematicaLink(), getSBMLLink(), getGitHubLink(), getContactButton(),
-				getCounterVL());
+		hl.addComponents(getUdlLink(), getWebMathematicaLink(), getSBMLLink(), getGitHubLink(), getBrowserCompatibilityButton(),
+				getContactButton(), getCounterVL());
 		vl.addComponents(hl);
 		return vl;
 	}
@@ -327,11 +330,40 @@ public class CoverView extends CustomComponent implements View {
 	private Component getContactButton() {
 		Button btn = new Button();
 		btn.setDescription("Contact us");
-		btn.setStyleName("contact");
+		btn.setStyleName("coverContact");
 		btn.addClickListener(new ClickListener() {
 			@Override
 			public void buttonClick(ClickEvent event) {
+				ToolboxVaadin.removeAllWindows();
 				UI.getCurrent().addWindow(new ContactWindow());
+			}
+		});
+		return btn;
+	}
+	
+	private Component getBrowserCompatibilityButton() {
+		Button btn = new Button();
+		btn.setDescription("Browser Compability");
+		btn.setStyleName("coverBrowserCompability");
+		btn.addClickListener(new ClickListener() {
+			@Override
+			public void buttonClick(ClickEvent event) {
+				ToolboxVaadin.removeAllWindows();
+				UI.getCurrent().addWindow(new BrowserCompabilityWindow());
+			}
+		});
+		return btn;
+	}
+	
+	private Component getInfoButton() {
+		Button btn = new Button();
+		btn.setDescription(SharedData.appName + " information");
+		btn.setStyleName("coverInfo");
+		btn.addClickListener(new ClickListener() {
+			@Override
+			public void buttonClick(ClickEvent event) {
+				ToolboxVaadin.removeAllWindows();
+				UI.getCurrent().addWindow(new AppInfoWindow());
 			}
 		});
 		return btn;

@@ -3,7 +3,7 @@
 
 (*parameters*)
 stEpsilon=0.03;
-minFiresToDeemReactionAsNonCritical = 10;
+minFiresToDeemReactionAsNonCritical=10;
 multipleTau1Par=10;
 abandonTauLeapingFiresPar=100;
 
@@ -12,7 +12,7 @@ fStAddDepVarStateToInternalList = Function[timeToStamp,
 	AppendTo[intTimeVals, timeToStamp];
 	AppendTo[intDepVals, stDepVarsVals];
 ];
-fGeneratePlotVals=Function[
+fGenPlotVals=Function[
 	plotDepVals= {}; plotTimeVals={};
 	If[Length[intTimeVals] == 0 || Last[intTimeVals] <= tf,
 		Return[];
@@ -21,7 +21,6 @@ fGeneratePlotVals=Function[
 	prevIntTime=intTimeVals[[prevIntTimePos]];
 	nextIntTime=intTimeVals[[prevIntTimePos+1]];
 	For[plotTime = ti, plotTime <= tf, plotTime += tStep,
-		fUpdateProgressBar[plotTime,2];
 		(*update int time*)
 		While[plotTime>=nextIntTime,
 			prevIntTimePos++;
@@ -33,8 +32,8 @@ fGeneratePlotVals=Function[
 		(*update plot depvarvals*)
 		If[MemberQ[intLeapTimes,nextIntTime],
 			(*tau leap: interpolation*)
-			curPercentage=(plotTime-prevIntTime)/(nextIntTime-prevIntTime);
-			AppendTo[plotDepVals, Round[intDepVals[[prevIntTimePos]]+curPercentage*(intDepVals[[prevIntTimePos+1]]-intDepVals[[prevIntTimePos]])]];
+			curProgress=(plotTime-prevIntTime)/(nextIntTime-prevIntTime);
+			AppendTo[plotDepVals, Round[intDepVals[[prevIntTimePos]]+curProgress*(intDepVals[[prevIntTimePos+1]]-intDepVals[[prevIntTimePos]])]];
 		,
 			(*ssa: no interpolation*)
 			diffPrev=plotTime-prevIntTime;
@@ -47,26 +46,23 @@ fGeneratePlotVals=Function[
 		];
 	];
 ];
-fGenerateStNewRatesVals = Function[
-	stNewDepVarsConc = stNewDepVarsVals*cellSizeInv;
-	stNewDepVarValsSubsZeroNegativeChecked = Table[DepVars[[i]] -> If[stNewDepVarsConc[[i]] > 0, stNewDepVarsConc[[i]], InitCondDepVars[[i, 2]]], {i, Length[DepVars]}];
-	stNewRatesVals = Re[RatesWJustDepVars /. stNewDepVarValsSubsZeroNegativeChecked];
-];
-fUpdateState = Function[
-	stDepVarsVals = stNewDepVarsVals;
-	stRatesVals = stNewRatesVals;
-];
-fUpdateProgressBar=Function[{curProgressAbs, stage},
-	tryProgress = Round[(curProgressAbs/progressStages[[stage]])*(1/Length[progressStages])+((stage-1)/Length[progressStages]), progressIncrement];
+fUpdateProgressBar=Function[{curProgressAbs},
+	tryProgress = Round[(curProgressAbs/progressTotalTime), progressIncrement];
 	If[tryProgress >= curProgress+progressIncrement,
 		curProgress = tryProgress;
 		Print["PGS::",stRep,":",curProgress];
 	];
 ];
 fFillProgressBar=Function[Print["PGS::",stRep,":1"];];
+fFillUntilTheEnd=Function[
+	fillTStep=(tf-ti)/1000;
+	While[stTime <= tf,
+		stTime += fillTStep;
+		fStAddDepVarStateToInternalList[stTime];
+	];
+];
 
 (*MAIN CODE*)
-cellSizeInv=1/cellSize;
 SMTransposed = Transpose[SM];
 RatesWJustDepVars = ReleaseHold[(Rates /. Join[SubsFormVars, ParVarVals, ParArrayInVars])] /. Join[ParNumVals, IndVarVals];
 (*step 0*)
@@ -105,7 +101,7 @@ For[i = 1, i <= Length[DepVars], i++,
 DepVarsInitSubs = Table[DepVars[[i]] -> IntegerPart[InitCondDepVars[[i, 2]]*cellSize], {i,Length[DepVars]}];
 DepVarsInitVals = DepVars /. DepVarsInitSubs;
 RatesInitVals = RatesWJustDepVars /. DepVarsInitSubs;
-progressStages = {tf-ti,tf-ti};
+progressTotalTime = tf-ti;
 progressIncrement = 0.05;
 
 Catch[
@@ -119,35 +115,43 @@ If[Select[DepVarsInitVals, (# < 0) &] != {} || Select[RatesInitVals, (# < 0) &] 
 stInternalLists = Table[{}, {i, Length[DepVars]}];
 stPlotLists = Table[{}, {i, Length[DepVars]}];
 For[stRep = 1, stRep <= stochasticReps, stRep++,
+	$t0 = AbsoluteTime[]; leapTimes=0; leapTotalTime=0;
 	intTimeVals = {}; intDepVals = {};
 	intLeapTimes = {};
 	
 	stDepVarsVals = DepVarsInitVals;
 	stRatesVals = RatesInitVals;
 	
-	stNumTries = 0;
 	stTime = ti;
 	fStAddDepVarStateToInternalList[stTime];
 	abandonTLCount=abandonTauLeapingFiresPar;
-	curPercentage=0;
+	curProgress=0;
 	While[stTime <= tf,
-		fUpdateProgressBar[stTime,1];
+		fUpdateProgressBar[stTime];
 		tauToUse="error";
 		stSumRatesVals = Apply[Plus, stRatesVals];
+		If[stSumRatesVals==0,
+			fFillUntilTheEnd[];
+			Break[];
+		];
 
 		If[abandonTLCount < abandonTauLeapingFiresPar,
 			(*classic SSA Gillespie*)
 			
-			tauToUse=(1/stSumRatesVals)*Log[1/RandomReal[{0.001,0.999}]];
 			fireCandidates=Table[i, {i, numReactions}];
 			While[Length[fireCandidates] > 0,
 				(*select new random reaction*)
 				roundRatesVals = Extract[stRatesVals, Partition[fireCandidates,1]];
-				randomRoundSumRates = RandomReal[Apply[Plus,roundRatesVals]];
+				roundSumRatesVals=Apply[Plus,roundRatesVals];
+				If[roundSumRatesVals==0,
+					fireCandidates={};
+					Break[];
+				];
+				roundRandomSumRates = RandomReal[roundSumRatesVals];
 				curSum=0;
 				For[posInCritReactions=1, posInCritReactions < Length[roundRatesVals], posInCritReactions++,
 					curSum += roundRatesVals[[posInCritReactions]];
-					If[curSum > randomRoundSumRates,
+					If[curSum > roundRandomSumRates,
 						Break[];
 					];
 				];
@@ -159,6 +163,7 @@ For[stRep = 1, stRep <= stochasticReps, stRep++,
 				
 				If[Select[stNewDepVarsVals, (# < 0) &] == {} && Select[stNewRatesVals, (# < 0) &] == {},
 					(*step validated, update values*)
+					tauToUse=(1/stSumRatesVals)*Log[1/RandomReal[{0.001,0.999}]];
 					stDepVarsVals = stNewDepVarsVals;
 					stRatesVals = stNewRatesVals;
 					stTime += tauToUse;
@@ -171,11 +176,7 @@ For[stRep = 1, stRep <= stochasticReps, stRep++,
 				];
 			];
 			If[Length[fireCandidates] == 0,
-				(*cannot continue simulation, fill until the end*)
-				While[stTime <= tf,
-					stTime += (1/stSumRatesVals)*Log[1/RandomReal[{0.001,0.999}]];
-					fStAddDepVarStateToInternalList[stTime];
-				];
+				fFillUntilTheEnd[];
 				abandonTLCount = abandonTauLeapingFiresPar;
 				Break[];
 			];
@@ -184,19 +185,18 @@ For[stRep = 1, stRep <= stochasticReps, stRep++,
 			(*step1 get criticalReactions and nonCriticalReactions*)
 			criticalReactions = {}; nonCriticalReactions = {};
 			For[j = 1, j <= numReactions, j++,
-				minVal = minFiresToDeemReactionAsNonCritical;
+				firesToDeplete = minFiresToDeemReactionAsNonCritical;
 				If[stRatesVals[[j]]>0,
 					For[i = 1, i <= numDepVars, i++,
 						If[SM[[i]][[j]] < 0,
 							floorVal = Floor[stDepVarsVals[[i]]/Abs[SM[[i]][[j]]]];
-							(*Print[floorVal];*)
-							If[floorVal < minVal,
-								minVal = floorVal;
+							If[floorVal < firesToDeplete,
+								firesToDeplete = floorVal;
 							];
 						];
 					];
 				];
-				If[minVal < minFiresToDeemReactionAsNonCritical,
+				If[firesToDeplete < minFiresToDeemReactionAsNonCritical,
 					AppendTo[criticalReactions, j];
 				,
 					AppendTo[nonCriticalReactions, j];
@@ -251,7 +251,7 @@ For[stRep = 1, stRep <= stochasticReps, stRep++,
 			While[True,
 				(*step3 check if Tau1 is valid*)
 				If[tau1NonCriticalReactions < multipleTau1Par/stSumRatesVals,
-					abandonTLCount=0; stNumTries = 0;
+					abandonTLCount=0;
 					(*Print["going ssa. tau1 too small"];*)
 					Break[];
 				,
@@ -264,7 +264,7 @@ For[stRep = 1, stRep <= stochasticReps, stRep++,
 					(*Print["tau1 ",tau1NonCriticalReactions," tau2 ", tau2CriticalReactions];*)
 					(*step5 select Tau1 or Tau2*)
 					If[tau1NonCriticalReactions==Infinity && tau2CriticalReactions==Infinity,
-						abandonTLCount=0; stNumTries = 0;
+						abandonTLCount=0;
 						(*Print["going ssa tau1=tau2=infinity"];*)
 						Break[];
 					];
@@ -310,12 +310,16 @@ For[stRep = 1, stRep <= stochasticReps, stRep++,
 					For[j = 1, j <= numReactions, j++,
 						stNewDepVarsVals += reactionFirings[[j]] * SMTransposed[[j]];
 					];
-					fGenerateStNewRatesVals[];
+					stNewDepVarsValsSubs = Table[DepVars[[i]]->stNewDepVarsVals[[i]], {i,Length[DepVars]}];
+					stNewRatesVals = Table[Check[RatesWJustDepVars[[i]]/.stNewDepVarsValsSubs, RatesInitVals[[i]]], {i, Length[RatesWJustDepVars]}];
 					
 					(*step 6. check there is no new negative depvar concentration or rate*)
 					If[Select[stNewDepVarsVals, (# < 0) &] == {} && Select[stNewRatesVals, (# < 0) &] == {},
 						(*Print["tau leap done. tau=",tauToUse," from time ",stTime];*)
-						fUpdateState[];
+						leapTimes++;
+						leapTotalTime+=tauToUse;
+						stDepVarsVals = stNewDepVarsVals;
+						stRatesVals = stNewRatesVals;
 						stTime += tauToUse;
 						fStAddDepVarStateToInternalList[stTime];
 						AppendTo[intLeapTimes, stTime];
@@ -323,7 +327,7 @@ For[stRep = 1, stRep <= stochasticReps, stRep++,
 					,
 						(*try to half tau1*)
 						If[tau1NonCriticalReactions==Infinity,
-							abandonTLCount=0; stNumTries = 0;
+							abandonTLCount=0;
 							(*Print["going ssa tau1=infinity"];*)
 							Break[];
 						,
@@ -336,16 +340,18 @@ For[stRep = 1, stRep <= stochasticReps, stRep++,
 			];
 		];
 	];
+	fFillProgressBar[];
+	Print["GRSTST::",stRep,":",DecimalForm[AbsoluteTime[]-$t0,{Infinity,4}],":",DecimalForm[leapTotalTime,{Infinity,4}],":", leapTimes];
+	(*wrap up values for plotting. this may take some extra time*)
 	(*append internal vals to general list*)
 	For[i = 1, i <= Length[DepVars], i++,
 		AppendTo[stInternalLists[[i]], TimeSeries[Transpose[intDepVals][[i]], {intTimeVals}]];
 	];
 	
-	fGeneratePlotVals[];
+	fGenPlotVals[];
 	(*append plot vals to general list*)
 	For[i = 1, i <= Length[DepVars], i++,
 		AppendTo[stPlotLists[[i]], TimeSeries[Transpose[plotDepVals][[i]], {plotTimeVals}]];
 	];
-	fFillProgressBar[];
 ];
 ]

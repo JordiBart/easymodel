@@ -8,8 +8,7 @@ public class SimConfigArray extends ArrayList<SimConfigEntry> {
 	public SimConfigArray() {
 		super();
 	}
-	
-//	@Override
+
 	public SimConfigEntry get(String id) {
 		SimConfigEntry res = null;
 		for (SimConfigEntry e : this) {

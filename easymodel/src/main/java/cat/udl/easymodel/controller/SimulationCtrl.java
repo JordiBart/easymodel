@@ -240,12 +240,13 @@ public class SimulationCtrl {
 		exportMathCommands.end();
 		outVL.out("Generated Files", "textH2");
 		outVL.outNewHorizontalLayout();
-		outVL.outFile("Mathematica Notebook", "Save the generated Mathematica Notebook for the simulation", m.getName() + ".nb",
+		outVL.outFile("Mathematica Notebook",
+				"Download the Mathematica Notebook including the model and the simulation", m.getName() + ".nb",
 				exportMathCommands.getString(), null, true);
 		if (SharedData.enableMathExecution) {
 			try {
 				generateSBML();
-				outVL.outFile("SBML", "Save the model converted to an SBML model file", m.getName() + ".xml",
+				outVL.outFile("SBML", "Download the SBML file including the model", m.getName() + ".xml",
 						sbmlDataString, null, true);
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -344,7 +345,7 @@ public class SimulationCtrl {
 	public void simulate() throws Exception {
 		this.mathLink = this.sessionData.getMathLinkOp();
 //		m = new Model(sessionData.getSelectedModel(), 0);
-		m =sessionData.getSelectedModel();
+		m = sessionData.getSelectedModel();
 		if (sharedData.isDebug())
 			startNanoTime = System.nanoTime();
 		executeInitMathCommands();
@@ -376,9 +377,9 @@ public class SimulationCtrl {
 			Utils.debug("Sim took " + ((double) ((System.nanoTime() - startNanoTime) / 1000000000d)) + "s");
 	}
 
-	public void quickStochasticSimulationCheck() throws Exception {
+	public boolean quickStochasticSimulationCheck() throws Exception {
 		if (!SharedData.enableMathExecution)
-			return;
+			return false;
 		this.mathLink = this.sessionData.getMathLinkOp();
 		if (sharedData.isDebug())
 			startNanoTime = System.nanoTime();
@@ -395,6 +396,7 @@ public class SimulationCtrl {
 			Utils.debug("QuickStSim took " + ((double) ((System.nanoTime() - startNanoTime) / 1000000000d)) + "s");
 		if (mathGetString("isModelOkForStochasticsSim").equals("False"))
 			throw new Exception("Model is not valid for stochastic simulation");
+		return mathGetString("isTauLeapingEffective").equals("True");
 	}
 
 	private void initDynamicSimulation() {
@@ -639,13 +641,9 @@ public class SimulationCtrl {
 		mathCommand = genContext + "RateEqsAllSubs = " + genContext + "RateEqsWithT /." + genContext + "ParNumVals/."
 				+ genContext + "IndVarVals";
 		bufferCommand(mathCommand);
-		mathCommand = "ToStringNumber[x0_] := Module[{num = N@x0},\r\n"
-				+ "	If[num > 10^6 || num < 10^-6,\r\n"
-				+ "		ToString@ScientificForm[num, 10, NumberFormat->(Row[{#1, \"e\", #3}] &)]\r\n"
-				+ "	,\r\n"
-				+ "		ToString@DecimalForm[num]\r\n"
-				+ "	]\r\n"
-				+ "]";
+		mathCommand = "ToStringNumber[x0_] := Module[{num = N@x0},\r\n" + "	If[num > 10^6 || num < 10^-6,\r\n"
+				+ "		ToString@ScientificForm[num, 10, NumberFormat->(Row[{#1, \"e\", #3}] &)]\r\n" + "	,\r\n"
+				+ "		ToString@DecimalForm[num]\r\n" + "	]\r\n" + "]";
 		bufferCommand(mathCommand);
 	}
 
@@ -700,8 +698,8 @@ public class SimulationCtrl {
 		}
 
 		mathCommand = "tableHeader={Join[{\"t\"}, DepVarsString]};\r\n" + "txtTable= Join[tableHeader,"
-				+ " Table[Join[{timeI}," + "   Table[N[DepVars[[i]][timeI] /. " + ndSolveVar
-				+ ",10], {i, Length[DepVars]}]], {timeI, ti, tf, tStep}]] // TableForm";
+				+ " Table[Join[{timeI},Table[ToStringNumber[DepVars[[i]][timeI] /. " + ndSolveVar
+				+ "], {i, Length[DepVars]}]], {timeI, ti, tf, tStep}]] // TableForm";
 		showTableTxtDownloadButton(mathCommand, "Download Dynamic Simulation Table", "dynamic-" + m.getName() + ".txt");
 	}
 
@@ -1052,14 +1050,11 @@ public class SimulationCtrl {
 				// scan task
 				for (ParamScanEntry entry : paramScanEntries) {
 					outVL.outNewGridLayout(2, m.getAllSpeciesTimeDependent().size());
-					mathCommand = "paramName="
-							+ entry.getMathematicaParamName() + ";\r\n"
-							+"paramType=\"" + entry.getType().getString() + "\";\r\n"
-							+"beginVal=" + entry.getBeginVal() + ";\r\n"
-							+ "endVal=" + entry.getEndVal() + ";\r\n"
-							+ "numIntervals = " + entry.getNumIntervals() + ";\r\n" 
-							+ "isLogarithmic=" + MathematicaUtils.java2Math(entry.isLogarithmic())+";\n"
-							+ "minLogVal="+MathematicaUtils.minLogVal;
+					mathCommand = "paramName=" + entry.getMathematicaParamName() + ";\r\n" + "paramType=\""
+							+ entry.getType().getString() + "\";\r\n" + "beginVal=" + entry.getBeginVal() + ";\r\n"
+							+ "endVal=" + entry.getEndVal() + ";\r\n" + "numIntervals = " + entry.getNumIntervals()
+							+ ";\r\n" + "isLogarithmic=" + MathematicaUtils.java2Math(entry.isLogarithmic()) + ";\n"
+							+ "minLogVal=" + MathematicaUtils.minLogVal;
 					bufferCommand(mathCommand);
 					bufferMathTxt("param-scan-dyn.txt");
 					executeMathBuffer();
@@ -1069,14 +1064,21 @@ public class SimulationCtrl {
 								+ "plotVar = StringDrop[ToString[Transpose[solsList][[" + i
 								+ ", All, 1]][[1]]], 2];\r\n"
 								+ "plotLegends = Table[ToString@ParamScanVals[[i,2,1]]<>\"=\"<>ToStringNumber@ParamScanVals[[i,2,2]], {i, Length@ParamScanVals}];\r\n"
-								+ " Plot[plotList, {t, ti, tf},"
-								+ "  LabelStyle -> {FontWeight -> "+((Boolean) simConfig.getPlotSettings().get("FontWeight").getValue() ? "Bold" : "Plain")+", FontSlant -> "+((Boolean) simConfig.getPlotSettings().get("FontSlant").getValue() ? "Italic" : "Plain")+", "
-								+ "    FontSize -> "+simConfig.getPlotSettings().get("FontSize").getValue()+"}, PlotLegends -> plotLegends, Axes -> False, "
-								+ "     Frame -> True, FrameTicks -> True, " + "  PlotStyle -> "
-								+ "   Table[{Dashing[0.03*(k1/Length[plotVars])], "
-								+ "     Thickness["+simConfig.getPlotSettings().get("LineThickness").getValue()+"]}, {k1, Length[plotVars]}], "
-								+ "     FrameLabel -> {\"t\", StringJoin[plotVar,\" (concentration)\"]}, "
-								+ "  PlotRange -> Full, ImageSize -> "+normalSize+"]";
+								+ "If[!isLogarithmic,Plot,LogLinearPlot][plotList, {t, ti, tf},"
+								+ "LabelStyle -> {FontWeight -> "
+								+ ((Boolean) simConfig.getPlotSettings().get("FontWeight").getValue() ? "Bold"
+										: "Plain")
+								+ ", FontSlant -> "
+								+ ((Boolean) simConfig.getPlotSettings().get("FontSlant").getValue() ? "Italic"
+										: "Plain")
+								+ ", " + "FontSize -> " + simConfig.getPlotSettings().get("FontSize").getValue()
+								+ "}, PlotLegends -> plotLegends, Axes -> False, "
+								+ "Frame -> True, FrameTicks -> {{True,False},{True,False}}, " + "  PlotStyle -> "
+								+ "Table[{Dashing[0.03*(k1/Length[plotVars])], " + "Thickness["
+								+ simConfig.getPlotSettings().get("LineThickness").getValue()
+								+ "]}, {k1, Length[plotVars]}], "
+								+ "FrameLabel -> {\"t\", StringJoin[plotVar,\" (concentration)\"]}, "
+								+ "PlotRange -> Full, ImageSize -> " + normalSize + "]";
 						showImageOfMathCmd(mathCommand, true, "dyn-par-scan-" + m.getName() + imageExtension,
 								imageWidthForResults);
 					}
@@ -1086,10 +1088,16 @@ public class SimulationCtrl {
 	}
 
 	private void stochasticSimulation() throws Exception {
+		Boolean isTauLeaping = (Boolean) simConfig.getStochastic().get("TauLeaping").getValue();
 		normalSize = (String) simConfig.getPlotSettings().get("ImageSize").getValue().toString();
-		outVL.out("Stochastic Simulation", "textH2");
-		outVL.outNewStochasticGrid(Integer.valueOf((String) simConfig.getStochastic().get("Iterations").getValue()));
-		if ((Boolean) simConfig.getStochastic().get("TauLeaping").getValue())
+		String head = "Stochastic Simulation";
+		if (isTauLeaping)
+			head += " (Tau-leaping method)";
+		else
+			head += " (SSA method)";
+		outVL.out(head, "textH2");
+		outVL.outNewStochasticGrid(Integer.valueOf((String) simConfig.getStochastic().get("Iterations").getValue()),isTauLeaping);
+		if (isTauLeaping)
 			stochasticTauLeaping();
 		else
 			stochasticClassic();
@@ -1098,7 +1106,7 @@ public class SimulationCtrl {
 	private void stochasticTauLeaping() throws Exception {
 		bufferCommand(genContext + "ti = " + (String) simConfig.getStochastic().get("Ti").getValue());
 		bufferCommand(genContext + "tf = " + (String) simConfig.getStochastic().get("Tf").getValue());
-		bufferCommand(genContext + "tStep = " + (String) simConfig.getStochastic().get("TStep").getValue());
+		bufferCommand("tStep = (tf-ti)/1000");
 		bufferCommand(
 				genContext + "stochasticReps = " + (String) simConfig.getStochastic().get("Iterations").getValue());
 		bufferCommand(genContext + "cellSize = " + String.valueOf(
@@ -1109,10 +1117,10 @@ public class SimulationCtrl {
 		if (SharedData.enableMathExecution
 				&& mathGetString("Catch[If[Length[stPlotLists] < 1,Throw[\"error\"]]]").equals("error"))
 			throw new CException("There was some error within the simulation procedure");
-		boolean isCalcNoise = SharedData.enableMathExecution
+		boolean isMoreThanOneIteration = SharedData.enableMathExecution
 				&& mathGetString("Catch[If[Dimensions[stPlotLists][[2]]>1,Throw[\"CalculateNoise\"]]]")
 						.equals("CalculateNoise");
-		if (isCalcNoise) {
+		if (isMoreThanOneIteration) {
 			bufferCommand(
 					"NoiseQ025=Table[TimeSeries[Quantile[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}],0.25],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
 			bufferCommand(
@@ -1133,7 +1141,7 @@ public class SimulationCtrl {
 		}
 		if (SharedData.enableMathExecution) {
 			Integer numPlotsByDepVars = Integer.valueOf(mathGetString("Length[stPlotLists]"));
-			plotStochasticSim(numPlotsByDepVars, isCalcNoise);
+			plotStochasticSim(numPlotsByDepVars, isMoreThanOneIteration);
 
 			mathCommand = "tableHeader = {Flatten[{\"t\"," + "    Table[Table["
 					+ "      DepVarsString[[k]] <> \"_\" <> ToString[k2], {k2, 1,"
@@ -1146,9 +1154,9 @@ public class SimulationCtrl {
 	}
 
 	private void stochasticClassic() throws Exception {
-		bufferCommand(genContext + "ti = " + (String) simConfig.getStochastic().get("Ti").getValue());
-		bufferCommand(genContext + "tf = " + (String) simConfig.getStochastic().get("Tf").getValue());
-		bufferCommand(genContext + "tStep = " + (String) simConfig.getStochastic().get("TStep").getValue());
+		bufferCommand("ti = " + (String) simConfig.getStochastic().get("Ti").getValue());
+		bufferCommand("tf = " + (String) simConfig.getStochastic().get("Tf").getValue());
+		bufferCommand("tStep = (tf-ti)/1000");
 		bufferCommand(
 				genContext + "stochasticReps = " + (String) simConfig.getStochastic().get("Iterations").getValue());
 		bufferCommand(genContext + "cellSize = " + String.valueOf(
@@ -1190,15 +1198,16 @@ public class SimulationCtrl {
 		showTableTxtDownloadButton(mathCommand, "Download Simulation Table", "stochastic-" + m.getName() + ".txt");
 	}
 
-	private void plotStochasticSim(Integer numPlotsByDepVars, boolean isNoiseCalculated) throws Exception {
-		bufferCommand("Print[\"" + MathPacketListenerOp.printPrefix + "Plotting graphics...\"];");
-		executeMathBuffer();
-		ArrayList<String> depVarList = m.getDepVarArrayList();
-		for (int i = 1; i <= numPlotsByDepVars; i++) {
-			outVL.outNewGridLayout(2, 3);
-			executeListLinePlot("stPlotLists[[" + i + "]]", "\"t\"", "\"# Molecules \"<>DepVarsString[[" + i + "]]",
-					"{}", "stoch-" + depVarList.get(i - 1) + "-" + m.getName() + imageExtension);
-			if (isNoiseCalculated) {
+	private void plotStochasticSim(Integer numPlotsByDepVars, boolean isMoreThanOneIteration) throws Exception {
+		if (isMoreThanOneIteration) {
+			bufferCommand("Print[\"" + MathPacketListenerOp.printPrefix + "Plotting graphics...\"];");
+			executeMathBuffer();
+			ArrayList<String> depVarList = m.getDepVarArrayList();
+			for (int i = 1; i <= numPlotsByDepVars; i++) {
+				outVL.outNewGridLayout(2, 3);
+				outVL.setCaptionToGridLayout("Graphics related to: " + depVarList.get(i - 1));
+				executeListLinePlot("stPlotLists[[" + i + "]]", "\"t\"", "\"# Molecules \"<>DepVarsString[[" + i + "]]",
+						"{}", "stoch-" + depVarList.get(i - 1) + "-" + m.getName() + imageExtension);
 				executeListLinePlot("{NoiseQ025[[" + i + "]],NoiseMedian[[" + i + "]],NoiseQ075[[" + i + "]]}", "\"t\"",
 						"\"# Molecules \"<>DepVarsString[[" + i + "]]",
 						"Placed[{Style[\"Quantile_0.25\",FontSize->12], Style[\"Median\",FontSize->12], Style[\"Quantile_0.75\",FontSize->12]},Below]",
@@ -1209,6 +1218,12 @@ public class SimulationCtrl {
 						"Placed[{Style[\"Parametric [\\[Sigma]/\\[Mu]]\", FontSize->12], Style[\"Non parametric [(Quantile_0.75-Quantile_0.25)/Median]\", FontSize->12]}, Below]",
 						"stoch-var-" + depVarList.get(i - 1) + "-" + m.getName() + imageExtension);
 			}
+		} else {
+			bufferCommand("Print[\"" + MathPacketListenerOp.printPrefix + "Plotting graphic...\"];");
+			executeMathBuffer();
+			outVL.outNewGridLayout(1, 1);
+			executeListLinePlot("Flatten@stPlotLists", "\"t\"", "\"# Molecules \"",
+					"Table[DepVarsString[[i]],{i,Length@DepVarsString}]", "stoch-" + m.getName() + imageExtension);
 		}
 	}
 
@@ -1384,33 +1399,37 @@ public class SimulationCtrl {
 				// scan task
 				for (ParamScanEntry entry : paramScanEntries) {
 					outVL.outNewGridLayout(2, m.getAllSpeciesTimeDependent().size());
-					mathCommand = "paramName="
-							+ entry.getMathematicaParamName() + ";\r\n"
-							+"paramType=\"" + entry.getType().getString() + "\";\r\n"
-							+"beginVal=" + entry.getBeginVal() + ";\r\n"
-							+ "endVal=" + entry.getEndVal() + ";\r\n"
-							+ "numIntervals = " + entry.getNumIntervals() + ";\r\n" 
-							+ "isLogarithmic=" + MathematicaUtils.java2Math(entry.isLogarithmic())+";\n"
-							+ "minLogVal="+MathematicaUtils.minLogVal;
+					mathCommand = "paramName=" + entry.getMathematicaParamName() + ";\r\n" + "paramType=\""
+							+ entry.getType().getString() + "\";\r\n" + "beginVal=" + entry.getBeginVal() + ";\r\n"
+							+ "endVal=" + entry.getEndVal() + ";\r\n" + "numIntervals = " + entry.getNumIntervals()
+							+ ";\r\n" + "isLogarithmic=" + MathematicaUtils.java2Math(entry.isLogarithmic()) + ";\n"
+							+ "minLogVal=" + MathematicaUtils.minLogVal;
 					bufferCommand(mathCommand);
 					bufferMathTxt("param-scan-steady-state.txt");
 					executeMathBuffer();
 					if ("False".equals(mathGetString("isEmptyResults"))) {
 						for (int i = 1; i <= m.getAllSpeciesTimeDependent().size(); i++) {
 							mathCommand = "plotLegends = {\"Stable Steady State\", \"Unstable Steady State\"};\n"
-									+ "ListPlot[{stablePoints[["+i+"]], unstablePoints[["+i+"]]}, "
-									+ "LabelStyle -> {FontWeight -> "+((Boolean) simConfig.getPlotSettings().get("FontWeight").getValue() ? "Bold" : "Plain")+", FontSlant -> " + ((Boolean) simConfig.getPlotSettings().get("FontSlant").getValue() ? "Italic" : "Plain")+", "
-									+ "FontSize -> "+simConfig.getPlotSettings().get("FontSize").getValue()+"}, PlotLegends -> plotLegends, Axes -> False, "
-									+ "Frame -> True, FrameTicks -> True, "
+									+ "If[!isLogarithmic,ListPlot,ListLogLinearPlot][{stablePoints[[" + i
+									+ "]], unstablePoints[[" + i + "]]}, " + "LabelStyle -> {FontWeight -> "
+									+ ((Boolean) simConfig.getPlotSettings().get("FontWeight").getValue() ? "Bold"
+											: "Plain")
+									+ ", FontSlant -> "
+									+ ((Boolean) simConfig.getPlotSettings().get("FontSlant").getValue() ? "Italic"
+											: "Plain")
+									+ ", " + "FontSize -> " + simConfig.getPlotSettings().get("FontSize").getValue()
+									+ "}, PlotLegends -> plotLegends, Axes -> False, "
+									+ "Frame -> True, FrameTicks -> {{True,False},{True,False}}, "
 									+ "PlotStyle -> {RGBColor[0.18, 0.63, 1], Hue[0, 0.54, 1]}, "
-									+ "FrameLabel -> {ToString[paramName], "
-									+ "DepVarsString[["+i+"]] <> \" (concentration)\"}, PlotRange -> Full, "
-									+ "ImageSize -> "+normalSize+"]";
+									+ "FrameLabel -> {ToString[paramName], " + "DepVarsString[[" + i
+									+ "]] <> \" (concentration)\"}, PlotRange -> Full, " + "ImageSize -> " + normalSize
+									+ "]";
 							showImageOfMathCmd(mathCommand, true, "ss-par-scan-" + m.getName() + imageExtension,
 									imageWidthForResults);
 						}
 					} else {
-						outVL.addToGridLayout(new Label("No Steady States found for "+entry.getMathematicaParamName()));
+						outVL.addToGridLayout(
+								new Label("No Steady States found for " + entry.getMathematicaParamName()));
 					}
 				}
 			}

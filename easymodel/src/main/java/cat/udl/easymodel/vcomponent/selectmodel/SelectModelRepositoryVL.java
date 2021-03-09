@@ -61,7 +61,8 @@ public class SelectModelRepositoryVL extends VerticalLayout {
 		this.setHeight("100%");
 		this.setSpacing(true);
 		this.setMargin(true);
-		this.setStyleName("selectModel");
+		this.addStyleName("panelBorder");
+		this.addStyleName("v-scrollable");
 		this.setDefaultComponentAlignment(Alignment.TOP_LEFT);
 
 		update();
