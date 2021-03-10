@@ -52,7 +52,7 @@ numMolIndVar=IntegerPart[Apply[Plus,IndVarVals[[All, 2]]]*cellSize];
 If[numMolIndVar > 0 && (numMolIndVar < 4 || numMolIndVar >= 1500000),
 	Throw["sum of indvarvals"];
 ];
-If[Select[DepVarsInitVals, (# < 0) &] != {} || Select[RatesInitVals, (# < 0) &] != {},
+If[Select[DepVarsInitVals, (# < 0) &] != {} || Select[RatesInitVals, (# < 0) &] != {} || Apply[Plus, RatesInitVals] <= 0,
 	Throw["init depvarvals or ratevals"];
 ];
 leapTimes=0; leapTotalTime=0;
@@ -67,10 +67,6 @@ isSimError=False;
 For[testSteps=0, testSteps<totalTestSteps, testSteps++,
 	tauToUse="error";
 	stSumRatesVals = Apply[Plus, stRatesVals];
-	If[stSumRatesVals==0,
-		isSimError=True;
-		Break[];
-	];
 
 	If[abandonTLCount < abandonTauLeapingFiresPar,
 		(*classic SSA Gillespie*)
@@ -79,12 +75,7 @@ For[testSteps=0, testSteps<totalTestSteps, testSteps++,
 		While[Length[fireCandidates] > 0,
 			(*select new random reaction*)
 			roundRatesVals = Extract[stRatesVals, Partition[fireCandidates,1]];
-			roundSumRatesVals=Apply[Plus,roundRatesVals];
-			If[roundSumRatesVals==0,
-				fireCandidates={};
-				Break[];
-			];
-			roundRandomSumRates = RandomReal[roundSumRatesVals];
+			roundRandomSumRates = RandomReal[Apply[Plus,roundRatesVals]];
 			curSum=0;
 			For[posInCritReactions=1, posInCritReactions < Length[roundRatesVals], posInCritReactions++,
 				curSum += roundRatesVals[[posInCritReactions]];
@@ -98,7 +89,7 @@ For[testSteps=0, testSteps<totalTestSteps, testSteps++,
 			stNewDepVarsValsSubs = Table[DepVars[[i]]->stNewDepVarsVals[[i]], {i,Length[DepVars]}];
 			stNewRatesVals = Table[Check[RatesWJustDepVars[[i]]/.stNewDepVarsValsSubs, RatesInitVals[[i]]], {i, Length[RatesWJustDepVars]}];
 			
-			If[Select[stNewDepVarsVals, (# < 0) &] == {} && Select[stNewRatesVals, (# < 0) &] == {},
+			If[Select[stNewDepVarsVals, (# < 0) &] == {} && Select[stNewRatesVals, (# < 0) &] == {} && Apply[Plus, stNewRatesVals] > 0,
 				(*step validated, update values*)
 				tauToUse=(1/stSumRatesVals)*Log[1/RandomReal[{0.001,0.999}]];
 				stDepVarsVals = stNewDepVarsVals;
@@ -249,7 +240,7 @@ For[testSteps=0, testSteps<totalTestSteps, testSteps++,
 				stNewRatesVals = Table[Check[RatesWJustDepVars[[i]]/.stNewDepVarsValsSubs, RatesInitVals[[i]]], {i, Length[RatesWJustDepVars]}];
 				
 				(*step 6. check there is no new negative depvar concentration or rate*)
-				If[Select[stNewDepVarsVals, (# < 0) &] == {} && Select[stNewRatesVals, (# < 0) &] == {},
+				If[Select[stNewDepVarsVals, (# < 0) &] == {} && Select[stNewRatesVals, (# < 0) &] == {} && Apply[Plus, stNewRatesVals] > 0,
 					(*Print["tau leap done. tau=",tauToUse];*)
 					leapTimes++;
 					leapTotalTime+=tauToUse;

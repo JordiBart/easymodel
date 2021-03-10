@@ -63,7 +63,7 @@ numMolIndVar=IntegerPart[Apply[Plus,IndVarVals[[All, 2]]]*cellSize];
 If[numMolIndVar > 0 && (numMolIndVar < 4 || numMolIndVar >= 1500000),
 	Throw["sum of indvarvals"];
 ];
-If[Select[DepVarsInitVals, (# < 0) &] != {} || Select[RatesInitVals, (# < 0) &] != {},
+If[Select[DepVarsInitVals, (# < 0) &] != {} || Select[RatesInitVals, (# < 0) &] != {} || Apply[Plus, RatesInitVals] <= 0,
 	Throw["init depvarvals or ratevals"];
 ];
 stInternalLists = Table[{}, {i, Length[DepVars]}];
@@ -83,20 +83,12 @@ For[stRep = 1, stRep <= stochasticReps, stRep++,
 		(*Print[stTime];*)
 		fUpdateProgressBar[stTime];
 		stSumRatesVals=Apply[Plus, stRatesVals];
-		If[stSumRatesVals==0,
-			fFillUntilTheEnd[];
-			Break[];
-		];
+
 		fireCandidates=Table[i, {i, numReactions}];
 		While[Length[fireCandidates] > 0,
 			(*select new random reaction*)
 			roundRatesVals = Extract[stRatesVals, Partition[fireCandidates,1]];
-			roundSumRatesVals=Apply[Plus,roundRatesVals];
-			If[roundSumRatesVals==0,
-				fireCandidates={};
-				Break[];
-			];
-			roundRandomSumRates = RandomReal[roundSumRatesVals];
+			roundRandomSumRates = RandomReal[Apply[Plus,roundRatesVals]];
 			curSum=0;
 			For[posInFireCandidates=1, posInFireCandidates < Length[roundRatesVals], posInFireCandidates++,
 				curSum += roundRatesVals[[posInFireCandidates]];
@@ -110,7 +102,7 @@ For[stRep = 1, stRep <= stochasticReps, stRep++,
 			stNewDepVarsValsSubs = Table[DepVars[[i]]->stNewDepVarsVals[[i]], {i,Length[DepVars]}];
 			stNewRatesVals = Table[Check[RatesWJustDepVars[[i]]/.stNewDepVarsValsSubs, RatesInitVals[[i]]], {i, Length[RatesWJustDepVars]}];
 			
-			If[Select[stNewDepVarsVals, (# < 0) &] == {} && Select[stNewRatesVals, (# < 0) &] == {},
+			If[Select[stNewDepVarsVals, (# < 0) &] == {} && Select[stNewRatesVals, (# < 0) &] == {} && Apply[Plus, stNewRatesVals] > 0,
 				(*step validated, update values*)
 				stDepVarsVals = stNewDepVarsVals;
 				stRatesVals = stNewRatesVals;
