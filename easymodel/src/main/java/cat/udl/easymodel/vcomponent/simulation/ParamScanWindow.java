@@ -156,7 +156,7 @@ public class ParamScanWindow extends Window {
 			tf.setDescription("Begin Value");
 			tf.setValue(String.valueOf(entry.getBeginVal() != null ? entry.getBeginVal() : ""));
 			tf.addBlurListener(event -> {
-				BeginAndEndValBlurFunction(entry, tf, true);
+				beginAndEndValBlur(entry, tf, true);
 			});
 			return tf;
 		}, new ComponentRenderer()).setCaption("Begin Value").setWidth(200);
@@ -168,7 +168,7 @@ public class ParamScanWindow extends Window {
 			tf.setDescription("End Value");
 			tf.setValue(String.valueOf(entry.getEndVal() != null ? entry.getEndVal() : ""));
 			tf.addBlurListener(event -> {
-				BeginAndEndValBlurFunction(entry, tf, false);
+				beginAndEndValBlur(entry, tf, false);
 			});
 			return tf;
 		}, new ComponentRenderer()).setCaption("End Value").setWidth(200);
@@ -180,31 +180,28 @@ public class ParamScanWindow extends Window {
 			tf.setDescription("Number of intervals to simulate between begin and end values");
 			tf.setValue(String.valueOf(entry.getNumIntervals() != null ? entry.getNumIntervals() : ""));
 			tf.addBlurListener(event -> {
-				try {
-					String newValStr = Utils.evalMathExpr(tf.getValue());
-					Integer newValInt = Integer.valueOf(newValStr);
-					if (newValInt < 1)
-						throw new Exception("invalid");
-					entry.setNumIntervals(newValStr);
-					tf.setValue(newValStr);
-				} catch (Exception e) {
-					entry.setNumIntervals(null);
-					tf.setValue("");
-				}
+				numIntervalsBlur(entry, tf);
 			});
 			return tf;
 		}, new ComponentRenderer()).setCaption("#Intervals").setWidth(150);
 
 		grid.addColumn(entry -> {
 			CheckBox cb = new CheckBox();
+			cb.setValue(entry.isLogarithmic());
 			cb.addValueChangeListener(event -> {
 				entry.setLogarithmic(event.getValue());
 				if (event.getValue()) {
-					BeginAndEndValBlurFunction(entry, beginValTFMap.get(entry), true);
-					BeginAndEndValBlurFunction(entry, endValTFMap.get(entry), false);
+					TextField beginValTF = beginValTFMap.get(entry);
+					TextField endValTF= endValTFMap.get(entry);
+					TextField numIntervalsTF=numIntervalsTFMap.get(entry);
+					beginValTF.setValue("0.00001");
+					endValTF.setValue("100");
+					numIntervalsTF.setValue("7");
+					beginAndEndValBlur(entry, beginValTF, true);
+					beginAndEndValBlur(entry, endValTF, false);
+					numIntervalsBlur(entry, numIntervalsTF);
 				}
 			});
-			cb.setValue(entry.isLogarithmic());
 			return cb;
 		}, new ComponentRenderer()).setCaption("Logarithmic").setWidth(150);
 		// select loaded items
@@ -212,7 +209,21 @@ public class ParamScanWindow extends Window {
 			grid.select(gridEntry);
 	}
 
-	private void BeginAndEndValBlurFunction(ParamScanEntry entry, TextField tf, boolean isBeginVal) {
+	private void numIntervalsBlur(ParamScanEntry entry, TextField tf) {
+		try {
+			String newValStr = Utils.evalMathExpr(tf.getValue());
+			Integer newValInt = Integer.valueOf(newValStr);
+			if (newValInt < 1)
+				throw new Exception("invalid");
+			entry.setNumIntervals(newValStr);
+			tf.setValue(newValStr);
+		} catch (Exception e) {
+			entry.setNumIntervals(null);
+			tf.setValue("");
+		}
+	}
+	
+	private void beginAndEndValBlur(ParamScanEntry entry, TextField tf, boolean isBeginVal) {
 		try {
 			String newValStr = Utils.evalMathExpr(tf.getValue());
 			if (entry.isLogarithmic()) {

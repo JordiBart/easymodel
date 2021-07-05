@@ -1,3 +1,4 @@
+(*WHEN MAKING CHANGES HERE, MAKE SURE TO UPDATE PARAM SCAN STEADY STATE*)
 fSteadyState := Function[{isPrint},
 	ssri = 10^-32;
 	ssrf = 1;

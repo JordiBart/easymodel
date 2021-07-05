@@ -13,6 +13,7 @@ public class SimConfigEntry {
 	private String description;
 	private boolean mandatory=true;
 	private SimValueRange valueRange = null;
+	private boolean isEnabled = true;
 
 	public SimConfigEntry(String id, Object value, InputType type, String caption, String description) {
 		this.id = id;
@@ -91,5 +92,13 @@ public class SimConfigEntry {
 
 	public void setValueRange(String min, String max) {
 		this.valueRange = new SimValueRange(min, max);
+	}
+
+	public boolean isEnabled() {
+		return isEnabled;
+	}
+
+	public void setEnabled(boolean isEnabled) {
+		this.isEnabled = isEnabled;
 	}
 }

@@ -15,10 +15,14 @@ import com.vaadin.ui.UI;
 import cat.udl.easymodel.main.SessionData;
 
 public class SimStatusHL extends HorizontalLayout {
+	public enum SimStatusType {
+		FINISH, RUNNING, CANCELLING, ERROR;
+	}
+
 	private static final long serialVersionUID = -7149743614255788036L;
 	private SessionData sessionData;
+	private SimStatusType simState = SimStatusType.FINISH;
 	private UI ui;
-	private boolean isCancelBtnClicked = false;
 
 	public SimStatusHL(SessionData sessionData) {
 		super();
@@ -35,6 +39,7 @@ public class SimStatusHL extends HorizontalLayout {
 		ui.access(new Runnable() {
 			@Override
 			public void run() {
+				simState = SimStatusType.ERROR;
 				removeAllComponents();
 				setStyleName("resultsStatusError");
 				Label statusLabel = new Label("Simulation error: " + errorMsg);
@@ -50,6 +55,7 @@ public class SimStatusHL extends HorizontalLayout {
 		ui.access(new Runnable() {
 			@Override
 			public void run() {
+				simState = SimStatusType.FINISH;
 				removeAllComponents();
 				setStyleName("resultsStatusFinish");
 				Label statusLabel = new Label("Simulation finished");
@@ -65,7 +71,8 @@ public class SimStatusHL extends HorizontalLayout {
 		ui.access(new Runnable() {
 			@Override
 			public void run() {
-				isCancelBtnClicked = false;
+//				isCancelBtnClicked = false;
+				simState = SimStatusType.RUNNING;
 				removeAllComponents();
 				setStyleName("resultsStatusRunning");
 				Label statusLabel = new Label("Running simulation, please wait");
@@ -77,13 +84,7 @@ public class SimStatusHL extends HorizontalLayout {
 				cancelBtn.addClickListener(new ClickListener() {
 					@Override
 					public void buttonClick(ClickEvent event) {
-						if (sessionData.isSimulating()) {
-							if (!isCancelBtnClicked) {
-								isCancelBtnClicked = true;
-								cancelling();
-								sessionData.cancelSimulationByUser();
-							}
-						}
+						sessionData.getSimulationManager().cancelSimulationByUser();
 					}
 				});
 				FileResource resource = new FileResource(
@@ -98,25 +99,30 @@ public class SimStatusHL extends HorizontalLayout {
 		});
 	}
 
-	public void cancelling() {
-//		sessionData.getUI().getSession().lock();
-		ui.access(new Runnable() {
-			@Override
-			public void run() {
-				removeAllComponents();
-				setStyleName("resultsStatusRunning");
-				Label statusLabel = new Label("Cancelling");
-				statusLabel.setStyleName("resultsStatus");
-				FileResource resource = new FileResource(
-						new File(sessionData.getVaadinService().getBaseDirectory().getAbsolutePath()
-								+ "/VAADIN/themes/easymodel/img/runningSim.png"));
-				Image dots = new Image(null, resource);
-				dots.setHeight("25px");
-				HorizontalLayout spacer = new HorizontalLayout();
-				addComponents(statusLabel, dots, spacer);
-				setExpandRatio(spacer, 1f);
-			}
-		});
-//		sessionData.getUI().getSession().unlock();
+//	public void cancelling() {
+////		sessionData.getUI().getSession().lock();
+//		ui.access(new Runnable() {
+//			@Override
+//			public void run() {
+//				simState = SimStatusType.CANCELLING;
+//				removeAllComponents();
+//				setStyleName("resultsStatusRunning");
+//				Label statusLabel = new Label("Cancelling");
+//				statusLabel.setStyleName("resultsStatus");
+//				FileResource resource = new FileResource(
+//						new File(sessionData.getVaadinService().getBaseDirectory().getAbsolutePath()
+//								+ "/VAADIN/themes/easymodel/img/runningSim.png"));
+//				Image dots = new Image(null, resource);
+//				dots.setHeight("25px");
+//				HorizontalLayout spacer = new HorizontalLayout();
+//				addComponents(statusLabel, dots, spacer);
+//				setExpandRatio(spacer, 1f);
+//			}
+//		});
+////		sessionData.getUI().getSession().unlock();
+//	}
+
+	public SimStatusType getSimState() {
+		return simState;
 	}
 }

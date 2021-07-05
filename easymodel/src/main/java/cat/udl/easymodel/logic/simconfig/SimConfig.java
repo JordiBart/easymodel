@@ -72,7 +72,7 @@ public class SimConfig {
 		plotConfig.add(new SimConfigEntry("LineThickness", new SimConfigSlider("0.006", "1", "10", 1000),
 				InputType.SLIDER, "Line Thickness", "Plot line thickness"));
 		plotConfig.add(new SimConfigEntry("FontFamily", "Arial", InputType.STRING, "Font Family", null));
-		plotConfig.add(new SimConfigEntry("FontSize", new SimConfigSlider("14", "10", "24", 1), InputType.SLIDER,
+		plotConfig.add(new SimConfigEntry("FontSize", new SimConfigSlider("18", "10", "24", 1), InputType.SLIDER,
 				"Font Size", null));
 		plotConfig.add(new SimConfigEntry("FontWeight", true, InputType.CHECKBOX, "Font Bold", null)); // Bold
 		plotConfig.add(new SimConfigEntry("FontSlant", false, InputType.CHECKBOX, "Font Italic", null)); // "Plain");
@@ -82,6 +82,7 @@ public class SimConfig {
 		stochastic.clear();
 		entry = new SimConfigEntry("Ti", "0", InputType.DECIMAL, "Initial time", "Simulation starting time");
 		entry.setValueRange("0", null);
+		entry.setEnabled(false);
 		stochastic.add(entry);
 		entry = new SimConfigEntry("Tf", "100", InputType.DECIMAL, "Final time", "Simulation ending time");
 		entry.setValueRange("0", null);

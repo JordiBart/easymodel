@@ -1,24 +1,18 @@
 package cat.udl.easymodel.vcomponent.simulation;
 
-import com.vaadin.server.Resource;
-import com.vaadin.server.ThemeResource;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
-import com.vaadin.ui.MenuBar.Command;
-import com.vaadin.ui.MenuBar.MenuItem;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
-import com.vaadin.ui.MenuBar;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.Panel;
 import com.vaadin.ui.PopupView;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
-import com.wolfram.jlink.MathLinkException;
 
 import cat.udl.easymodel.controller.SimulationCtrl;
 import cat.udl.easymodel.logic.model.Model;
@@ -28,14 +22,13 @@ import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.utils.CException;
 import cat.udl.easymodel.utils.ToolboxVaadin;
-import cat.udl.easymodel.utils.p;
 import cat.udl.easymodel.vcomponent.app.AppPanel;
-import cat.udl.easymodel.vcomponent.common.SpacedLabel;
 
 public class SimulationVL extends VerticalLayout {
 	private SessionData sessionData;
 	private SharedData sharedData = SharedData.getInstance();
 	private Panel conPanel;
+	private SimLeftMenuVL simLeftMenuVL;
 	private VerticalLayout conVL;
 	private SimDeterministicVL simDeterministicVL;
 	private SimStochasticVL simStochasticVL;
@@ -70,7 +63,7 @@ public class SimulationVL extends VerticalLayout {
 		vl.setSpacing(true);
 		vl.setMargin(false);
 		vl.setSizeFull();
-		
+
 		HorizontalLayout hl = new HorizontalLayout();
 		hl.setSpacing(true);
 		hl.setMargin(false);
@@ -85,12 +78,12 @@ public class SimulationVL extends VerticalLayout {
 		conPanel.setSizeFull();
 		conPanel.setContent(conVL);
 		conPanel.getContent().setSizeUndefined();
-		
-		SimLeftMenuVL simLeftMenuVL = new SimLeftMenuVL(this);
-		
+
+		simLeftMenuVL = new SimLeftMenuVL(this);
+
 		hl.addComponents(simLeftMenuVL, conPanel);
 		hl.setExpandRatio(conPanel, 1f);
-		
+
 		VerticalLayout headerVL = getHeaderVL();
 		vl.addComponents(headerVL, hl);
 		vl.setExpandRatio(hl, 1f);
@@ -143,29 +136,33 @@ public class SimulationVL extends VerticalLayout {
 		vl.setWidth("100%");
 		vl.setHeight("38px");
 		vl.setStyleName("simHeaderVL");
-		vl.addComponent(ToolboxVaadin.getStyledLabel("Simulation configuration for "+selectedModel.getName(),"textH2"));
+		vl.addComponent(
+				ToolboxVaadin.getStyledLabel("Simulation configuration for " + selectedModel.getName(), "textH2"));
 		return vl;
 	}
 
 	void updateConPanel() {
 		conVL.removeAllComponents();
 		if (selectedModel.getSimConfig().getSimType() == SimType.DETERMINISTIC) {
+			simLeftMenuVL.setEnableRunButton(true);
 			conVL.addComponent(simDeterministicVL);
 		} else if (selectedModel.getSimConfig().getSimType() == SimType.STOCHASTIC) {
-//			boolean stochasticCheck = new QuickStochasticMathematicaCheck(sessionData).checkStochastic();
 			SimulationCtrl simCtrl = new SimulationCtrl(sessionData);
-			if (this.sessionData.createMathLinkOp()) {
-				try {
-					boolean isTauLeapEfficient = simCtrl.quickStochasticSimulationCheck();
-					simStochasticVL.setTauLeapingCBValue(isTauLeapEfficient);
-				} catch (Exception e) {
-					// e.printStackTrace();
+			try {
+				sessionData.respawnMathLinkOp();
+				boolean isTauLeapEfficient = simCtrl.quickStochasticSimulationCheck();
+				simStochasticVL.setTauLeapingCBValue(isTauLeapEfficient);
+				simLeftMenuVL.setEnableRunButton(true);
+			} catch (Exception e) {
+				// e.printStackTrace();
+				if (sessionData.getMathLinkOp() != null) {
+					simLeftMenuVL.setEnableRunButton(false);
 					Notification.show(
 							"This model isn't supported for stochastic simulation with the current parameters",
 							Type.WARNING_MESSAGE);
-				} finally {
-					sessionData.closeMathLinkOp();
 				}
+			} finally {
+				sessionData.closeMathLinkOp();
 			}
 			conVL.addComponent(simStochasticVL);
 		}

@@ -1,0 +1,48 @@
+If[!isLogarithmic,
+	scanStepSize=Abs[endVal-beginVal]/numIntervals;
+	ParamScanVals = Table[(paramName->_)->(paramName->x),{x,beginVal,endVal,scanStepSize}];
+,
+	lBeginVal=If[Log10@Abs@beginVal < minLogVal, minLogVal, Log10@Abs@beginVal];
+	lEndVal=If[Log10@Abs@endVal < minLogVal, minLogVal, Log10@Abs@endVal];
+	If[lBeginVal>lEndVal,
+		aux=lBeginVal;
+		lBeginVal=lEndVal;
+		lEndVal=aux;
+	];
+	lDiff=Abs[lEndVal-lBeginVal];
+	originalSign=If[beginVal < 0 || endVal < 0,-1,1];
+	ParamScanVals=Table[(paramName->_)->(paramName->originalSign*(10^(lBeginVal+x))),{x,0, lDiff, lDiff/numIntervals}];
+];
+Print["GRCAP::",paramType,"=",paramName," ; Scanning Range=[",ToStringNumber@beginVal,", ",ToStringNumber@endVal,"] ; #Intervals=",numIntervals," ; Step Size=",If[!isLogarithmic,ToStringNumber@scanStepSize,"Logarithmic"]];
+
+stablePoints = Table[{}, {i, Length@DepVars}];
+unstablePoints = Table[{}, {i, Length@DepVars}];
+For[iScan = 1, iScan <= Length@ParamScanVals, iScan++,
+	RateEqsAllSubs = RateEqsWithT /. (Join[ParNumVals, IndVarVals] /. ParamScanVals[[iScan]]);
+	fSteadyState[False];
+	Switch[typeSS
+	,"stable",
+		For[i = 1, i <= Length@DepVars, i++, AppendTo[stablePoints[[i]], {ParamScanVals[[iScan, 2, 2]], SSSol[[i, 2]]}];];
+	,"unstable",
+		For[i = 1, i <= Length@DepVars, i++, AppendTo[unstablePoints[[i]], {ParamScanVals[[iScan, 2, 2]], SSSol[[i, 2]]}];];
+	];
+];
+(*check if there are any results*)
+isEmptyResults=True;
+For[i = 1, i <= Length@stablePoints, i++,
+	If[Length[stablePoints[[i]]] == 0,
+		stablePoints[[i]] = {Null};
+	,
+		isEmptyResults=False;
+	];
+];
+For[i = 1, i <= Length@unstablePoints, i++,
+	If[Length[unstablePoints[[i]]] == 0,
+		unstablePoints[[i]] = {Null};
+	,
+		isEmptyResults=False;
+	];
+];
+If[isEmptyResults,
+	Print["No Steady States found for ",paramName];
+]

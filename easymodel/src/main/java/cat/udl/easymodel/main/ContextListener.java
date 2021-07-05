@@ -38,7 +38,7 @@ public class ContextListener implements ServletContextListener {
 	public void contextDestroyed(ServletContextEvent arg0) {
 		System.out.println("STOPPING WEBAPP");
 		SharedData sharedData = SharedData.getInstance();
-		sharedData.getMathLinkArray().closeMathLinks();
+		sharedData.getMathLinkFactory().closeMathLinks();
 		try {
 			sharedData.getDbManager().close();
 		} catch (SQLException e) {

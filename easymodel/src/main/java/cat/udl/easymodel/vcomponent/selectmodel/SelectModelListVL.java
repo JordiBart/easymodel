@@ -318,7 +318,6 @@ public class SelectModelListVL extends VerticalLayout {
 			Model copy = new Model(modelListSelect.getValue());
 			copy.loadDB();
 			sessionData.setSelectedModel(copy);
-			sessionData.cancelSimulationByUser();
 			mainPanel.showEditModel();
 		} catch (SQLException e) {
 			sessionData.setSelectedModel(null);

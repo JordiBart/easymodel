@@ -1,15 +1,98 @@
+Catch[
 (*check if model can be stochastically simulated and if tau-leaping is effective*)
 (*quicktest parameters*)
-totalTestSteps=50;
-(*tau-leap parameters*)
+totalTestSteps=1000;
+
+(*First SSA pass*)
+isSSAPassOK=False;
+SMTransposed = Transpose[SM];
+RatesWJustDepVars = ReleaseHold[(Rates /. Join[SubsFormVars, ParVarVals, ParArrayInVars])] /. Join[ParNumVals, IndVarVals];
+DepVarsInitSubs = Table[DepVars[[i]] -> IntegerPart[InitCondDepVars[[i, 2]]*cellSize], {i,Length[DepVars]}];
+DepVarsInitVals = DepVars /. DepVarsInitSubs;
+RatesInitVals = RatesWJustDepVars /. DepVarsInitSubs;
+
+numMolIndVar=IntegerPart[Apply[Plus,IndVarVals[[All, 2]]]*cellSize];
+If[numMolIndVar > 0 && (numMolIndVar < 4 || numMolIndVar >= 1500000),
+	Throw["sum of indvarvals"];
+];
+If[Select[DepVarsInitVals, (# < 0) &] != {} || Select[RatesInitVals, (# < 0) &] != {} || Apply[Plus, RatesInitVals] <= 0,
+	Throw["init depvarvals or ratevals"];
+];
+
+(*parameters*)
+(*functions*)
+fStAddDepVarStateToInternalList = Function[timeToStamp,
+	AppendTo[intTimeVals, timeToStamp];
+	AppendTo[intDepVals, stDepVarsVals];
+];
+
+$t0 = AbsoluteTime[];
+intTimeVals = {};	intDepVals = {};
+
+stDepVarsVals = DepVarsInitVals;
+stRatesVals = RatesInitVals;
+
+stTime = 0;
+fStAddDepVarStateToInternalList[stTime];
+While[Length@intTimeVals<totalTestSteps,
+	(*Print[stTime];*)
+	fUpdateProgressBar[stTime];
+	stSumRatesVals=Apply[Plus, stRatesVals];
+
+	fireCandidates=Table[i, {i, numReactions}];
+	While[Length[fireCandidates] > 0,
+		(*select new random reaction*)
+		roundRatesVals = Extract[stRatesVals, Partition[fireCandidates,1]];
+		roundRandomSumRates = RandomReal[Apply[Plus,roundRatesVals]];
+		curSum=0;
+		For[posInFireCandidates=1, posInFireCandidates < Length[roundRatesVals], posInFireCandidates++,
+			curSum += roundRatesVals[[posInFireCandidates]];
+			If[curSum > roundRandomSumRates,
+				Break[];
+			];
+		];
+		fireReaction=fireCandidates[[posInFireCandidates]];
+		
+		stNewDepVarsVals = stDepVarsVals + SMTransposed[[fireReaction]];
+		stNewDepVarsValsSubs = Table[DepVars[[i]]->stNewDepVarsVals[[i]], {i,Length[DepVars]}];
+		stNewRatesVals = Table[Check[RatesWJustDepVars[[i]]/.stNewDepVarsValsSubs, RatesInitVals[[i]]], {i, Length[RatesWJustDepVars]}];
+		
+		If[Select[stNewDepVarsVals, (# < 0) &] == {} && Select[stNewRatesVals, (# < 0) &] == {} && Apply[Plus, stNewRatesVals] > 0,
+			(*step validated, update values*)
+			stDepVarsVals = stNewDepVarsVals;
+			stRatesVals = stNewRatesVals;
+			stTime += (1/stSumRatesVals)*Log[1/RandomReal[{0.001,0.999}]];
+			fStAddDepVarStateToInternalList[stTime];
+			Break[];
+		,
+			(*delete current fire candidate and proceed*)
+			fireCandidates=Delete[fireCandidates, posInFireCandidates];
+		];
+	];
+	If[Length[fireCandidates] == 0,
+		Throw["noMoreCandidates"];
+		Break[];
+	];
+];
+ssaExeTime=AbsoluteTime[]-$t0;
+(*check if system remains constant over time*)
+For[i=1, i<Length[intDepVals],i++,
+	If[intDepVals[[i]] != intDepVals[[i+1]],
+		isSSAPassOK=True;
+		Break[];
+	];
+];
+If[!isSSAPassOK, Throw["SSA pass error"]];
+ssaTF=stTime;
+
+(*TAU-LEAP PASS*)
+(*parameters*)
 stEpsilon=0.03;
 minFiresToDeemReactionAsNonCritical=10;
 multipleTau1Par=10;
 abandonTauLeapingFiresPar=100;
-(*MAIN CODE*)
-isModelOkForStochasticsSim=False;
-SMTransposed = Transpose[SM];
-RatesWJustDepVars = ReleaseHold[(Rates /. Join[SubsFormVars, ParVarVals, ParArrayInVars])] /. Join[ParNumVals, IndVarVals];
+
+$t0 = AbsoluteTime[];
 (*step 0*)
 (*get ReactantsReactionLevel*)
 ReactantsReactionLevel = {};
@@ -43,34 +126,24 @@ For[i = 1, i <= Length[DepVars], i++,
 		AppendTo[ReactantsModelLevel, curAsso];
 	];
 ];
-DepVarsInitSubs = Table[DepVars[[i]] -> IntegerPart[InitCondDepVars[[i, 2]]*cellSize], {i,Length[DepVars]}];
-DepVarsInitVals = DepVars /. DepVarsInitSubs;
-RatesInitVals = RatesWJustDepVars /. DepVarsInitSubs;
 
-Catch[
-numMolIndVar=IntegerPart[Apply[Plus,IndVarVals[[All, 2]]]*cellSize];
-If[numMolIndVar > 0 && (numMolIndVar < 4 || numMolIndVar >= 1500000),
-	Throw["sum of indvarvals"];
-];
-If[Select[DepVarsInitVals, (# < 0) &] != {} || Select[RatesInitVals, (# < 0) &] != {} || Apply[Plus, RatesInitVals] <= 0,
-	Throw["init depvarvals or ratevals"];
-];
-leapTimes=0; leapTotalTime=0;
-intDepVals = {};
+leapTotalTime=0; leapTotalSteps=0;
+ssaTotalTime=0; ssaTotalSteps=0;
+intTimeVals = {}; intDepVals = {};
+intLeapTimes = {};
 
 stDepVarsVals = DepVarsInitVals;
 stRatesVals = RatesInitVals;
 
-AppendTo[intDepVals, stDepVarsVals];
+stTime = 0;
+fStAddDepVarStateToInternalList[stTime];
 abandonTLCount=abandonTauLeapingFiresPar;
-isSimError=False;
-For[testSteps=0, testSteps<totalTestSteps, testSteps++,
+While[stTime <= ssaTF,
 	tauToUse="error";
 	stSumRatesVals = Apply[Plus, stRatesVals];
 
 	If[abandonTLCount < abandonTauLeapingFiresPar,
 		(*classic SSA Gillespie*)
-		
 		fireCandidates=Table[i, {i, numReactions}];
 		While[Length[fireCandidates] > 0,
 			(*select new random reaction*)
@@ -94,8 +167,11 @@ For[testSteps=0, testSteps<totalTestSteps, testSteps++,
 				tauToUse=(1/stSumRatesVals)*Log[1/RandomReal[{0.001,0.999}]];
 				stDepVarsVals = stNewDepVarsVals;
 				stRatesVals = stNewRatesVals;
-				AppendTo[intDepVals, stDepVarsVals];
+				stTime += tauToUse;
+				fStAddDepVarStateToInternalList[stTime];
 				abandonTLCount++;
+				ssaTotalSteps++;
+				ssaTotalTime += tauToUse;
 				Break[];
 			,
 				(*delete current fire candidate and proceed*)
@@ -103,7 +179,7 @@ For[testSteps=0, testSteps<totalTestSteps, testSteps++,
 			];
 		];
 		If[Length[fireCandidates] == 0,
-			isSimError=True;
+			Throw["noMoreCandidates"];
 			Break[];
 		];
 	,
@@ -241,12 +317,14 @@ For[testSteps=0, testSteps<totalTestSteps, testSteps++,
 				
 				(*step 6. check there is no new negative depvar concentration or rate*)
 				If[Select[stNewDepVarsVals, (# < 0) &] == {} && Select[stNewRatesVals, (# < 0) &] == {} && Apply[Plus, stNewRatesVals] > 0,
-					(*Print["tau leap done. tau=",tauToUse];*)
-					leapTimes++;
-					leapTotalTime+=tauToUse;
+					(*Print["tau leap done. tau=",tauToUse," from time ",stTime];*)
 					stDepVarsVals = stNewDepVarsVals;
 					stRatesVals = stNewRatesVals;
-					AppendTo[intDepVals, stDepVarsVals];
+					stTime += tauToUse;
+					fStAddDepVarStateToInternalList[stTime];
+					AppendTo[intLeapTimes, stTime];
+					leapTotalSteps++;
+					leapTotalTime+=tauToUse;
 					Break[];
 				,
 					(*try to half tau1*)
@@ -264,18 +342,11 @@ For[testSteps=0, testSteps<totalTestSteps, testSteps++,
 		];
 	];
 ];
-(*check if system remains constant over time*)
-If[isSimError==False,
-	For[i=1, i<Length[intDepVals],i++,
-		If[intDepVals[[i]] != intDepVals[[i+1]],
-			isModelOkForStochasticsSim=True;
-			Break[];
-		];
-	];
-];
-If[leapTimes>0,
+leapExeTime=AbsoluteTime[]-$t0;
+leapBoost=((ssaExeTime/leapExeTime)-1)*100;
+Print["DBG::ssaExeTime=",ssaExeTime," leapExeTime=",leapExeTime," leapBoost=",leapBoost];
+isTauLeapingEffective=False;
+If[leapBoost>0, (*percentage*)
 	isTauLeapingEffective=True;
-,
-	isTauLeapingEffective=False;
 ];
 ]

@@ -16,13 +16,12 @@ public class MathPacketListenerOp implements PacketListener {
 	public static final String percentagePrefix = "PGS::";
 	public static final String gridStochasticStatisticsPrefix = "GRSTST::";
 	public static final String gridCaptionPrefix = "GRCAP::";
+	public static final String debugPrefix = "DBG::";
+	private boolean isDebug = SharedData.getInstance().isDebug();
 
 	private SessionData sessionData = null;
 
-	public MathPacketListenerOp() {
-	}
-
-	public void setSessionData(SessionData sessionData) {
+	public MathPacketListenerOp(SessionData sessionData) {
 		this.sessionData = sessionData;
 	}
 
@@ -30,7 +29,6 @@ public class MathPacketListenerOp implements PacketListener {
 	public boolean packetArrived(PacketArrivedEvent evt) throws MathLinkException {
 		KernelLink ml = (KernelLink) evt.getSource();
 		String msg = ml.getString().trim(); // remove leading and trailing spaces
-		boolean isDebug = SharedData.getInstance().isDebug();
 		if (evt.getPktType() == MathLink.TEXTPKT) {// Print[] and Warnings
 			if (sessionData != null) {
 				if (msg.startsWith(printPrefix)) {
@@ -45,9 +43,6 @@ public class MathPacketListenerOp implements PacketListener {
 				} else if (msg.startsWith(gridCaptionPrefix)) {
 						msg = mathPrintToOneLine(msg);
 						sessionData.getOutVL().setCaptionToGridLayout(msg.substring(gridCaptionPrefix.length()));
-				} else if (isDebug) {
-					// sessionData.getOutVL().out(msg);
-					System.err.println("dbgMath:" + msg);
 				}
 				if (sessionData.getBioModelsLogs() != null) {
 					try {
@@ -57,8 +52,14 @@ public class MathPacketListenerOp implements PacketListener {
 						e.printStackTrace();
 					}
 				}
-			} else if (isDebug) {
-				System.err.println("dbgMath:" + msg);
+			}
+			if (isDebug) {
+				if (msg.startsWith(debugPrefix)) {
+					msg = mathPrintToOneLine(msg);
+					System.err.println(debugPrefix + msg);
+				}
+				else
+					System.err.println("dbgMath:" + msg);
 			}
 		}
 		return true;

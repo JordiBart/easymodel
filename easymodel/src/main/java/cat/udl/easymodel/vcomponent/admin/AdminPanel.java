@@ -173,32 +173,4 @@ public class AdminPanel extends Panel {
 		});
 		return btn;
 	}
-
-	public void validateModel() {
-		ValidateModelWindow vmw = new ValidateModelWindow(sessionData.getSelectedModel());
-		vmw.addCloseListener(new CloseListener() {
-			@Override
-			public void windowClose(CloseEvent e) {
-				selectedButton = allButtons.get("Simulation");
-				updateStepButtonsStyle();
-				conPanel.setContent(modelsAdminVL);
-			}
-		});
-		UI.getCurrent().addWindow(vmw);
-	}
-
-	private Button getUserButton() {
-		Button btn = new Button();
-		btn.setCaption(sessionData.getUser().getName());
-		btn.setHeight("100%");
-		btn.setStyleName("topButtonsRightPart");
-		btn.addClickListener(new ClickListener() {
-			private static final long serialVersionUID = 1L;
-
-			@Override
-			public void buttonClick(ClickEvent event) {
-			}
-		});
-		return btn;
-	}
 }
