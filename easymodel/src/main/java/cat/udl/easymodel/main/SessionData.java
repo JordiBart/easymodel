@@ -1,13 +1,9 @@
 package cat.udl.easymodel.main;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-
 import javax.servlet.http.Cookie;
 
 import com.vaadin.server.VaadinService;
 import com.vaadin.ui.UI;
-import com.wolfram.jlink.MathLinkException;
 
 import cat.udl.easymodel.controller.BioModelsLogs;
 import cat.udl.easymodel.logic.model.Model;
@@ -16,14 +12,14 @@ import cat.udl.easymodel.logic.types.RepositoryType;
 import cat.udl.easymodel.logic.user.User;
 import cat.udl.easymodel.logic.user.UserCookie;
 import cat.udl.easymodel.mathlink.MathLinkOp;
-import cat.udl.easymodel.thread.SimulationCancelThread;
 import cat.udl.easymodel.thread.SimulationManagerThread;
+import cat.udl.easymodel.utils.CException;
 import cat.udl.easymodel.utils.ToolboxVaadin;
-import cat.udl.easymodel.utils.p;
 import cat.udl.easymodel.vcomponent.app.AppPanel;
 import cat.udl.easymodel.vcomponent.common.InfoWindow;
 import cat.udl.easymodel.vcomponent.results.OutVL;
 import cat.udl.easymodel.vcomponent.results.SimStatusHL;
+import cat.udl.easymodel.vcomponent.results.SimStatusHL.SimStatusType;
 
 public class SessionData {
 	private UI ui = null;
@@ -38,8 +34,9 @@ public class SessionData {
 	private OutVL outVL = null;
 	private AppPanel appPanel = null;
 	private SimStatusHL simStatusHL = null;
-	private MathLinkOp mathLinkOp = null;
 	private SimulationManagerThread simulationManager = null;
+	private MathLinkOp mathLinkOp = null;
+	private boolean isSimCancel=false;
 
 	public SessionData(UI ui) {
 		this.ui = ui;
@@ -129,7 +126,6 @@ public class SessionData {
 
 	public void setSelectedModel(Model selectedModel) {
 		this.selectedModel = selectedModel;
-		closeMathLinkOp();
 	}
 
 	public RepositoryType getRepository() {
@@ -218,56 +214,33 @@ public class SessionData {
 	}
 
 ///////////////////////////////////
+	
+	public void respawnSimulationManager() {
+		if (simulationManager == null || simulationManager.getState() != Thread.State.NEW)
+			simulationManager = new SimulationManagerThread(this);
+	}
+	
+	public SimulationManagerThread getSimulationManager() {
+		return simulationManager;
+	}
+
+	public void respawnMathLinkOp() throws CException {
+		closeMathLinkOp();
+		mathLinkOp = SharedData.getInstance().getMathLinkFactory().getFreeMathLink(this);
+		if (mathLinkOp == null)
+			throw new CException("webMathematica busy, please try again later");
+	}
+	
 	public MathLinkOp getMathLinkOp() {
 		return mathLinkOp;
 	}
-
-	public boolean createMathLinkOp() {
-		if (mathLinkOp != null)
-			return false;
-		try {
-			MathLinkOp ml = new MathLinkOp();
-			ml.openMathLink();
-			ml.getCustomPacketListener().setSessionData(this);
-			mathLinkOp = ml;
-			SharedData.getInstance().getMathLinkArray().addMathLink(mathLinkOp);
-			return true;
-		} catch (Exception e) {
-			return false;
-		}
-	}
-
+	
 	public void closeMathLinkOp() {
 		if (mathLinkOp != null) {
 			mathLinkOp.closeMathLink();
 			mathLinkOp = null;
-			SharedData.getInstance().getMathLinkArray().cleanMathLinks();
 		}
 	}
-
-///////////////////////////////////
-	public void respawnSimulationManager() {
-		simulationManager = new SimulationManagerThread(this);
-	}
-
-	public boolean isSimulating() {
-		return this.simulationManager.isAlive();
-	}
-
-	public void launchSimulation() {
-		this.simulationManager.start();
-	}
-
-	public void cancelSimulationByUser() {
-		if (isSimulating())
-			new SimulationCancelThread(this.simulationManager).start();
-	}
-
-	public void cancelSimulationByCode() {
-		if (isSimulating())
-			this.simulationManager.interrupt();
-	}
-
 ////////////////////////////////////
 	public SimStatusHL getSimStatusHL() {
 		return simStatusHL;
@@ -295,5 +268,13 @@ public class SessionData {
 
 	public void setAppPanel(AppPanel appPanel) {
 		this.appPanel = appPanel;
+	}
+
+	public boolean isSimCancel() {
+		return isSimCancel;
+	}
+
+	public void setSimCancel(boolean isSimCancel) {
+		this.isSimCancel = isSimCancel;
 	}
 }

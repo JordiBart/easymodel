@@ -133,6 +133,7 @@ public class SimConfigToComponent {
 		String prevValue = (String) en.getValue();
 		if (prevValue != null)
 			parValueTF.setValue(prevValue);
+		parValueTF.setEnabled(en.isEnabled());
 		return hl;
 	}
 	

@@ -27,7 +27,7 @@ import cat.udl.easymodel.logic.types.UserType;
 import cat.udl.easymodel.logic.user.User;
 import cat.udl.easymodel.logic.user.UserCookie;
 import cat.udl.easymodel.logic.user.Users;
-import cat.udl.easymodel.mathlink.MathLinkArray;
+import cat.udl.easymodel.mathlink.MathLinkFactory;
 import cat.udl.easymodel.persistence.DBManager;
 import cat.udl.easymodel.persistence.DBManagerImpl;
 import cat.udl.easymodel.thread.DailyTaskRunnable;
@@ -35,7 +35,7 @@ import cat.udl.easymodel.thread.visitcounter.VisitCounterRunnable;
 import cat.udl.easymodel.utils.p;
 
 public class SharedData {
-	private MathLinkArray mathLinkArray = new MathLinkArray();
+	private MathLinkFactory mathLinkFactory = new MathLinkFactory();
 	private DBManager dbManager = null;
 	private Properties properties = null;
 	private DecimalFormat decimalFormat = null;
@@ -307,8 +307,8 @@ public class SharedData {
 		return res;
 	}
 
-	public MathLinkArray getMathLinkArray() {
-		return mathLinkArray;
+	public MathLinkFactory getMathLinkFactory() {
+		return mathLinkFactory;
 	}
 
 	public HashMap<String, String> getMathematicaCodeMap() {

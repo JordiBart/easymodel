@@ -1,5 +1,6 @@
 package cat.udl.easymodel.vcomponent.results;
 
+import java.time.Duration;
 import java.util.ArrayList;
 
 import com.vaadin.server.BrowserWindowOpener;
@@ -27,8 +28,11 @@ public class OutVL extends VerticalLayout {
 	private OutVL globalThis;
 	private GridLayout gridLayout;
 	private HorizontalLayout horizontal;
-	private GridLayout gridForStochastic;
+	private GridLayout stDataGrid;
 	private ArrayList<ProgressBar> stProgressBars = new ArrayList<>();
+	private ProgressBar stGlobalProgressBar;
+	private Label stTimeLabel;
+	private long stStartMillis;
 
 	private UI ui = null;
 //	private SharedData sharedData = SharedData.getInstance();
@@ -164,33 +168,43 @@ public class OutVL extends VerticalLayout {
 		this.ui.access(new Runnable() {
 			@Override
 			public void run() {
+				String progressBarWidth="400px";
+				stStartMillis = System.currentTimeMillis();
 				stProgressBars.clear();
 				if (!isTauLeaping) {
-					gridForStochastic = new GridLayout(3, numIterations+1);
-					gridForStochastic.addComponent(new SpacedLabel("Iteration"));
-					gridForStochastic.addComponent(new SpacedLabel("Progress"));
-					gridForStochastic.addComponent(new SpacedLabel("Execution time (s)"));
+					stDataGrid = new GridLayout(4, numIterations + 2);
+					stDataGrid.addComponent(new SpacedLabel("Iteration"));
+					stDataGrid.addComponent(new SpacedLabel("Progress"));
+					stDataGrid.addComponent(new SpacedLabel("Execution time (s)"));
+					stDataGrid.addComponent(new SpacedLabel("Int. steps"));
+				} else {
+					stDataGrid = new GridLayout(6, numIterations + 2);
+					stDataGrid.addComponent(new SpacedLabel("Iteration"));
+					stDataGrid.addComponent(new SpacedLabel("Progress"));
+					stDataGrid.addComponent(new SpacedLabel("Execution time (s)"));
+					stDataGrid.addComponent(new SpacedLabel("Int. steps"));
+					stDataGrid.addComponent(new SpacedLabel("#Leaps"));
+					stDataGrid.addComponent(new SpacedLabel("Leap time"));
 				}
-				else {
-					gridForStochastic = new GridLayout(5, numIterations+1);
-					gridForStochastic.addComponent(new SpacedLabel("Iteration"));
-					gridForStochastic.addComponent(new SpacedLabel("Progress"));
-					gridForStochastic.addComponent(new SpacedLabel("Execution time (s)"));
-					gridForStochastic.addComponent(new SpacedLabel("Total leaped time"));
-					gridForStochastic.addComponent(new SpacedLabel("Total leaps"));
-				}
-				gridForStochastic.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
+				stDataGrid.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
 //				gridForStochastic.addStyleName("table");
-				gridForStochastic.setSpacing(false);
-				gridForStochastic.setMargin(false);
+				stDataGrid.setSpacing(false);
+				stDataGrid.setMargin(false);
 				for (int i = 1; i <= numIterations; i++) {
-					gridForStochastic.addComponent(new SpacedLabel(String.valueOf(i)),0,i);
+					stDataGrid.addComponent(new SpacedLabel(String.valueOf(i)), 0, i);
 					ProgressBar pb = new ProgressBar();
-					pb.setWidth("500px");
+					pb.setWidth(progressBarWidth);
 					stProgressBars.add(pb);
-					gridForStochastic.addComponent(pb, 1, i);
+					stDataGrid.addComponent(pb, 1, i);
 				}
-				globalThis.addComponent(gridForStochastic);
+				stGlobalProgressBar = new ProgressBar();
+				stGlobalProgressBar.setWidth(progressBarWidth);
+				stDataGrid.addComponent(new SpacedLabel("*"), 0, stDataGrid.getRows() - 1);
+				stDataGrid.addComponent(stGlobalProgressBar, 1, stDataGrid.getRows() - 1);
+				
+				stTimeLabel = new Label("Time elapsed=00:00:00 ; Estimated time remaining=?");
+				globalThis.addComponent(stDataGrid);
+				globalThis.addComponent(stTimeLabel);
 			}
 		});
 	}
@@ -202,16 +216,44 @@ public class OutVL extends VerticalLayout {
 				ProgressBar pb = stProgressBars.get(numIteration - 1);
 				if (pb != null)
 					pb.setValue(newValue);
+//				Float totalProgress = (numIteration - 1 + newValue) / stNumIterations;
+				Float totalProgress = 0f;
+				for (ProgressBar pb2 : stProgressBars)
+					totalProgress += pb2.getValue();
+				totalProgress /= stProgressBars.size();
+				stGlobalProgressBar.setValue(totalProgress);
+				long millisElapsed = System.currentTimeMillis() - stStartMillis;
+//				Duration duration = DurationFormatUtils.formatDuration(Float.valueOf(((1-totalProgress)/totalProgress)).longValue()*millisElapsed, "**H:mm:ss**", true);
+				long secondsElapsed = Duration.ofMillis(millisElapsed).getSeconds();				
+				long etrSeconds = Duration.ofMillis(Math.round(((1 - totalProgress) / totalProgress) * millisElapsed)).getSeconds();
+				String etrHMS = String.format("%02d:%02d:%02d", etrSeconds / 3600, (etrSeconds % 3600) / 60,
+						etrSeconds % 60);
+				String elapsedHMS = String.format("%02d:%02d:%02d", secondsElapsed / 3600, (secondsElapsed % 3600) / 60,
+						secondsElapsed % 60);
+				stTimeLabel.setValue("Time elapsed="+elapsedHMS+" ; Estimated time remaining=" + etrHMS);
 			}
 		});
 	}
 
 	public void updateStochasticStatistics(String[] vals) {
-		int row=Integer.valueOf(vals[0]);
-		for (int i=1;i<vals.length;i++) {
-			gridForStochastic.addComponent(new SpacedLabel(vals[i]),i+1,row);
+		int row;
+		if (vals[0].equals("*")) {
+			row = stDataGrid.getRows() - 1;
+			stGlobalProgressBar.setValue(1f);
+			long millisElapsed = System.currentTimeMillis() - stStartMillis;
+			long secondsElapsed = Duration.ofMillis(millisElapsed).getSeconds();				
+			String elapsedHMS = String.format("%02d:%02d:%02d", secondsElapsed / 3600, (secondsElapsed % 3600) / 60,
+					secondsElapsed % 60);
+			stTimeLabel.setValue("Time elapsed="+elapsedHMS+" ; Estimated time remaining=00:00:00");
+		} else {
+			row = Integer.valueOf(vals[0]);
+			updateStochasticProgressBar(row, 1f);
+		}
+		for (int i = 1; i < vals.length; i++) {
+			stDataGrid.addComponent(new SpacedLabel(vals[i]), i + 1, row);
 		}
 	}
+
 	////////////////////////////////
 	public void out(String filename, boolean addToGrid, byte[] imageArray, String imWidth) {
 		this.ui.access(new Runnable() {

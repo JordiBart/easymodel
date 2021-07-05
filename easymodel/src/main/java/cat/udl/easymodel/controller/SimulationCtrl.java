@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.antlr.v4.parse.ANTLRParser.throwsSpec_return;
+
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.GridLayout;
 import com.vaadin.ui.Label;
@@ -341,19 +343,30 @@ public class SimulationCtrl {
 		outVL.outFile(caption, "", filename, file2Download, null, false);
 	}
 
+	public void checkCancel() throws Exception {
+		if (sessionData.isSimCancel()) {
+			throw new Exception("Cancelled");
+		}
+	}
+
 	///////////
 	public void simulate() throws Exception {
-		this.mathLink = this.sessionData.getMathLinkOp();
 //		m = new Model(sessionData.getSelectedModel(), 0);
+		checkCancel();
+		this.mathLink = sessionData.getMathLinkOp();
+		checkCancel();
 		m = sessionData.getSelectedModel();
 		if (sharedData.isDebug())
 			startNanoTime = System.nanoTime();
+		checkCancel();
 		executeInitMathCommands();
 		m.checkMathExpressions(mathLink);
 		simConfig = m.getSimConfig();
 //			sessionData.getOutVL().out("(click image/s to enlarge)", "textSmall");
+		checkCancel();
 		initSimulation();
 //		System.out.println("1");
+		checkCancel();
 		if (simConfig.getSimType() == SimType.DETERMINISTIC) {
 			initDynamicSimulation();
 			if ((Boolean) simConfig.getDynamic().get("Enable").getValue()) {
@@ -365,14 +378,14 @@ public class SimulationCtrl {
 		} else if (simConfig.getSimType() == SimType.STOCHASTIC) {
 			stochasticSimulation();
 		}
-		if (!mathLink.isClosed())
-			executeEndMathCommands();
-		if (!mathLink.isClosed())
-			outGeneratedFiles();
+		checkCancel();
+		executeEndMathCommands();
+		checkCancel();
+		outGeneratedFiles();
 		exportMathCommands.reset();
 		mathBuffer.reset();
-		if (!mathLink.isClosed())
-			outVL.finish();
+		checkCancel();
+		outVL.finish();
 		if (sharedData.isDebug())
 			Utils.debug("Sim took " + ((double) ((System.nanoTime() - startNanoTime) / 1000000000d)) + "s");
 	}
@@ -394,7 +407,7 @@ public class SimulationCtrl {
 		executeMathBuffer();
 		if (sharedData.isDebug())
 			Utils.debug("QuickStSim took " + ((double) ((System.nanoTime() - startNanoTime) / 1000000000d)) + "s");
-		if (mathGetString("isModelOkForStochasticsSim").equals("False"))
+		if (mathGetString("isSSAPassOK").equals("False"))
 			throw new Exception("Model is not valid for stochastic simulation");
 		return mathGetString("isTauLeapingEffective").equals("True");
 	}
@@ -681,7 +694,7 @@ public class SimulationCtrl {
 		outVL.outNewGridLayout(2, 1);
 		for (SimConfigArray plotView : simConfig.getDynamic_PlotViews()) {
 			mathCommand = genContext + "plotVars = {";
-			mathCommand2 = genContext + "plotLegends = {";
+			mathCommand2 = genContext + "plotLegends = PointLegend[{";
 			for (String dvToShow : (ArrayList<String>) plotView.get("DepVarsToShow").getValue()) {
 				mathCommand += modelContext + dvToShow + "[" + timeVar + "],";
 				mathCommand2 += "ToString[" + dvToShow + "],";
@@ -689,7 +702,7 @@ public class SimulationCtrl {
 			mathCommand = removeLastComma(mathCommand);
 			mathCommand += "}";
 			mathCommand2 = removeLastComma(mathCommand2);
-			mathCommand2 += "}";
+			mathCommand2 += "}]";
 			bufferCommand(mathCommand);
 			bufferCommand(mathCommand2);
 			executeMathBuffer();
@@ -715,9 +728,10 @@ public class SimulationCtrl {
 		bufferCommand(mathCommand);
 		if (!((Boolean) simConfig.getDynamic().get("Sensitivities").getValue())
 				&& !((Boolean) simConfig.getDynamic().get("Gains").getValue())) {
-			mathCommand = genContext + "Sols = First@NDSolve[" + genContext + "EqsToSolve, " + genContext + "DepVars, {"
-					+ timeVar + ", " + genContext + "ti, " + genContext + "tf}]";
-			bufferCommand(mathCommand);
+			bufferCommand("$t0 = AbsoluteTime[]");
+			bufferCommand(genContext + "Sols = First@NDSolve[" + genContext + "EqsToSolve, " + genContext + "DepVars, {"
+					+ timeVar + ", " + genContext + "ti, " + genContext + "tf}]");
+			bufferCommand("Print[\"Execution time=\",AbsoluteTime[]-$t0,\"s\"]");
 			executeMathBuffer();
 			plotDynamicSim(genContext + "Sols");
 		}
@@ -788,7 +802,7 @@ public class SimulationCtrl {
 			outVL.outNewGridLayout(2, 1);
 			for (SimConfigArray plotView : simConfig.getDynamic_PlotViews()) {
 				mathCommand = "AG = {";
-				mathCommand2 = "plotLegends = {";
+				mathCommand2 = "plotLegends = PointLegend[{";
 				for (String dvToShow : (ArrayList<String>) plotView.get("DepVarsToShow").getValue()) {
 					for (String ind : m.getAllSpeciesConstant().keySet()) {
 						mathCommand += gainContext + dvToShow + ind + "[" + timeVar + "],";
@@ -798,7 +812,7 @@ public class SimulationCtrl {
 				mathCommand = removeLastComma(mathCommand);
 				mathCommand += "}";
 				mathCommand2 = removeLastComma(mathCommand2);
-				mathCommand2 += "}";
+				mathCommand2 += "}]";
 				bufferCommand(mathCommand);
 				bufferCommand(mathCommand2);
 				executeMathBuffer();
@@ -814,7 +828,7 @@ public class SimulationCtrl {
 			outVL.outNewGridLayout(2, 1);
 			for (SimConfigArray plotView : simConfig.getDynamic_PlotViews()) {
 				mathCommand = "RG = {";
-				mathCommand2 = "plotLegends = {";
+				mathCommand2 = "plotLegends = PointLegend[{";
 				for (String dvToShow : (ArrayList<String>) plotView.get("DepVarsToShow").getValue()) {
 					for (String ind : m.getAllSpeciesConstant().keySet()) {
 						mathCommand += gainContext + dvToShow + ind + "[" + timeVar + "]*"
@@ -826,7 +840,7 @@ public class SimulationCtrl {
 				mathCommand = removeLastComma(mathCommand);
 				mathCommand += "}";
 				mathCommand2 = removeLastComma(mathCommand2);
-				mathCommand2 += "}";
+				mathCommand2 += "}]";
 				bufferCommand(mathCommand);
 				bufferCommand(mathCommand2);
 				executeMathBuffer();
@@ -924,7 +938,7 @@ public class SimulationCtrl {
 			outVL.outNewGridLayout(2, 1);
 			for (SimConfigArray plotView : simConfig.getDynamic_PlotViews()) {
 				mathCommand = "AS = {";
-				mathCommand2 = "plotLegends = {";
+				mathCommand2 = "plotLegends = PointLegend[{";
 				for (String dvToShow : (ArrayList<String>) plotView.get("DepVarsToShow").getValue()) {
 					for (Reaction r : m) {
 						for (String parName : r.getFormulaGenPars().keySet()) {
@@ -963,7 +977,7 @@ public class SimulationCtrl {
 				mathCommand = removeLastComma(mathCommand);
 				mathCommand += "}";
 				mathCommand2 = removeLastComma(mathCommand2);
-				mathCommand2 += "}";
+				mathCommand2 += "}]";
 				bufferCommand(mathCommand);
 				bufferCommand(mathCommand2);
 				executeMathBuffer();
@@ -980,7 +994,7 @@ public class SimulationCtrl {
 			outVL.outNewGridLayout(2, 1);
 			for (SimConfigArray plotView : simConfig.getDynamic_PlotViews()) {
 				mathCommand = "RS = {";
-				mathCommand2 = "plotLegends = {";
+				mathCommand2 = "plotLegends = PointLegend[{";
 				for (String dvToShow : (ArrayList<String>) plotView.get("DepVarsToShow").getValue()) {
 					for (Reaction r : m) {
 						for (String par : r.getFormulaGenPars().keySet()) {
@@ -1023,7 +1037,7 @@ public class SimulationCtrl {
 				mathCommand = removeLastComma(mathCommand);
 				mathCommand += "}";
 				mathCommand2 = removeLastComma(mathCommand2);
-				mathCommand2 += "}";
+				mathCommand2 += "}]";
 				bufferCommand(mathCommand);
 				bufferCommand(mathCommand2);
 				executeMathBuffer();
@@ -1059,13 +1073,14 @@ public class SimulationCtrl {
 					bufferMathTxt("param-scan-dyn.txt");
 					executeMathBuffer();
 					for (int i = 1; i <= m.getAllSpeciesTimeDependent().size(); i++) {
+						// Legend: 1 column only: LegendLayout -> {"Column", 1} or
+						// LegendLayout->TableForm
 						mathCommand = "plotList = Table[Transpose[solsList][[" + i
 								+ ", All, 2]][[i]][t], {i, Length@ParamScanVals}];\r\n"
 								+ "plotVar = StringDrop[ToString[Transpose[solsList][[" + i
 								+ ", All, 1]][[1]]], 2];\r\n"
-								+ "plotLegends = Table[ToString@ParamScanVals[[i,2,1]]<>\"=\"<>ToStringNumber@ParamScanVals[[i,2,2]], {i, Length@ParamScanVals}];\r\n"
-								+ "If[!isLogarithmic,Plot,LogLinearPlot][plotList, {t, ti, tf},"
-								+ "LabelStyle -> {FontWeight -> "
+								+ "plotLegends = PointLegend[Table[ToString@ParamScanVals[[i,2,1]]<>\"=\"<>ToStringNumber@ParamScanVals[[i,2,2]], {i, Length@ParamScanVals}]];\r\n"
+								+ "Plot[plotList, {t, ti, tf}," + "LabelStyle -> {FontWeight -> "
 								+ ((Boolean) simConfig.getPlotSettings().get("FontWeight").getValue() ? "Bold"
 										: "Plain")
 								+ ", FontSlant -> "
@@ -1079,7 +1094,7 @@ public class SimulationCtrl {
 								+ "]}, {k1, Length[plotVars]}], "
 								+ "FrameLabel -> {\"t\", StringJoin[plotVar,\" (concentration)\"]}, "
 								+ "PlotRange -> Full, ImageSize -> " + normalSize + "]";
-						showImageOfMathCmd(mathCommand, true, "dyn-par-scan-" + m.getName() + imageExtension,
+						showImageOfMathCmd(mathCommand, true, "dyn-parscan" + i + "-" + m.getName() + imageExtension,
 								imageWidthForResults);
 					}
 				}
@@ -1092,15 +1107,17 @@ public class SimulationCtrl {
 		normalSize = (String) simConfig.getPlotSettings().get("ImageSize").getValue().toString();
 		String head = "Stochastic Simulation";
 		if (isTauLeaping)
-			head += " (Tau-leaping method)";
+			head += " (Method=Tau-leaping;";
 		else
-			head += " (SSA method)";
+			head += " (Method=SSA;";
+		head += " Final time=" + (String) simConfig.getStochastic().get("Tf").getValue() + ")";
 		outVL.out(head, "textH2");
-		outVL.outNewStochasticGrid(Integer.valueOf((String) simConfig.getStochastic().get("Iterations").getValue()),isTauLeaping);
+		outVL.outNewStochasticGrid(Integer.valueOf((String) simConfig.getStochastic().get("Iterations").getValue()),
+				isTauLeaping);
 		if (isTauLeaping)
 			stochasticTauLeaping();
 		else
-			stochasticClassic();
+			stochasticSSA();
 	}
 
 	private void stochasticTauLeaping() throws Exception {
@@ -1114,34 +1131,35 @@ public class SimulationCtrl {
 		bufferMathTxt("stochastic-tau-leaping.txt");
 		executeMathBuffer();
 
-		if (SharedData.enableMathExecution
-				&& mathGetString("Catch[If[Length[stPlotLists] < 1,Throw[\"error\"]]]").equals("error"))
-			throw new CException("There was some error within the simulation procedure");
-		boolean isMoreThanOneIteration = SharedData.enableMathExecution
-				&& mathGetString("Catch[If[Dimensions[stPlotLists][[2]]>1,Throw[\"CalculateNoise\"]]]")
-						.equals("CalculateNoise");
-		if (isMoreThanOneIteration) {
-			bufferCommand(
-					"NoiseQ025=Table[TimeSeries[Quantile[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}],0.25],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
-			bufferCommand(
-					"NoiseMedian=Table[TimeSeries[Median[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}]],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
-			bufferCommand(
-					"NoiseQ075=Table[TimeSeries[Quantile[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}],0.75],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
-			bufferCommand(
-					"NoiseStdDev=Table[TimeSeries[StandardDeviation[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}]],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
-			bufferCommand(
-					"NoiseMean=Table[TimeSeries[Mean[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}]],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
-			bufferCommand("Off[Infinity::indet];Off[Power::infy]");
-			bufferCommand(
-					"PIN=Table[TimeSeries[(NoiseStdDev[[k]][\"Values\"]/NoiseMean[[k]][\"Values\"])/.{Indeterminate -> 0},{NoiseMean[[1]][\"Times\"]}],{k,1,Length[NoiseMean]}]");
-			bufferCommand(
-					"NPIN=Table[TimeSeries[((NoiseQ075[[k]][\"Values\"]-NoiseQ025[[k]][\"Values\"])/NoiseMedian[[k]][\"Values\"])/.{Indeterminate -> 0},{NoiseQ075[[1]][\"Times\"]}],{k,1,Length[NoiseQ075]}]");
-			bufferCommand("On[Infinity::indet];On[Power::infy]");
-			executeMathBuffer();
-		}
+//		if (SharedData.enableMathExecution
+//				&& mathGetString("Catch[If[Length[stPlotLists] < 1,Throw[\"error\"]]]").equals("error"))
+//			throw new CException("Stochastic simulation procedure error");
+//		boolean isMoreThanOneIteration = SharedData.enableMathExecution
+//				&& mathGetString("Catch[If[Dimensions[stPlotLists][[2]]>1,Throw[\"CalculateNoise\"]]]")
+//						.equals("CalculateNoise");
+//		if (isMoreThanOneIteration) {
+//			bufferCommand(
+//					"NoiseQ025=Table[TimeSeries[Quantile[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}],0.25],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
+//			bufferCommand(
+//					"NoiseMedian=Table[TimeSeries[Median[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}]],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
+//			bufferCommand(
+//					"NoiseQ075=Table[TimeSeries[Quantile[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}],0.75],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
+//			bufferCommand(
+//					"NoiseStdDev=Table[TimeSeries[StandardDeviation[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}]],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
+//			bufferCommand(
+//					"NoiseMean=Table[TimeSeries[Mean[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}]],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
+//			bufferCommand("Off[Infinity::indet];Off[Power::infy]");
+//			bufferCommand(
+//					"PIN=Table[TimeSeries[(NoiseStdDev[[k]][\"Values\"]/NoiseMean[[k]][\"Values\"])/.{Indeterminate -> 0},{NoiseMean[[1]][\"Times\"]}],{k,1,Length[NoiseMean]}]");
+//			bufferCommand(
+//					"NPIN=Table[TimeSeries[((NoiseQ075[[k]][\"Values\"]-NoiseQ025[[k]][\"Values\"])/NoiseMedian[[k]][\"Values\"])/.{Indeterminate -> 0},{NoiseQ075[[1]][\"Times\"]}],{k,1,Length[NoiseQ075]}]");
+//			bufferCommand("On[Infinity::indet];On[Power::infy]");
+//			executeMathBuffer();
+//		}
 		if (SharedData.enableMathExecution) {
 			Integer numPlotsByDepVars = Integer.valueOf(mathGetString("Length[stPlotLists]"));
-			plotStochasticSim(numPlotsByDepVars, isMoreThanOneIteration);
+			boolean isPlotNoise = mathGetString("ValueQ[NoiseQ025]").equals("True");
+			plotStochasticSim(numPlotsByDepVars, isPlotNoise);
 
 			mathCommand = "tableHeader = {Flatten[{\"t\"," + "    Table[Table["
 					+ "      DepVarsString[[k]] <> \"_\" <> ToString[k2], {k2, 1,"
@@ -1153,7 +1171,7 @@ public class SimulationCtrl {
 		}
 	}
 
-	private void stochasticClassic() throws Exception {
+	private void stochasticSSA() throws Exception {
 		bufferCommand("ti = " + (String) simConfig.getStochastic().get("Ti").getValue());
 		bufferCommand("tf = " + (String) simConfig.getStochastic().get("Tf").getValue());
 		bufferCommand("tStep = (tf-ti)/1000");
@@ -1163,31 +1181,30 @@ public class SimulationCtrl {
 				CellSizes.getInstance().nameToNum((String) simConfig.getStochastic().get("CellSize").getValue())));
 		bufferMathTxt("stochastic-ssa.txt");
 		executeMathBuffer();
-		if (mathGetString("Catch[If[ValueQ[stPlotLists]==False,Throw[\"error\"]]]").equals("error"))
-			throw new CException("There was some error within the simulation procedure");
-		boolean isCalcNoise = mathGetString("Catch[If[Dimensions[stPlotLists][[2]]>1,Throw[\"CalculateNoise\"]]]")
-				.equals("CalculateNoise");
-		if (isCalcNoise) {
-			bufferCommand(
-					"NoiseQ025=Table[TimeSeries[Quantile[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}],0.25],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
-			bufferCommand(
-					"NoiseMedian=Table[TimeSeries[Median[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}]],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
-			bufferCommand(
-					"NoiseQ075=Table[TimeSeries[Quantile[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}],0.75],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
-			bufferCommand(
-					"NoiseStdDev=Table[TimeSeries[StandardDeviation[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}]],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
-			bufferCommand(
-					"NoiseMean=Table[TimeSeries[Mean[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}]],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
-			bufferCommand("Off[Infinity::indet];Off[Power::infy]");
-			bufferCommand(
-					"PIN=Table[TimeSeries[(NoiseStdDev[[k]][\"Values\"]/NoiseMean[[k]][\"Values\"])/.{Indeterminate -> 0},{NoiseMean[[1]][\"Times\"]}],{k,1,Length[NoiseMean]}]");
-			bufferCommand(
-					"NPIN=Table[TimeSeries[((NoiseQ075[[k]][\"Values\"]-NoiseQ025[[k]][\"Values\"])/NoiseMedian[[k]][\"Values\"])/.{Indeterminate -> 0},{NoiseQ075[[1]][\"Times\"]}],{k,1,Length[NoiseQ075]}]");
-			bufferCommand("On[Infinity::indet];On[Power::infy]");
-			executeMathBuffer();
-		}
+//		if (mathGetString("Catch[If[ValueQ[stPlotLists]==False,Throw[\"error\"]]]").equals("error"))
+//			throw new CException("Stochastic simulation procedure error");
+//		if (isCalcNoise) {
+//			bufferCommand(
+//					"NoiseQ025=Table[TimeSeries[Quantile[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}],0.25],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
+//			bufferCommand(
+//					"NoiseMedian=Table[TimeSeries[Median[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}]],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
+//			bufferCommand(
+//					"NoiseQ075=Table[TimeSeries[Quantile[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}],0.75],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
+//			bufferCommand(
+//					"NoiseStdDev=Table[TimeSeries[StandardDeviation[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}]],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
+//			bufferCommand(
+//					"NoiseMean=Table[TimeSeries[Mean[Table[stPlotLists[[k]][[k2]][\"Values\"],{k2,1,Length[stPlotLists[[k]]]}]],{stPlotLists[[k]][[1]][\"Times\"]}],{k,1,Length[stPlotLists]}]");
+//			bufferCommand("Off[Infinity::indet];Off[Power::infy]");
+//			bufferCommand(
+//					"PIN=Table[TimeSeries[(NoiseStdDev[[k]][\"Values\"]/NoiseMean[[k]][\"Values\"])/.{Indeterminate -> 0},{NoiseMean[[1]][\"Times\"]}],{k,1,Length[NoiseMean]}]");
+//			bufferCommand(
+//					"NPIN=Table[TimeSeries[((NoiseQ075[[k]][\"Values\"]-NoiseQ025[[k]][\"Values\"])/NoiseMedian[[k]][\"Values\"])/.{Indeterminate -> 0},{NoiseQ075[[1]][\"Times\"]}],{k,1,Length[NoiseQ075]}]");
+//			bufferCommand("On[Infinity::indet];On[Power::infy]");
+//			executeMathBuffer();
+//		}
 		Integer numPlotsByDepVars = Integer.valueOf(mathGetString("Length[stPlotLists]"));
-		plotStochasticSim(numPlotsByDepVars, isCalcNoise);
+		boolean isPlotNoise = mathGetString("ValueQ[NoiseQ025]").equals("True");
+		plotStochasticSim(numPlotsByDepVars, isPlotNoise);
 
 		mathCommand = "tableHeader = {Flatten[{\"t\"," + "    Table[Table["
 				+ "      DepVarsString[[k]] <> \"_\" <> ToString[k2], {k2, 1,"
@@ -1198,10 +1215,15 @@ public class SimulationCtrl {
 		showTableTxtDownloadButton(mathCommand, "Download Simulation Table", "stochastic-" + m.getName() + ".txt");
 	}
 
-	private void plotStochasticSim(Integer numPlotsByDepVars, boolean isMoreThanOneIteration) throws Exception {
-		if (isMoreThanOneIteration) {
-			bufferCommand("Print[\"" + MathPacketListenerOp.printPrefix + "Plotting graphics...\"];");
-			executeMathBuffer();
+	private void plotStochasticSim(Integer numPlotsByDepVars, boolean isPlotNoise) throws Exception {
+		bufferCommand("Print[\"" + MathPacketListenerOp.printPrefix + "Plotting graphics...\"];");
+		executeMathBuffer();
+		outVL.outNewGridLayout(1, 1);
+		outVL.setCaptionToGridLayout("All iterations medians plot");
+		executeListLinePlot("NoiseMedian", "\"t\"", "\"# Molecules \"",
+				"PointLegend[Table[DepVarsString[[i]],{i,Length@DepVarsString}],LegendMarkers->Graphics@Disk[]]",
+				"stoch-" + m.getName() + imageExtension);
+		if (isPlotNoise) {
 			ArrayList<String> depVarList = m.getDepVarArrayList();
 			for (int i = 1; i <= numPlotsByDepVars; i++) {
 				outVL.outNewGridLayout(2, 3);
@@ -1210,20 +1232,13 @@ public class SimulationCtrl {
 						"{}", "stoch-" + depVarList.get(i - 1) + "-" + m.getName() + imageExtension);
 				executeListLinePlot("{NoiseQ025[[" + i + "]],NoiseMedian[[" + i + "]],NoiseQ075[[" + i + "]]}", "\"t\"",
 						"\"# Molecules \"<>DepVarsString[[" + i + "]]",
-						"Placed[{Style[\"Quantile_0.25\",FontSize->12], Style[\"Median\",FontSize->12], Style[\"Quantile_0.75\",FontSize->12]},Below]",
+						"Placed[PointLegend[{\"Quantile_0.25\", \"Median\", \"Quantile_0.75\"},LegendMarkers->Graphics@Disk[]],Below]",
 						"stoch-noise" + depVarList.get(i - 1) + "-" + m.getName() + imageExtension);
-
 				executeListLinePlot("{PIN[[" + i + "]],NPIN[[" + i + "]]}", "\"t\"",
 						"\"Coefficient of Variation \"<>DepVarsString[[" + i + "]]",
-						"Placed[{Style[\"Parametric [\\[Sigma]/\\[Mu]]\", FontSize->12], Style[\"Non parametric [(Quantile_0.75-Quantile_0.25)/Median]\", FontSize->12]}, Below]",
+						"Placed[PointLegend[{\"Parametric [\\[Sigma]/\\[Mu]]\", \"Non parametric [(Quantile_0.75-Quantile_0.25)/Median]\"},LegendMarkers->Graphics@Disk[]], Below]",
 						"stoch-var-" + depVarList.get(i - 1) + "-" + m.getName() + imageExtension);
 			}
-		} else {
-			bufferCommand("Print[\"" + MathPacketListenerOp.printPrefix + "Plotting graphic...\"];");
-			executeMathBuffer();
-			outVL.outNewGridLayout(1, 1);
-			executeListLinePlot("Flatten@stPlotLists", "\"t\"", "\"# Molecules \"",
-					"Table[DepVarsString[[i]],{i,Length@DepVarsString}]", "stoch-" + m.getName() + imageExtension);
 		}
 	}
 
@@ -1409,7 +1424,7 @@ public class SimulationCtrl {
 					executeMathBuffer();
 					if ("False".equals(mathGetString("isEmptyResults"))) {
 						for (int i = 1; i <= m.getAllSpeciesTimeDependent().size(); i++) {
-							mathCommand = "plotLegends = {\"Stable Steady State\", \"Unstable Steady State\"};\n"
+							mathCommand = "plotLegends = PointLegend[{\"Stable\", \"Unstable\"}];\n"
 									+ "If[!isLogarithmic,ListPlot,ListLogLinearPlot][{stablePoints[[" + i
 									+ "]], unstablePoints[[" + i + "]]}, " + "LabelStyle -> {FontWeight -> "
 									+ ((Boolean) simConfig.getPlotSettings().get("FontWeight").getValue() ? "Bold"
@@ -1424,7 +1439,7 @@ public class SimulationCtrl {
 									+ "FrameLabel -> {ToString[paramName], " + "DepVarsString[[" + i
 									+ "]] <> \" (concentration)\"}, PlotRange -> Full, " + "ImageSize -> " + normalSize
 									+ "]";
-							showImageOfMathCmd(mathCommand, true, "ss-par-scan-" + m.getName() + imageExtension,
+							showImageOfMathCmd(mathCommand, true, "ss-parscan" + i + "-" + m.getName() + imageExtension,
 									imageWidthForResults);
 						}
 					} else {

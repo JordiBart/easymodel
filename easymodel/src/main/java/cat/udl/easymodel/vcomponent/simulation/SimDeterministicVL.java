@@ -1,14 +1,11 @@
 package cat.udl.easymodel.vcomponent.simulation;
 
 import java.io.File;
-import java.sql.SQLException;
-import java.util.ArrayList;
 
 import com.vaadin.data.HasValue.ValueChangeEvent;
 import com.vaadin.data.HasValue.ValueChangeListener;
 import com.vaadin.server.FileResource;
 import com.vaadin.server.VaadinService;
-import com.vaadin.server.VaadinServiceClassLoaderUtil;
 import com.vaadin.ui.Accordion;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
@@ -18,32 +15,22 @@ import com.vaadin.ui.CheckBox;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Image;
-import com.vaadin.ui.Label;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Notification.Type;
-import com.vaadin.ui.Window.CloseEvent;
-import com.vaadin.ui.Window.CloseListener;
-import com.vaadin.ui.Panel;
-import com.vaadin.ui.PopupView;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
-import com.wolfram.jlink.MathLinkException;
+import com.vaadin.ui.Window.CloseEvent;
+import com.vaadin.ui.Window.CloseListener;
 
 import cat.udl.easymodel.logic.model.Model;
 import cat.udl.easymodel.logic.simconfig.SimConfig;
 import cat.udl.easymodel.logic.simconfig.SimConfigEntry;
 import cat.udl.easymodel.logic.simconfig.SimParamScanConfig;
 import cat.udl.easymodel.logic.types.ParamScanType;
-import cat.udl.easymodel.logic.types.SimType;
 import cat.udl.easymodel.logic.types.WStatusType;
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
-import cat.udl.easymodel.mathlink.MathLinkOp;
-import cat.udl.easymodel.thread.SimulationManagerThread;
-import cat.udl.easymodel.thread.SimulationLauncherThread;
-import cat.udl.easymodel.utils.CException;
 import cat.udl.easymodel.utils.ToolboxVaadin;
-import cat.udl.easymodel.utils.p;
 import cat.udl.easymodel.vcomponent.app.AppPanel;
 import cat.udl.easymodel.vcomponent.common.AreYouSureWindow;
 import cat.udl.easymodel.vcomponent.common.InfoWindowButton;
@@ -159,14 +146,16 @@ public class SimDeterministicVL extends VerticalLayout {
 		hl.addComponents(leftVL, rightVL);
 		hl.setExpandRatio(leftVL, 1f);
 
+		CheckBox dynCB = getDynamicCheckBox();
 		accDyn.addTab(hl, "Dynamic Settings");
 		accDyn.addTab(new SimPlotViewsVL(), "Dynamic Plot Views");
 		accDyn.addTab(getParameterScanVL(simConfig.getDynamic_ParameterScan()), "Parameter Scan");
 		accDyn.setSizeFull();
+		accDyn.setEnabled(dynCB.getValue());
 
 		VerticalLayout mainVL = new VerticalLayout();
 		mainVL.setWidth("500px");
-		mainVL.addComponents(getDynamicCheckBox(),accDyn);
+		mainVL.addComponents(dynCB,accDyn);
 		return mainVL;
 	}
 
@@ -340,14 +329,15 @@ public class SimDeterministicVL extends VerticalLayout {
 		hl.addComponents(leftVL, rightVL);
 		hl.setExpandRatio(leftVL, 1f);
 
+		CheckBox ssCB = getSteadyStateCheckBox();
 		accSS.addTab(hl, "Steady State Settings");
 		accSS.addTab(getParameterScanVL(simConfig.getSteadyState_ParameterScan()), "Parameter Scan");
 		accSS.setSizeFull();
-		accSS.setEnabled(false);
+		accSS.setEnabled(ssCB.getValue());
 
 		VerticalLayout mainVL = new VerticalLayout();
 		mainVL.setWidth("500px");
-		mainVL.addComponents(getSteadyStateCheckBox(),accSS);
+		mainVL.addComponents(ssCB,accSS);
 		return mainVL;
 	}
 

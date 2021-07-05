@@ -247,13 +247,13 @@ public class AppPanel extends Panel {
 
 			@Override
 			public void buttonClick(ClickEvent event) {
-				if (sessionData.isSimulating()) {
+				if (sessionData.getSimulationManager().isAlive()) {
 					AreYouSureWindow win = new AreYouSureWindow("Simulation is in progress", "Changing view will cancel the current simulation.\nAre you sure to cancel the current simulation?");
 					win.addCloseListener(new CloseListener() {
 						@Override
 						public void windowClose(CloseEvent e) {
 							if ((WStatusType) e.getWindow().getData() == WStatusType.OK) {
-								sessionData.cancelSimulationByUser();
+								sessionData.getSimulationManager().cancelSimulationByUser();
 								getSelectModelButtonAction();
 							}
 						}
@@ -284,13 +284,13 @@ public class AppPanel extends Panel {
 
 			@Override
 			public void buttonClick(ClickEvent event) {
-				if (sessionData.isSimulating()) {
+				if (sessionData.getSimulationManager().isAlive()) {
 					AreYouSureWindow win = new AreYouSureWindow("Simulation is in progress", "Changing view will cancel the current simulation.\nAre you sure to cancel the current simulation?");
 					win.addCloseListener(new CloseListener() {
 						@Override
 						public void windowClose(CloseEvent e) {
 							if ((WStatusType) e.getWindow().getData() == WStatusType.OK) {
-								sessionData.cancelSimulationByUser();
+								sessionData.getSimulationManager().cancelSimulationByUser();
 								getModelButtonAction();
 							}
 						}
@@ -320,13 +320,13 @@ public class AppPanel extends Panel {
 
 			@Override
 			public void buttonClick(ClickEvent event) {
-				if (sessionData.isSimulating()) {
+				if (sessionData.getSimulationManager().isAlive()) {
 					AreYouSureWindow win = new AreYouSureWindow("Simulation is in progress", "Changing view will cancel the current simulation.\nAre you sure to cancel the current simulation?");
 					win.addCloseListener(new CloseListener() {
 						@Override
 						public void windowClose(CloseEvent e) {
 							if ((WStatusType) e.getWindow().getData() == WStatusType.OK) {
-								sessionData.cancelSimulationByUser();
+								sessionData.getSimulationManager().cancelSimulationByUser();
 								getSimulationButtonAction();
 							}
 						}
@@ -400,7 +400,6 @@ public class AppPanel extends Panel {
 
 			@Override
 			public void buttonClick(ClickEvent event) {
-				sessionData.cancelSimulationByCode();
 				sessionData.clear();
 				UI.getCurrent().getNavigator().navigateTo(CoverView.NAME);
 			}

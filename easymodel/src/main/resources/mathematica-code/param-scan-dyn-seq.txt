@@ -15,8 +15,9 @@ If[!isLogarithmic,
 ];
 Print["GRCAP::",paramType,"=",paramName," ; Scanning Range=[",ToStringNumber@beginVal,", ",ToStringNumber@endVal,"] ; #Intervals=",numIntervals," ; Step Size=",If[!isLogarithmic,ToStringNumber@scanStepSize,"Logarithmic"]];
 
-solsList=WaitAll[Table[ParallelSubmit[{RateEqsWithT,ParNumVals,IndVarVals,ParamScanVals,iScan,DepVars,InitCondDepVars,ti,tf},
+solsList={};
+For[iScan=1, iScan <= Length@ParamScanVals, iScan++,
 	RateEqsAllSubs = RateEqsWithT /. (Join[ParNumVals, IndVarVals] /. ParamScanVals[[iScan]]);
 	EqsToSolve = Join[Table[DepVars[[i]]'[t] == RateEqsAllSubs[[i]], {i, Length[DepVars]}], InitCondDepVars];
-	First@NDSolve[EqsToSolve, DepVars, {t, ti, tf}]
-],{iScan,Length@ParamScanVals}]]
+	AppendTo[solsList, First@NDSolve[EqsToSolve, DepVars, {t, ti, tf}]];
+]

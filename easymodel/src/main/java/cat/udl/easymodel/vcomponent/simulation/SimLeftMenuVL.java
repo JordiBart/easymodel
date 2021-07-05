@@ -1,7 +1,5 @@
 package cat.udl.easymodel.vcomponent.simulation;
 
-import java.util.ArrayList;
-
 import com.vaadin.data.HasValue.ValueChangeEvent;
 import com.vaadin.data.HasValue.ValueChangeListener;
 import com.vaadin.icons.VaadinIcons;
@@ -9,19 +7,18 @@ import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
-import com.vaadin.ui.Notification.Type;
-import com.wolfram.jlink.MathLinkException;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Notification;
+import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.RadioButtonGroup;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
-import com.vaadin.ui.Window;
+import com.wolfram.jlink.MathLinkException;
 
+import cat.udl.easymodel.controller.SimulationCtrl;
 import cat.udl.easymodel.logic.model.Model;
 import cat.udl.easymodel.logic.types.SimType;
 import cat.udl.easymodel.main.SessionData;
-import cat.udl.easymodel.thread.SimulationLauncherThread;
 import cat.udl.easymodel.utils.ToolboxVaadin;
 import cat.udl.easymodel.vcomponent.app.AppPanel;
 import cat.udl.easymodel.vcomponent.common.InfoWindowButton;
@@ -35,6 +32,7 @@ public class SimLeftMenuVL extends VerticalLayout {
 	private SimulationVL simVL;
 	private AppPanel mainPanel;
 	private Model selectedModel;
+	private Button runButton = null;
 
 	public SimLeftMenuVL(SimulationVL simVL) {
 		super();
@@ -61,8 +59,9 @@ public class SimLeftMenuVL extends VerticalLayout {
 		VerticalLayout spacer = new VerticalLayout();
 
 		removeAllComponents();
+		runButton = getRunSimButton();
 		addComponents(headerHL, getSimTypeOptionGroup(), ToolboxVaadin.getHR(), getPlotSettingsButton(),
-				ToolboxVaadin.getHR(), getRunSimButton(), spacer);
+				ToolboxVaadin.getHR(), runButton, spacer);
 		setExpandRatio(spacer, 1f);
 	}
 
@@ -77,11 +76,12 @@ public class SimLeftMenuVL extends VerticalLayout {
 				try {
 					selectedModel.checkAndAdaptToSimulate();
 
+					sessionData.respawnSimulationManager();
+					sessionData.getSimulationManager().start();
 					sessionData.getOutVL().reset();
-					sessionData.getSimStatusHL().running();
 					sessionData.getOutVL().out("Results for " + selectedModel.getName(), "textH1");
+					sessionData.getSimStatusHL().running();
 					mainPanel.showResults();
-					new SimulationLauncherThread(sessionData, mainPanel).start();
 				} catch (Exception e) {
 					if (e instanceof MathLinkException)
 						Notification.show("webMathematica error", Type.WARNING_MESSAGE);
@@ -113,14 +113,16 @@ public class SimLeftMenuVL extends VerticalLayout {
 		group.setWidth("100%");
 		group.setItems(SimType.DETERMINISTIC, SimType.STOCHASTIC);
 		group.setItemCaptionGenerator(SimType::getString);
+		group.setSelectedItem(selectedModel.getSimConfig().getSimType());
 		group.addValueChangeListener(new ValueChangeListener<SimType>() {
 			@Override
 			public void valueChange(ValueChangeEvent<SimType> event) {
-				selectedModel.getSimConfig().setSimType(event.getValue());
-				simVL.updateConPanel();
+				if (event.isUserOriginated()) {
+					selectedModel.getSimConfig().setSimType(event.getValue());
+					simVL.updateConPanel();
+				}
 			}
 		});
-		group.setSelectedItem(selectedModel.getSimConfig().getSimType());
 		return group;
 	}
 
@@ -136,16 +138,19 @@ public class SimLeftMenuVL extends VerticalLayout {
 
 	private Button getInfoButton() {
 		return new InfoWindowButton("About simulation types", "Simulation Configuration\r\n"
-						+ "1-Select simulation type:\r\n"
-						+ "  -Deterministic: Simulation uses algorithms that assume concentrations are continuous. "
-						+ "Repeated simulations with the same initial conditions always have the same response curve and end result. "
-						+ "Faster to execute at the expense of inaccuracies when the number of molecules is low.\r\n"
-						+ "  -Stochastic: Simulation uses algorithms that consider only integer changes in the number of molecules. "
-						+ "Repeated simulations with the same initial conditions will leads to response curves and end results that are slightly different. "
-						+ "Slower to execute but more accurate when the number of molecules is low.\n"
-						+ "2-Configure selected simulation type in the main panel.\n"
-						+ "3-Configure Plot Settings (optional): Select the graphical representation options for your simulation.\n"
-						+ "4-Run Simulation."
-						, 800, 400);
+				+ "1-Select simulation type:\r\n"
+				+ "  -Deterministic: Simulation uses algorithms that assume concentrations are continuous. "
+				+ "Repeated simulations with the same initial conditions always have the same response curve and end result. "
+				+ "Faster to execute at the expense of inaccuracies when the number of molecules is low.\r\n"
+				+ "  -Stochastic: Simulation uses algorithms that consider only integer changes in the number of molecules. "
+				+ "Repeated simulations with the same initial conditions will leads to response curves and end results that are slightly different. "
+				+ "Slower to execute but more accurate when the number of molecules is low.\n"
+				+ "2-Configure selected simulation type in the main panel.\n"
+				+ "3-Configure Plot Settings (optional): Select the graphical representation options for your simulation.\n"
+				+ "4-Run Simulation.", 800, 400);
+	}
+	
+	public void setEnableRunButton(boolean val) {
+		runButton.setEnabled(val);
 	}
 }

@@ -1,5 +1,66 @@
 (*Stochastic Tau-Leaping Simulation Algorithm*)
 (*Based on Yang Cao et al. "Efficient step size for the tau-leaping simulation method" (Efficient step size for Modified Poisson tau-leaping algorithm)*)
+
+(*parameters*)
+stEpsilon=0.03;
+minFiresToDeemReactionAsNonCritical=10;
+multipleTau1Par=10;
+abandonTauLeapingFiresPar=100;
+
+(*functions*)
+fStAddDepVarStateToInternalList = Function[timeToStamp,
+	AppendTo[intTimeVals, timeToStamp];
+	AppendTo[intDepVals, stDepVarsVals];
+];
+fGenPlotVals=Function[
+	plotDepVals= {}; plotTimeVals={};
+	If[Length[intTimeVals] == 0 || Last[intTimeVals] <= tf,
+		Return[];
+	];
+	prevIntTimePos=1;
+	prevIntTime=intTimeVals[[prevIntTimePos]];
+	nextIntTime=intTimeVals[[prevIntTimePos+1]];
+	For[plotTime = ti, plotTime <= tf, plotTime += tStep,
+		(*update int time*)
+		While[plotTime>=nextIntTime,
+			prevIntTimePos++;
+			prevIntTime=intTimeVals[[prevIntTimePos]];
+			nextIntTime=intTimeVals[[prevIntTimePos+1]];
+		];
+		(*update plot time*)
+		AppendTo[plotTimeVals, plotTime];
+		(*update plot depvarvals*)
+		If[MemberQ[intLeapTimes,nextIntTime],
+			(*tau leap: interpolation*)
+			curProgress=(plotTime-prevIntTime)/(nextIntTime-prevIntTime);
+			AppendTo[plotDepVals, Round[intDepVals[[prevIntTimePos]]+curProgress*(intDepVals[[prevIntTimePos+1]]-intDepVals[[prevIntTimePos]])]];
+		,
+			(*ssa: no interpolation*)
+			diffPrev=plotTime-prevIntTime;
+			diffNext=nextIntTime-plotTime;
+			If[diffPrev<=diffNext,
+				AppendTo[plotDepVals, intDepVals[[prevIntTimePos]]];
+			,
+				AppendTo[plotDepVals, intDepVals[[prevIntTimePos+1]]];
+			];
+		];
+	];
+];
+fUpdateProgressBar=Function[{curProgressAbs},
+	tryProgress = Round[(curProgressAbs/progressTotalTime), progressIncrement];
+	If[tryProgress >= curProgress+progressIncrement,
+		curProgress = tryProgress;
+		Print["PGS::",stRep,":",curProgress];
+	];
+];
+fFillUntilTheEnd=Function[
+	fillTStep=(tf-ti)/1000;
+	While[stTime <= tf,
+		stTime += fillTStep;
+		fStAddDepVarStateToInternalList[stTime];
+	];
+];
+
 (*MAIN CODE*)
 SMTransposed = Transpose[SM];
 RatesWJustDepVars = ReleaseHold[(Rates /. Join[SubsFormVars, ParVarVals, ParArrayInVars])] /. Join[ParNumVals, IndVarVals];
@@ -39,6 +100,8 @@ For[i = 1, i <= Length[DepVars], i++,
 DepVarsInitSubs = Table[DepVars[[i]] -> IntegerPart[InitCondDepVars[[i, 2]]*cellSize], {i,Length[DepVars]}];
 DepVarsInitVals = DepVars /. DepVarsInitSubs;
 RatesInitVals = RatesWJustDepVars /. DepVarsInitSubs;
+progressTotalTime = tf-ti;
+progressIncrement = 0.05;
 
 Catch[
 numMolIndVar=IntegerPart[Apply[Plus,IndVarVals[[All, 2]]]*cellSize];
@@ -49,75 +112,20 @@ If[Select[DepVarsInitVals, (# < 0) &] != {} || Select[RatesInitVals, (# < 0) &] 
 	Throw["init depvarvals or ratevals"];
 ];
 
-gridStStatistics=Table[Table[0,4],stochasticReps];
-SetSharedVariable[gridStStatistics];
+gridInternalSteps=Table[0,{i,stochasticReps}];
+gridLeapedTime=Table[0,{i,stochasticReps}];
+gridNumLeaps=Table[0,{i,stochasticReps}];
+gridLeapBoost=Table[0,{i,stochasticReps}];
+gridExecutionTime=Table[0,{i,stochasticReps}];
 
-stPlotLists=Transpose@WaitAll[Table[ParallelSubmit[{ReactantsReactionLevel,ReactantsModelLevel,stRep,tStep,DepVarsInitVals,RatesInitVals,RatesWJustDepVars,ti,tf,numReactions,SM,SMTransposed,DepVars,numDepVars},
-	(*parameters*)
-	stEpsilon=0.03;
-	minFiresToDeemReactionAsNonCritical=10;
-	multipleTau1Par=10;
-	abandonTauLeapingFiresPar=100;
-	(*functions*)
-	fStAddDepVarStateToInternalList = Function[timeToStamp,
-		AppendTo[intTimeVals, timeToStamp];
-		AppendTo[intDepVals, stDepVarsVals];
-	];
-	fGenPlotVals=Function[
-		plotDepVals= {}; plotTimeVals={};
-		If[Length[intTimeVals] == 0 || Last[intTimeVals] <= tf,
-			Return[];
-		];
-		prevIntTimePos=1;
-		prevIntTime=intTimeVals[[prevIntTimePos]];
-		nextIntTime=intTimeVals[[prevIntTimePos+1]];
-		For[plotTime = ti, plotTime <= tf, plotTime += tStep,
-			(*update int time*)
-			While[plotTime>=nextIntTime,
-				prevIntTimePos++;
-				prevIntTime=intTimeVals[[prevIntTimePos]];
-				nextIntTime=intTimeVals[[prevIntTimePos+1]];
-			];
-			(*update plot time*)
-			AppendTo[plotTimeVals, plotTime];
-			(*update plot depvarvals*)
-			If[MemberQ[intLeapTimes,nextIntTime],
-				(*tau leap: interpolation*)
-				curProgress=(plotTime-prevIntTime)/(nextIntTime-prevIntTime);
-				AppendTo[plotDepVals, Round[intDepVals[[prevIntTimePos]]+curProgress*(intDepVals[[prevIntTimePos+1]]-intDepVals[[prevIntTimePos]])]];
-			,
-				(*ssa: no interpolation*)
-				diffPrev=plotTime-prevIntTime;
-				diffNext=nextIntTime-plotTime;
-				If[diffPrev<=diffNext,
-					AppendTo[plotDepVals, intDepVals[[prevIntTimePos]]];
-				,
-					AppendTo[plotDepVals, intDepVals[[prevIntTimePos+1]]];
-				];
-			];
-		];
-	];
-	fUpdateProgressBar=Function[{curProgressAbs},
-		tryProgress = Round[(curProgressAbs/progressTotalTime), progressIncrement];
-		If[tryProgress >= curProgress+progressIncrement,
-			curProgress = tryProgress;
-			Print["PGS::",stRep,":",curProgress];
-		];
-	];
-	fFillUntilTheEnd=Function[
-		fillTStep=(tf-ti)/1000;
-		While[stTime <= tf,
-			stTime += fillTStep;
-			fStAddDepVarStateToInternalList[stTime];
-		];
-	];
+stInternalLists = Table[{}, {i, Length[DepVars]}];
+stPlotLists = Table[{}, {i, Length[DepVars]}];
+For[stRep = 1, stRep <= stochasticReps, stRep++,
 	$t0 = AbsoluteTime[];
-	progressTotalTime = tf-ti;
-	progressIncrement = 0.05;
 	leapTotalTime=0; leapTotalSteps=0;
 	ssaTotalTime=0; ssaTotalSteps=0;
 	intTimeVals = {}; intDepVals = {};
-	intLeapTimes = {}; stPlotList={};
+	intLeapTimes = {};
 	
 	stDepVarsVals = DepVarsInitVals;
 	stRatesVals = RatesInitVals;
@@ -333,23 +341,28 @@ stPlotLists=Transpose@WaitAll[Table[ParallelSubmit[{ReactantsReactionLevel,React
 			];
 		];
 	];
-	gridStStatistics[[stRep,1]]=AbsoluteTime[]-$t0; (*wall clock time*)
-	gridStStatistics[[stRep,2]]=Length@intTimeVals-1; (*total steps*)
-	gridStStatistics[[stRep,3]]=leapTotalSteps;
-	gridStStatistics[[stRep,4]]=leapTotalTime;
-	PrintTemporary["GRSTST::",stRep,":",DecimalForm[gridStStatistics[[stRep,1]],{Infinity,3}],":",gridStStatistics[[stRep,2]],":",gridStStatistics[[stRep,3]],":",DecimalForm[gridStStatistics[[stRep,4]],{Infinity,6}]];
+	gridInternalSteps[[stRep]]=Length@intTimeVals;
+	gridLeapedTime[[stRep]]=leapTotalTime;
+	gridNumLeaps[[stRep]]=leapTotalSteps;
+	gridLeapBoost[[stRep]]=If[ssaTotalSteps>0,((leapTotalTime/(ssaTotalTime/ssaTotalSteps))/Length@intTimeVals)*100,100];
+	gridExecutionTime[[stRep]]=AbsoluteTime[]-$t0;
+	Print["GRSTST::",stRep,":",gridInternalSteps[[stRep]],":",DecimalForm[gridLeapedTime[[stRep]],{Infinity,4}],":",gridNumLeaps[[stRep]],":",DecimalForm[gridLeapBoost[[stRep]],{Infinity,2}],":",DecimalForm[gridExecutionTime[[stRep]],{Infinity,3}]];
 	(*wrap up values for plotting. this may take some extra time*)
+	(*append internal vals to general list*)
+	For[i = 1, i <= Length[DepVars], i++,
+		AppendTo[stInternalLists[[i]], TimeSeries[Transpose[intDepVals][[i]], {intTimeVals}]];
+	];
+	
 	fGenPlotVals[];
 	(*append plot vals to general list*)
 	For[i = 1, i <= Length[DepVars], i++,
-		AppendTo[stPlotList, TimeSeries[Transpose[plotDepVals][[i]], {plotTimeVals}]];
+		AppendTo[stPlotLists[[i]], TimeSeries[Transpose[plotDepVals][[i]], {plotTimeVals}]];
 	];
-	stPlotList
-],{stRep,stochasticReps}]];
+];
 If[ValueQ[stPlotLists]==False || Length[stPlotLists] < 1,
 	Throw["Error in stochastic procedure"];
 ];
-PrintTemporary["GRSTST::*:",DecimalForm[Mean[gridStStatistics[[All,1]]],{Infinity,3}],":",Round[Mean[gridStStatistics[[All,2]]]],":",Round[Mean[gridStStatistics[[All,3]]]],":",DecimalForm[Mean[gridStStatistics[[All,4]]],{Infinity,6}]];
+Print["GRSTST::*:",Round@Mean@gridInternalSteps,":",DecimalForm[Mean@gridLeapedTime,{Infinity,4}],":",Round@Mean@gridNumLeaps,":",DecimalForm[Mean@gridLeapBoost,{Infinity,2}],":",DecimalForm[Mean@gridExecutionTime,{Infinity,3}]];
 If[Dimensions[stPlotLists][[2]]>1,
 	NoiseQ025=Table[TimeSeries[Quantile[Table[stPlotLists[[k]][[k2]]["Values"],{k2,1,Length[stPlotLists[[k]]]}],0.25],{stPlotLists[[k]][[1]]["Times"]}],{k,1,Length[stPlotLists]}];
 	NoiseMedian=Table[TimeSeries[Median[Table[stPlotLists[[k]][[k2]]["Values"],{k2,1,Length[stPlotLists[[k]]]}]],{stPlotLists[[k]][[1]]["Times"]}],{k,1,Length[stPlotLists]}];

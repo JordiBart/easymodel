@@ -5,5 +5,6 @@
 /easymodel/src/main/java/cat/udl/easymodel/httpservlet/*
 /easymodel/.classpath
 /easymodel/.project
+/easymodel/*.log
 /MySQL_DB_easymodel/easymodel-orig.sql
 /MySQL_DB_easymodel/howto-curate-db.txt
