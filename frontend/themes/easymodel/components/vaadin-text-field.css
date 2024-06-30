@@ -1,0 +1,8 @@
+:host(.redBG) [part="input-field"]{
+    font: 15px Tahoma, sans-serif;
+    background-color: #ffe2e2;
+}
+:host(.greenBG) [part="input-field"]{
+    font: 15px Tahoma, sans-serif;
+    background-color: #ecffe2;
+}

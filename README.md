@@ -1,34 +1,73 @@
-# EasyModel v2.0
-Official public repository
+# EasyModel
 
 EasyModel is a web application for modeling and simulation of systems biology models.
 
-Project is written in Java EE using the Eclipse IDE.
-Dependencies: Wolfram webMathematica, MySQL, Java 8 JDK, Vaadin 8 and Apache Tomcat 9.
+This guide is designed to assist in establishing a development environment for EasyModel on a Windows system.
+This project has been written mostly in java using the JetBrains IntelliJ IDEA.
+Dependencies: Wolfram Mathematica (proprietary), JetBrains IntelliJ IDEA, Java 21 JDK, Node.js, Git, Apache Maven, Laragon, phpmyadmin.
 
-HOW TO IMPORT PROJECT INTO ECLIPSE
+# EasyModel Development Setup Guide (for Windows)
 
-1. Download the "easymodel" Java project directory it into your workspace.
-2. In Eclipse: File>Import...>Maven>Existing Maven Projects>select the "easymodel" folder.
-3. Right click on the project>Maven>Update Project...
-4. Right click on the project>Properties>Java Build Path>Libraries>Add External JARs>add the jars located in $webMathematicaDir/WEB-INF/lib
+Install JetBrains IntelliJ IDEA Community Edition (free), Amazon Corretto JDK 21, Node.js, Git.
+Download and install Maven (unzip to a folder e.g. C:\maven) and set the system var MAVEN_HOME (e.g. C:\maven) and add %MAVEN_HOME%\bin to the PATH system var.
+Setup the Maven wrapper: run in terminal: mvn wrapper:wrapper
+Import this project folder into IntelliJ IDEA.
+(Delete the "node_modules" directory from the project dir if present.)
+Right click project folder>Maven>Reload project
+Run Maven "clean install"
 
-HOW TO RUN PROJECT IN ECLIPSE
+Wolfram Mathematica setup:
+Install Wolfram Mathematica 14.0
+Run on terminal the JLink-maven-install-file.bat from the project folder to install the JLink JAR file to the local Maven repository.
 
-1. Add an Apache Tomcat Server to Eclipse: Window>Preferences>Server>Runtime Environments>Add...
-2. Right click on project>Run As>Run configurations...>Create a new Apache Tomcat configuration and add an External JAR to the Classpath: $webMathematicaDir/WEB-INF/lib/JLink.jar
-3. Right click on project>Run As>Run on Server
-4. Check console messages to see if project has been sucessfully deployed and edit properties file if necessary (easymodel-appdata/easymodel.properties).
+Database MySQL:
+Install Laragon (WAMP)
+Download phpmyadmin zip and extract to C:\laragon\etc\apps\phpmyadmin
+Start Laragon services
+Right-click on Laragon>MySQL>PHPMyAdmin to open the web MySQL admin panel. User "root"; password "".
+Create a new database named "easymodel" with the charset "latin1_general_ci". Then import the easymodel.sql file located in the "supplements" folder to create and populate the database tables.
 
-HOW TO RUN PROJECT ON A STANDALONE APACHE TOMCAT SERVER ON LINUX
+Edit easymodel-appdata\easymodel.properties according to Mathematica, MySQL etc.
 
-1. Export project from Eclipse to WAR file in $TomcatDir$/webapps: Right click project>Export>WAR file
-2. Copy the file TomcatConfig/setenv.sh to $TomcatDir$/bin and edit the file to fit your system.
-3. Run tomcat by executing $TomcatDir$/bin/startup.sh.
-(NOTE: in UNIX server systems you may need to create a virtual display with the command "vncserver" in order to allow webMathematica generate image files)
+## Running the application
 
-HOW TO SET UP THE MYSQL SERVER
+The project is a standard Maven project. To run it from the command line,
+type `mvnw` (Windows), or `./mvnw` (Mac & Linux), then open
+http://localhost:8080 in your browser.
 
-1. Create a database called "easymodel" in the MySQL server.
-2. Execute the file MySQL_DB_easymodel/easymodel.sql in the MySQL server to set up the database tables etc. (in phpmyadmin: select the easymodel database and import the .sql file).
-3. Edit MySQL configuration in EasyModel properties file (easymodel/easymodel.properties) to match your MySQL server configuration and restart Tomcat.
+You can also import the project to your IDE of choice as you would with any
+Maven project. Read more on [how to import Vaadin projects to different IDEs](https://vaadin.com/docs/latest/guide/step-by-step/importing) (Eclipse, IntelliJ IDEA, NetBeans, and VS Code).
+
+## Deploying to Production
+
+Check the ./supplements/jar_deployment directory for more specific details on how to deploy EasyModel to production.
+
+To create a production build, call `mvnw clean package -Pproduction` (Windows),
+or `./mvnw clean package -Pproduction` (Mac & Linux).
+This will build a JAR file with all the dependencies and front-end resources,
+ready to be deployed. The file can be found in the `target` folder after the build completes.
+
+Once the JAR file is built, you can run it using
+`java -jar target/easymodel-X.X-SNAPSHOT.jar`
+
+## Project structure
+
+- `MainLayout.java` in `src/main/java` contains the navigation setup (i.e., the
+  side/top bar and the main menu). This setup uses
+  [App Layout](https://vaadin.com/docs/components/app-layout).
+- `views` package in `src/main/java` contains the server-side Java views of your application.
+- `views` folder in `frontend/` contains the client-side JavaScript views of your application.
+- `themes` folder in `frontend/` contains the custom CSS styles.
+
+## Useful links
+
+- Read the documentation at [vaadin.com/docs](https://vaadin.com/docs).
+- Follow the tutorial at [vaadin.com/docs/latest/tutorial/overview](https://vaadin.com/docs/latest/tutorial/overview).
+- Create new projects at [start.vaadin.com](https://start.vaadin.com/).
+- Search UI components and their usage examples at [vaadin.com/docs/latest/components](https://vaadin.com/docs/latest/components).
+- View use case applications that demonstrate Vaadin capabilities at [vaadin.com/examples-and-demos](https://vaadin.com/examples-and-demos).
+- Build any UI without custom CSS by discovering Vaadin's set of [CSS utility classes](https://vaadin.com/docs/styling/lumo/utility-classes).
+- Find a collection of solutions to common use cases at [cookbook.vaadin.com](https://cookbook.vaadin.com/).
+- Find add-ons at [vaadin.com/directory](https://vaadin.com/directory).
+- Ask questions on [Stack Overflow](https://stackoverflow.com/questions/tagged/vaadin) or join our [Discord channel](https://discord.gg/MYFq5RTbBn).
+- Report issues, create pull requests in [GitHub](https://github.com/vaadin).

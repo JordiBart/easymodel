@@ -1,0 +1,64 @@
+(*Stochastic functions*)
+fStAddDepVarStateToInternalList = Function[timeToStamp,
+	AppendTo[intTimeVals, timeToStamp];
+	AppendTo[intDepVals, Table[StDepVarVals[[i, 2]], {i, 1, Length[StDepVarVals]}]];
+];
+fStAddDepVarStateToPlotList = Function[timeToStamp2,
+	timeToStamp=If[timeToStamp2>tf,tf,timeToStamp2];
+	While[timeToStamp >= nextTStep,
+		AppendTo[plotTimeVals, nextTStep];
+		AppendTo[plotDepVals, Last[intDepVals]];
+		nextTStep += tStep;
+	];
+];
+fStCheckAndUpdateDepVarState = Function[
+	Ctemp = newDepVarsValues*multInvToCellSize;
+	StDepVarsSubsZeroNegativeChecked = Table[DepVarsInitConcVals[[i, 1]] -> If[Ctemp[[i]] <= 0, DepVarsInitConcVals[[i, 2]], Ctemp[[i]]], {i, 1, Length[DepVarsInitConcVals]}];
+	newStRatesValues = Re[(RatesWDepVars /. StDepVarsSubsZeroNegativeChecked)];
+	If[Select[newDepVarsValues, (# < 0) &] == {} && Select[newStRatesValues, (# < 0) &] == {},
+		(*step validated, update values*)
+		StDepVarVals = Table[StDepVarVals[[i, 1]] -> newDepVarsValues[[i]], {i, 1, Length[StDepVarVals]}];
+		StRatesValues = Re[newStRatesValues];
+		True;
+	,
+		False;
+	];
+];
+
+stInternalLists = Table[{}, {i, 1, Length[DepVars]}];
+stPlotLists = stInternalLists;
+DepVarsInitConcInt = IntegerPart[(DepVars /. DepVarsInitConcVals)*multToCellSize];
+For[stRep = 1, stRep <= stochasticReps, stRep++,
+	Print["MSG::Calculating iteration " <> ToString[stRep] <> "/" <> ToString[stochasticReps] <> "..."];
+	intTimeVals = {};
+	intDepVals = {};
+	
+	StDepVarVals = Table[DepVars[[i]] -> DepVarsInitConcInt[[i]], {i, 1, Length[DepVars]}];
+	StRatesValues = RatesWDepVars /. StDepVarVals;
+	plotTimeVals = {};
+	plotDepVals = {};
+	nextTStep = ti;
+	stTime = ti;
+	fStAddDepVarStateToInternalList[ti];
+	fStAddDepVarStateToPlotList[ti];
+	While[stTime < tf,
+		sumStRatesValues = Apply[Plus, StRatesValues];
+		(*select new random reaction*)
+		weightedStRatesValues = Accumulate[StRatesValues];
+		randomReaction = RandomReal[Re[sumStRatesValues]];
+		nextReaction = Position[Sort[Join[{randomReaction}, weightedStRatesValues]], randomReaction][[1]][[1]];
+		
+		newDepVarsValues = Table[StDepVarVals[[i, 2]], {i, Length[StDepVarVals]}] + SMTransposed[[nextReaction]];
+		fStCheckAndUpdateDepVarState[];
+			
+		stTime += (1/sumStRatesValues)*Log[1/RandomReal[{0.0001,0.9999}]];
+		fStAddDepVarStateToInternalList[stTime];
+		fStAddDepVarStateToPlotList[stTime];
+	];
+	For[i = 1, i <= Length[DepVars], i++,
+		AppendTo[stInternalLists[[i]], TimeSeries[Transpose[intDepVals][[i]], {intTimeVals}]];
+	];
+	For[i = 1, i <= Length[DepVars], i++,
+		AppendTo[stPlotLists[[i]], TimeSeries[Transpose[plotDepVals][[i]], {plotTimeVals}]];
+	];
+]
