@@ -125,8 +125,8 @@ stPlotLists=Transpose@WaitAll[Table[ParallelSubmit[{stRep,tStep,DepVarsInitVals,
             ];
         ];(*while*)
 	];(*reap*)
-	intTimeVals = If[intReap[[2]] === {}, {}, intReap[[2,1]]];
-    intDepVals = If[intReap[[2]] === {}, {}, intReap[[2,2]]];
+	intTimeVals = intReap[[2,1]];
+    intDepVals = intReap[[2,2]];
 	gridStStatistics[[stRep,1]]=AbsoluteTime[]-$t0; (*wall clock time*)
 	gridStStatistics[[stRep,2]]=Length@intTimeVals-1; (*total steps*)
 	PrintTemporary["GRSTST::",stRep,":",DecimalForm[gridStStatistics[[stRep,1]],{Infinity,3}],":",gridStStatistics[[stRep,2]]];

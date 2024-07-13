@@ -12,6 +12,7 @@ import cat.udl.easymodel.logic.results.*;
 import cat.udl.easymodel.logic.simconfig.*;
 import cat.udl.easymodel.logic.types.FormulaValueType;
 import cat.udl.easymodel.logic.types.SimType;
+import cat.udl.easymodel.logic.types.StochasticGradeType;
 import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.mathlink.MathPacketListenerOp;
 import cat.udl.easymodel.mathlink.MathLinkOp;
@@ -345,6 +346,9 @@ public class SimulationCtrl {
             m.checkMathExpressions(mathLink);
         checkCancel();
         initSimulation();
+        checkCancel();
+        checkStochasticGrade();
+        checkCancel();
         if (simConfig.getSimTypesToLaunch().contains(SimType.DYNAMIC_DETERMINISTIC) || simConfig.getSimTypesToLaunch().contains(SimType.STEADY_STATE)) {
             initDeterministicSimulation();
             checkCancel();
@@ -372,26 +376,29 @@ public class SimulationCtrl {
             P.d("Sim took " + ((double) ((System.nanoTime() - startNanoTime) / 1000000000d)) + "s");
     }
 
-//    public boolean quickStochasticSimulationCheck() throws Exception {
-//        if (!useMathLink)
-//            return false;
-//        this.mathLink = null;
-//        if (sharedData.isDebug())
-//            startNanoTime = System.nanoTime();
-//        m.checkMathExpressions(mathLink);
-//        simConfig = m.getSimConfig();
-//        simConfig.checkAndPrepareToSimulate(m);
-//        initSimulation();
-//        bufferCommand("cellSize = " + String.valueOf(
-//                CellSizes.getInstance().nameToNum((String) simConfig.getStochastic().get("CellSize").getValue())));
-//        bufferMathTxt("quickStochasticCheck.txt");
-//        executeMathBuffer();
-//        if (sharedData.isDebug())
-//            Utils.debug("QuickStSim took " + ((double) ((System.nanoTime() - startNanoTime) / 1000000000d)) + "s");
-//        if (mathGetString("isSSAPassOK").equals("False"))
-//            throw new Exception("Model is not valid for stochastic simulation");
-//        return mathGetString("isTauLeapingEffective").equals("True");
-//    }
+    public void checkStochasticGrade() throws Exception {
+        Model modelToUpdate = m.getParent() != null ? m.getParent() : m;
+        if (modelToUpdate.getStochasticGradeType()!=StochasticGradeType.UNCHECKED || modelToUpdate.getId()==null || !useMathLink)
+            return;
+        long startStochasticGrade=System.nanoTime();
+        bufferCommand("cellSize = " +
+                CellSizes.getInstance().nameToNum(simConfig.getStochastic().get("CellSize").getOriginalValue()));
+        bufferMathTxt("quickStochasticGradeCheck.txt");
+        executeMathBuffer();
+        checkCancel();
+        if (sharedData.isDebug())
+            P.d("Quick Stochastic Grade Check took " + ((double) ((System.nanoTime() - startStochasticGrade) / 1000000000d)) + "s");
+        if (mathGetString("isSSAPassOK").equals("False"))
+            modelToUpdate.setStochasticGradeType(StochasticGradeType.NOT_COMPATIBLE);
+        else {
+            if (mathGetString("isTauLeapingEffective").equals("True"))
+                modelToUpdate.setStochasticGradeType(StochasticGradeType.TAU_LEAPING);
+            else
+                modelToUpdate.setStochasticGradeType(StochasticGradeType.SSA);
+        }
+        P.d("quickStochasticGradeCheck: "+modelToUpdate.getStochasticGradeType().toString());
+        modelToUpdate.saveStochasticGradeDB();
+    }
 
     private void initDeterministicSimulation() {
         normalSize = (String) simConfig.getPlotSettings().get("ImageSize").getValue().toString();
@@ -1100,7 +1107,7 @@ public class SimulationCtrl {
             head += " (Method=SSA;";
         head += " Final time=" + (String) simConfig.getStochastic().get("Tf").getValue() + ")";
             resultsAdd(new ResultText(head, "textH2"));
-        resultsAdd(new ResultStochasticStats(Integer.valueOf((String) simConfig.getStochastic().get("Trajectories").getValue()),isTauLeaping));
+        resultsAdd(new ResultStochasticStats(Integer.valueOf((String) simConfig.getStochastic().get("Iterations").getValue()),isTauLeaping));
         if (isTauLeaping)
             stochasticTauLeaping();
         else
@@ -1112,7 +1119,7 @@ public class SimulationCtrl {
         bufferCommand(genContext + "tf = " + (String) simConfig.getStochastic().get("Tf").getValue());
         bufferCommand("tStep = (tf-ti)/1000");
         bufferCommand(
-                genContext + "stochasticReps = " + (String) simConfig.getStochastic().get("Trajectories").getValue());
+                genContext + "stochasticReps = " + (String) simConfig.getStochastic().get("Iterations").getValue());
         bufferCommand(genContext + "cellSize = " + String.valueOf(
                 CellSizes.getInstance().nameToNum((String) simConfig.getStochastic().get("CellSize").getValue())));
         bufferMathTxt("stochastic-tau-leaping.txt");
@@ -1163,7 +1170,7 @@ public class SimulationCtrl {
         bufferCommand("tf = " + (String) simConfig.getStochastic().get("Tf").getValue());
         bufferCommand("tStep = (tf-ti)/1000");
         bufferCommand(
-                genContext + "stochasticReps = " + (String) simConfig.getStochastic().get("Trajectories").getValue());
+                genContext + "stochasticReps = " + (String) simConfig.getStochastic().get("Iterations").getValue());
         bufferCommand(genContext + "cellSize = " + String.valueOf(
                 CellSizes.getInstance().nameToNum((String) simConfig.getStochastic().get("CellSize").getValue())));
         bufferMathTxt("stochastic-ssa.txt");
@@ -1190,7 +1197,7 @@ public class SimulationCtrl {
 //			executeMathBuffer();
 //		}
         if (useMathLink) {
-            //Integer numPlotsByDepVars = Integer.valueOf(simConfig.getStochastic().get("Trajectories").getValue());
+            //Integer numPlotsByDepVars = Integer.valueOf(simConfig.getStochastic().get("Iterations").getValue());
             Integer numPlotsByDepVars = Integer.valueOf(mathGetString("Length[stPlotLists]"));
             boolean isPlotNoise = mathGetString("ValueQ[NoiseQ025]").equals("True");
             plotStochasticSim(numPlotsByDepVars, isPlotNoise);

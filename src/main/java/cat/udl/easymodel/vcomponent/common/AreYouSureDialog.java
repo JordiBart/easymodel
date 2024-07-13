@@ -1,6 +1,7 @@
 package cat.udl.easymodel.vcomponent.common;
 
 import cat.udl.easymodel.utils.ToolboxVaadin;
+import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -63,6 +64,7 @@ public class AreYouSureDialog extends Dialog {
             isAnswerYes = true;
             close();
         });
+        button.addClickShortcut(Key.ENTER);
         return button;
     }
 

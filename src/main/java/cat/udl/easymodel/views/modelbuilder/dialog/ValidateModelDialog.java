@@ -2,7 +2,10 @@ package cat.udl.easymodel.views.modelbuilder.dialog;
 
 
 import cat.udl.easymodel.logic.model.Model;
+import cat.udl.easymodel.logic.types.RepositoryType;
 import cat.udl.easymodel.main.SessionData;
+import cat.udl.easymodel.main.SharedData;
+import cat.udl.easymodel.utils.P;
 import cat.udl.easymodel.utils.ToolboxVaadin;
 import cat.udl.easymodel.views.simulationlauncher.SimulationLauncherView;
 import com.vaadin.flow.component.Key;
@@ -10,6 +13,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextArea;
@@ -20,17 +24,24 @@ public class ValidateModelDialog extends Dialog {
     private SessionData sessionData;
     private Model selectedModel;
     private boolean isModelValid = true;
+    private boolean isToSave = false;
 
-    public ValidateModelDialog() {
+    public ValidateModelDialog(boolean isToSave) {
         super();
 
+        this.isToSave=isToSave;
         this.sessionData = (SessionData) VaadinSession.getCurrent().getAttribute("s");
         this.selectedModel = sessionData.getSelectedModel();
         this.setModal(true);
         this.setResizable(true);
-        setDraggable(true);
-        this.setWidth("600px");
-        this.setHeight("600px");
+        this.setDraggable(true);
+        if (!isToSave) {
+            this.setWidth("820px");
+            this.setHeight("100%");
+        } else {
+            this.setWidth("600px");
+            this.setHeight("600px");
+        }
 
         VerticalLayout winVL = new VerticalLayout();
         winVL.setSpacing(true);
@@ -38,20 +49,58 @@ public class ValidateModelDialog extends Dialog {
         winVL.setSizeFull();
 
         contentVL = new VerticalLayout();
-        contentVL.setSpacing(true);
+        contentVL.setSpacing(false);
         contentVL.setPadding(false);
         contentVL.setWidth("100%");
-        contentVL.setClassName("scroll");
 
         try {
             selectedModel.checkValidModel();
-            Span resLab = new Span("Validation: OK");
-            contentVL.add(resLab);
-            contentVL.add(new Span("Stoichiometric Matrix"),
-                    selectedModel.getDisplayStoichiometricMatrix());
-            contentVL.add(new Span("Regulatory Matrix"), selectedModel.getDisplayRegulatoryMatrix());
+            contentVL.add(getNewStyledSpan("Validation: OK"));
+            contentVL.add(getSpacer());
+            if (!isToSave) {
+                contentVL.add(getNewStyledSpan("Stoichiometric Matrix"),
+                        selectedModel.getDisplayStoichiometricMatrix());
+                contentVL.add(getSpacer());
+                contentVL.add(getNewStyledSpan("Regulatory Matrix"), selectedModel.getDisplayRegulatoryMatrix());
+            } else { // save model to private repository
+                String saveMsg = "";
+                String saveMsgColor = "blue";
+                if ((selectedModel.getId() == null && sessionData.getModels().getModelByName(selectedModel.getName()) != null) ||
+                        (selectedModel.getId() != null && sessionData.getModels().getModelByName(selectedModel.getName()) != null && selectedModel.getUser() != sessionData.getUser())
+                        ) {
+                    saveMsg="SAVE ERROR: model name is already in use. Please change the name.";
+                    saveMsgColor = "red";
+                }else {
+                    try {
+                        if (selectedModel.getRepositoryType()==RepositoryType.PUBLIC) {
+                            selectedModel.setId(null);
+                            selectedModel.setParent(null);
+                        }
+                        boolean saveToModelList = selectedModel.getId() == null;
+                        selectedModel.setUser(sessionData.getUser());
+                        selectedModel.setRepositoryType(RepositoryType.PRIVATE);
+                        selectedModel.saveDB(); //insert/update
+                        saveMsg="MODEL SAVED.\nModel will be automatically published in " +
+                                SharedData.getInstance().getProperties().getProperty("privateWeeks") + " weeks unless it's deleted before this period.";
+                        if (saveToModelList) {
+                            Model newModel = new Model();
+                            newModel.setId(selectedModel.getId());
+                            newModel.basicLoadDB();
+                            selectedModel.setParent(newModel);
+                            sessionData.getModels().addModel(newModel);
+                        }
+                    } catch (Exception e2) {
+                        saveMsg="SAVE ERROR: DB failure";
+                        saveMsgColor = "red";
+                    }
+                }
+                Span saveMsgSpan = new Span(saveMsg);
+                saveMsgSpan.getStyle().setColor(saveMsgColor);
+                saveMsgSpan.getStyle().setFontWeight(600);
+                contentVL.add(saveMsgSpan);
+            }
         } catch (Exception e) {
-            Span resLab = new Span("Model errors found:");
+            Span resLab = getNewStyledSpan("Model errors found:");
             TextArea ta = new TextArea();
             ta.setMaxLength(4000);
             ta.setWidth("100%");
@@ -60,9 +109,20 @@ public class ValidateModelDialog extends Dialog {
             contentVL.add(resLab, ta);
             isModelValid = false;
         }
-        winVL.add(ToolboxVaadin.getDialogHeader(this, "Model validation", null), contentVL, getFooterHL());
+        winVL.add(ToolboxVaadin.getDialogHeader(this, (isToSave ? "Save Model":"Model Validate"), null), contentVL, getFooterHL());
         winVL.expand(contentVL);
         this.add(winVL);
+    }
+    private VerticalLayout getSpacer() {
+        VerticalLayout spacer = new VerticalLayout();
+        spacer.setPadding(false);
+        spacer.setHeight("12px");
+        return spacer;
+    }
+    private Span getNewStyledSpan(String txt){
+        Span span = new Span(txt);
+        span.getStyle().setFontWeight(600);
+        return span;
     }
 
     private HorizontalLayout getFooterHL() {
@@ -80,7 +140,8 @@ public class ValidateModelDialog extends Dialog {
     }
 
     private Button getSimulationButton() {
-        Button btn = new Button("Configure simulation");
+        Button btn = new Button("Configure Simulation");
+//        btn.setIcon(VaadinIcon.ROCKET.create());
         btn.setWidth("200px");
         btn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         btn.addClickListener(event -> {

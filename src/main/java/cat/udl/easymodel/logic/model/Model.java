@@ -21,16 +21,12 @@ import cat.udl.easymodel.logic.formula.Formulas;
 import cat.udl.easymodel.logic.simconfig.SimConfig;
 import cat.udl.easymodel.logic.stochastic.ReactantReactionLevel;
 import cat.udl.easymodel.logic.stochastic.ReactantModelLevel;
-import cat.udl.easymodel.logic.types.FormulaType;
-import cat.udl.easymodel.logic.types.FormulaValueType;
-import cat.udl.easymodel.logic.types.RepositoryType;
-import cat.udl.easymodel.logic.types.SpeciesVarTypeType;
+import cat.udl.easymodel.logic.types.*;
 import cat.udl.easymodel.logic.user.User;
 import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.mathlink.MathLinkOp;
 import cat.udl.easymodel.utils.*;
 import com.vaadin.flow.component.Html;
-import org.apache.commons.compress.archivers.ar.ArArchiveEntry;
 
 public class Model extends ArrayList<Reaction> {
 	private int idJava;
@@ -42,7 +38,9 @@ public class Model extends ArrayList<Reaction> {
 	private SimConfig simConfig = new SimConfig();
 	private String name = "";
 	private String description = "";
-	private RepositoryType repositoryType = RepositoryType.PRIVATE;
+	private RepositoryType repositoryType = RepositoryType.TEMP;
+	private StochasticGradeType stochasticGradeType = StochasticGradeType.UNCHECKED;
+
 	private boolean isDBDelete = false;
 	private Model parent = null;
 
@@ -54,24 +52,26 @@ public class Model extends ArrayList<Reaction> {
 	public Model(Model from) {
 		// basic model copy
 		super();
-		this.parent = from;
+		setParent(from);
 		setId(from.getId());
 		setUser(from.getUser());
 		setName(from.getName());
 		setDescription(from.getDescription());
 		setRepositoryType(from.getRepositoryType());
+		setStochasticGradeType(from.stochasticGradeType);
 	}
 
 	public Model(Model from, int forModelFullCopy) throws Exception {
 		super();
+		parent = from;
 		idJava = from.idJava;
 		id = from.id;
 		user = from.user;
 		name = from.name;
 		description = from.description;
 		repositoryType = from.repositoryType;
+		stochasticGradeType = from.stochasticGradeType;
 		isDBDelete = from.isDBDelete;
-		parent = from.parent;
 		// FORMULAS
 		formulas = new Formulas(from.formulas,this);
 		// FORMULA LINKING
@@ -94,6 +94,7 @@ public class Model extends ArrayList<Reaction> {
 
 	public void initNewModel(){
 		setRepositoryType(RepositoryType.TEMP);
+		setStochasticGradeType(StochasticGradeType.UNCHECKED);
 		addReaction(new Reaction());
 	}
 
@@ -113,7 +114,7 @@ public class Model extends ArrayList<Reaction> {
 
 	public void reset() {
 		this.clear();
-		parent = null;
+//		parent = null;
 		speciesConfigMap.clear();
 		formulas = new Formulas(this);
 		user = null;
@@ -121,7 +122,8 @@ public class Model extends ArrayList<Reaction> {
 		simConfig.reset();
 		name = "";
 		description = "";
-		repositoryType = RepositoryType.PRIVATE;
+		repositoryType = RepositoryType.TEMP;
+		stochasticGradeType = StochasticGradeType.UNCHECKED;
 	}
 
 	public String getName() {
@@ -508,6 +510,14 @@ public class Model extends ArrayList<Reaction> {
 		this.repositoryType = repositoryType;
 	}
 
+	public StochasticGradeType getStochasticGradeType() {
+		return stochasticGradeType;
+	}
+
+	public void setStochasticGradeType(StochasticGradeType stochasticGradeType) {
+		this.stochasticGradeType = stochasticGradeType;
+	}
+
 	public User getUser() {
 		return user;
 	}
@@ -526,6 +536,12 @@ public class Model extends ArrayList<Reaction> {
 
 	public void saveDB() throws DBException {
 //		System.out.println("model save");
+		if (getRepositoryType()!=RepositoryType.PRIVATE)
+			setRepositoryType(RepositoryType.PRIVATE);
+		if (getParent()!=null&&getParent().getRepositoryType()!=RepositoryType.PUBLIC){
+			getParent().setName(this.getName());
+			getParent().setDescription(this.getDescription());
+		}
 		SharedData sharedData = SharedData.getInstance();
 		Connection conn = sharedData.getDbManager().getCon();
 		PreparedStatement preparedStatement = null;
@@ -542,7 +558,7 @@ public class Model extends ArrayList<Reaction> {
 			// insert to model table
 			table = "model";
 			preparedStatement = conn.prepareStatement("insert into " + table
-					+ " (id, id_user, name, description, repositorytype, modified) values (?, ?, ?, ?, ?, DATE(NOW()))",
+					+ " (id, id_user, name, description, repositorytype, stochasticgrade, modified) values (?, ?, ?, ?, ?, ?, DATE(NOW()))",
 					Statement.RETURN_GENERATED_KEYS);
 			int p = 1;
 			if (this.id != null)
@@ -552,7 +568,8 @@ public class Model extends ArrayList<Reaction> {
 			preparedStatement.setInt(p++, user.getId());
 			preparedStatement.setString(p++, getName());
 			preparedStatement.setString(p++, getDescription());
-			preparedStatement.setInt(p++, RepositoryType.PRIVATE.getValue());
+			preparedStatement.setInt(p++, getRepositoryType().getValue());
+			preparedStatement.setInt(p++, getStochasticGradeType().getValue());
 			int affectedRows = preparedStatement.executeUpdate();
 			if (affectedRows == 0)
 				throw new SQLException("Creating " + table + " failed, no rows affected.");
@@ -568,14 +585,13 @@ public class Model extends ArrayList<Reaction> {
 			for (String sp : speciesConfigMap.keySet()) {
 				table = "species";
 				preparedStatement = conn.prepareStatement("insert into " + table
-						+ " (`id`, `id_model`, `species`, `concentration`, `vartype`, `stochastic`, `amount`) values (NULL, ?, ?, ?, ?, ?, ?)",
+						+ " (`id`, `id_model`, `species`, `concentration`, `vartype`, `amount`) values (NULL, ?, ?, ?, ?, ?)",
 						Statement.RETURN_GENERATED_KEYS);
 				p = 1;
 				preparedStatement.setInt(p++, this.getId());
 				preparedStatement.setString(p++, sp);
 				preparedStatement.setString(p++, speciesConfigMap.get(sp).getConcentration());
 				preparedStatement.setInt(p++, speciesConfigMap.get(sp).getVarType().getValue());
-				preparedStatement.setInt(p++, Utils.boolToInt(speciesConfigMap.get(sp).isStochastic()));
 				preparedStatement.setString(p++, speciesConfigMap.get(sp).getAmount());
 				affectedRows = preparedStatement.executeUpdate();
 				if (affectedRows == 0)
@@ -665,7 +681,7 @@ public class Model extends ArrayList<Reaction> {
 						table = "formulasubstratesarrayvalue";
 						String val = valuesMap.get(sp).getValue();
 						preparedStatement = conn.prepareStatement("insert into " + table
-								+ " (`id`, `id_formulasubstratesarray`, `species`, `value`) values (NULL, ?, ?,?)",
+								+ " (`id`, `id_formulasubstratesarray`, `species`, `value`) values (NULL, ?, ?, ?)",
 								Statement.RETURN_GENERATED_KEYS);
 						p = 1;
 						preparedStatement.setInt(p++, tmpId);
@@ -722,7 +738,7 @@ public class Model extends ArrayList<Reaction> {
 		}
 	}
 
-	private void saveBasicDB() throws DBException {
+	public void saveBasicDB() throws DBException {
 		if (id == null)
 			return;
 		SharedData sharedData = SharedData.getInstance();
@@ -731,10 +747,31 @@ public class Model extends ArrayList<Reaction> {
 		int p = 1;
 		try {
 			preparedStatement = conn.prepareStatement(
-					"UPDATE model SET `name`=?,`description`=?,`repositorytype`=?,`modified`=DATE(NOW()) WHERE id=?");
+					"UPDATE model SET `name`=?,`description`=?,`repositorytype`=?,`stochasticgrade`=?,`modified`=DATE(NOW()) WHERE id=?");
 			preparedStatement.setString(p++, getName());
 			preparedStatement.setString(p++, getDescription());
 			preparedStatement.setInt(p++, getRepositoryType().getValue());
+			preparedStatement.setInt(p++, getStochasticGradeType().getValue());
+			preparedStatement.setInt(p++, id);
+			preparedStatement.executeUpdate();
+			preparedStatement.close();
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+			throw new DBException(e.getMessage());
+		}
+	}
+
+	public void saveStochasticGradeDB() throws DBException {
+		if (id == null)
+			return;
+		SharedData sharedData = SharedData.getInstance();
+		Connection conn = sharedData.getDbManager().getCon();
+		PreparedStatement preparedStatement = null;
+		int p = 1;
+		try {
+			preparedStatement = conn.prepareStatement(
+					"UPDATE model SET `stochasticgrade`=? WHERE id=?");
+			preparedStatement.setInt(p++, getStochasticGradeType().getValue());
 			preparedStatement.setInt(p++, id);
 			preparedStatement.executeUpdate();
 			preparedStatement.close();
@@ -767,7 +804,7 @@ public class Model extends ArrayList<Reaction> {
 			// model table
 			table = "model";
 			pre = conn.prepareStatement(
-					"SELECT `id`, `id_user`, `name`, `description`, `repositorytype`, `modified` FROM " + table
+					"SELECT `id`, `id_user`, `name`, `description`, `repositorytype`, `stochasticgrade`, `modified` FROM " + table
 							+ " WHERE id=?");
 			pre.setInt(1, this.id);
 			rs = pre.executeQuery();
@@ -778,13 +815,14 @@ public class Model extends ArrayList<Reaction> {
 				setName(rs.getString("name"));
 				setDescription(rs.getString("description"));
 				setRepositoryType(RepositoryType.valueOf(rs.getInt("repositorytype")));
+				setStochasticGradeType(StochasticGradeType.valueOf(rs.getInt("stochasticgrade")));
 			}
 			rs.close();
 			pre.close();
 			// species table
 			table = "species";
 			pre = conn.prepareStatement(
-					"SELECT `id`, `id_model`, `species`, `concentration`, `vartype`, `stochastic`, `amount` FROM "
+					"SELECT `id`, `id_model`, `species`, `concentration`, `vartype`, `amount` FROM "
 							+ table + " WHERE id_model=?");
 			pre.setInt(1, this.id);
 			rs = pre.executeQuery();
@@ -792,7 +830,6 @@ public class Model extends ArrayList<Reaction> {
 				Species spObj = new Species(rs.getString("species"));
 				spObj.setConcentration(rs.getString("concentration"));
 				spObj.setVarType(SpeciesVarTypeType.valueOf(rs.getInt("vartype")));
-				spObj.setStochastic(Utils.intToBool(rs.getInt("stochastic")));
 				spObj.setAmount(rs.getString("amount"));
 				this.speciesConfigMap.put(spObj.getName(), spObj);
 			}
@@ -885,6 +922,39 @@ public class Model extends ArrayList<Reaction> {
 				pre2.close();
 
 				this.addReaction(r);
+			}
+			rs.close();
+			pre.close();
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+			throw new DBException(e.getMessage());
+		}
+	}
+
+	public void basicLoadDB() throws DBException {
+		// gets basic data only to perform full load later
+		if (this.id == null)
+			throw new DBException("Model has no id");
+		SharedData sharedData = SharedData.getInstance();
+		Connection conn = sharedData.getDbManager().getCon();
+		PreparedStatement pre;
+		ResultSet rs;
+		String table;
+		try {
+			table = "model";
+			pre = conn.prepareStatement(
+					"SELECT `id`, `id_user`, `name`, `description`, `repositorytype`, `stochasticgrade`, `modified` FROM " + table
+							+ " WHERE id=?");
+			pre.setInt(1, this.id);
+			rs = pre.executeQuery();
+			this.reset(); // if id found, reset this model to fill
+			while (rs.next()) {
+				setId(rs.getInt("id"));
+				setUser(sharedData.getUsers().getUserById(rs.getInt("id_user")));
+				setName(rs.getString("name"));
+				setDescription(rs.getString("description"));
+				setRepositoryType(RepositoryType.valueOf(rs.getInt("repositorytype")));
+				setStochasticGradeType(StochasticGradeType.valueOf(rs.getInt("stochasticgrade")));
 			}
 			rs.close();
 			pre.close();
@@ -1019,13 +1089,6 @@ public class Model extends ArrayList<Reaction> {
 //		}
 	}
 
-	public boolean isStochastic() {
-		for (Species sp : speciesConfigMap.values()) {
-			if (sp.isStochastic())
-				return true;
-		}
-		return false;
-	}
 //	private String fixStringNumber(String newVal) {
 //		if (newVal.endsWith("."))
 //			newVal += "0";

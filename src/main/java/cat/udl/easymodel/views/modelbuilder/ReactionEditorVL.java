@@ -186,36 +186,12 @@ public class ReactionEditorVL extends VerticalLayout {
         hl1.expand(validateModelBtn);
         vl.add(hl1);
 
-        if (sessionData.getRepository() == RepositoryType.PRIVATE && selectedModel.getUser() == sessionData.getUser()) {
-            Button saveBtn = new Button("Save to DB");
+        if (sessionData.isUserSet()){
+            Button saveBtn = new Button("Save to Private Repository");
             saveBtn.setIcon(VaadinIcon.DISC.create());
             saveBtn.addClickListener(ev -> {
-                try {
-                    selectedModel.checkValidModel();
-                } catch (Exception e) {
-                    ToolboxVaadin.showWarningNotification("SAVE ERROR: Model is not valid.");
-                    return;
-                }
-                if (sessionData.getModels().getModelByName(selectedModel.getName()) != null
-                        && sessionData.getModels().getModelByName(selectedModel.getName()) != selectedModel.getParent()) {
-                    ToolboxVaadin.showWarningNotification("SAVE ERROR: Model name is already in use. Please change the name.");
-                    return;
-                }
-                try {
-                    boolean saveToModels = selectedModel.getId() == null;
-                    selectedModel.saveDB();
-                    ToolboxVaadin.showSuccessNotification("MODEL SAVED.\nModel will be automatically published in " +
-                            SharedData.getInstance().getProperties().getProperty("privateWeeks") + " weeks unless it's deleted before this period");
-                    if (saveToModels) {
-                        Model copy = new Model(selectedModel);
-                        copy.setParent(null);
-                        selectedModel.setParent(copy);
-                        sessionData.getModels().addModel(copy);
-                    }
-                } catch (Exception e2) {
-                    ToolboxVaadin.showErrorNotification("SAVE ERROR: DB failure");
-                    return;
-                }
+                ValidateModelDialog dia = new ValidateModelDialog(true);
+                dia.open();
             });
             hl1.add(saveBtn);
         }
@@ -229,7 +205,7 @@ public class ReactionEditorVL extends VerticalLayout {
         btn.setIcon(VaadinIcon.CHECK.create());
 //        btn.setWidth("100%");
         btn.addClickListener(e -> {
-            ValidateModelDialog dia = new ValidateModelDialog();
+            ValidateModelDialog dia = new ValidateModelDialog(false);
             dia.open();
         });
         return btn;

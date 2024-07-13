@@ -9,6 +9,7 @@ import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.utils.ToolboxVaadin;
 import cat.udl.easymodel.utils.Utils;
 import cat.udl.easymodel.vcomponent.common.InfoDialogButton;
+import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -405,6 +406,7 @@ public class LinkReactionFormulaDialog extends Dialog {
         button.addClickListener(event -> {
             saveAndClose();
         });
+        button.addClickShortcut(Key.ENTER);
         return button;
     }
 

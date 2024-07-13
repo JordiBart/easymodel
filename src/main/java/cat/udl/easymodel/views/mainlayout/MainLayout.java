@@ -64,9 +64,9 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
             if (sharedData.isDebug()) {
                 sessionData.setWelcomeDialogClosed(true);
                 try {
-                    Model testModel = sessionData.getModels().get(2);
+                    Model testModel = new Model(sessionData.getModels().get(2));
                     testModel.loadDB();
-                    testModel.setRepositoryType(RepositoryType.TEMP);
+                    //testModel.setRepositoryType(RepositoryType.TEMP);
                     sessionData.setSelectedModel(testModel);
                 } catch (Exception e) {
                     e.printStackTrace();

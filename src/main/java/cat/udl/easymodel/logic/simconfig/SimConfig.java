@@ -7,7 +7,8 @@ import java.util.Set;
 import cat.udl.easymodel.logic.model.Model;
 import cat.udl.easymodel.logic.types.InputType;
 import cat.udl.easymodel.logic.types.SimType;
-import cat.udl.easymodel.logic.types.StochasticMethod;
+import cat.udl.easymodel.logic.types.SimStochasticMethodType;
+import cat.udl.easymodel.logic.types.StochasticGradeType;
 
 public class SimConfig {
     private Set<SimType> simTypesToLaunch = new HashSet<>();
@@ -43,13 +44,13 @@ public class SimConfig {
         // DYNAMIC
         dynamic_PlotViews.clearPlotViews();
         dynamic.clear();
-        entry = new SimConfigEntry("Ti", "0", InputType.DECIMAL, "Initial time", "Simulation starting time");
+        entry = new SimConfigEntry("Ti", "0", InputType.DECIMAL, "Initial Time", "Simulation starting time");
         entry.setValueRange("0", null);
         dynamic.add(entry);
-        entry = new SimConfigEntry("Tf", "100", InputType.DECIMAL, "Final time", "Simulation ending time");
+        entry = new SimConfigEntry("Tf", "100", InputType.DECIMAL, "Final Time", "Simulation ending time");
         entry.setValueRange("0", null);
         dynamic.add(entry);
-        entry = new SimConfigEntry("TStep", "0.1", InputType.DECIMAL, "Time step", "Simulation stepping");
+        entry = new SimConfigEntry("TStep", "0.1", InputType.DECIMAL, "Time Step", "Simulation stepping");
         entry.setValueRange("0.000001", "0.1");
         dynamic.add(entry);
         dynamic.add(new SimConfigEntry("Gains", "0", InputType.CHECKBOX, "Gains",
@@ -60,7 +61,7 @@ public class SimConfig {
         steadyState.clear();
         steadyState.add(new SimConfigEntry("Threshold", "10^-12", InputType.MATHEXPRESSION, "Threshold",
                 "Threshold condition for the Steady State finding calculus. Low values results in a low tolerance against finding the Steady State."));
-        steadyState.add(new SimConfigEntry("Stability", "0", InputType.CHECKBOX, "Stability analysis",
+        steadyState.add(new SimConfigEntry("Stability", "0", InputType.CHECKBOX, "Stability Analysis",
                 "Add further stability analysis to simulation"));
         steadyState.add(new SimConfigEntry("Gains", "0", InputType.CHECKBOX, "Gains",
                 "Add independent variables gains to simulation"));
@@ -82,11 +83,11 @@ public class SimConfig {
         plotConfig.add(entry);
         // STOCHASTIC
         stochastic.clear();
-        entry = new SimConfigEntry("Ti", "0", InputType.DECIMAL, "Initial time", "Simulation starting time");
+        entry = new SimConfigEntry("Ti", "0", InputType.DECIMAL, "Initial Time", "Simulation starting time");
         entry.setValueRange("0", null);
         entry.setEnabled(false);
         stochastic.add(entry);
-        entry = new SimConfigEntry("Tf", "100", InputType.DECIMAL, "Final time", "Simulation ending time");
+        entry = new SimConfigEntry("Tf", "100", InputType.DECIMAL, "Final Time", "Simulation ending time");
         entry.setValueRange("0", null);
         stochastic.add(entry);
 //		entry = new SimConfigEntry("TStep", "0.1", InputType.DECIMAL, "Time step", "Simulation stepping");
@@ -94,15 +95,15 @@ public class SimConfig {
 //		stochastic.add(entry);
 //		entry = new SimConfigEntry("Iterations", new SimConfigSlider("3", "1", "10", 1),
 //				InputType.SLIDER, "Iterations", "Number of stochastic iterations");
-        entry = new SimConfigEntry("Trajectories", "3", InputType.NATURAL, "#Trajectories", "Number of run passes.");
+        entry = new SimConfigEntry("Iterations", "3", InputType.NATURAL, "#Iterations", "Number of run passes.");
         entry.setValueRange("1", "8");
         stochastic.add(entry);
-        entry = new SimConfigEntry("CellSize", "Prokaryotic Cell", InputType.SELECT, "Cell size", "");
+        entry = new SimConfigEntry("CellSize", "Prokaryotic Cell", InputType.SELECT, "Cell Size", "Cell Size");
         entry.setOptionSet(CellSizes.getInstance().getCellSizeNames());
         stochastic.add(entry);
-        entry = new SimConfigEntry("Method", "SSA", InputType.SELECT, "Simulation method",
+        entry = new SimConfigEntry("Method", SimStochasticMethodType.SSA.toString(), InputType.SELECT, "Stochastic Method",
                 "Stochastic simulation algorithm.");
-        entry.setOptionSet(StochasticMethod.getSet());
+        entry.setOptionSet(SimStochasticMethodType.getSet());
         stochastic.add(entry);
     }
 
@@ -130,10 +131,17 @@ public class SimConfig {
                     .valueOf((String) stochastic.get("Tf").getValue()))
                 throw new Exception("Stochastic: Final time must be greater than Initial time");
         }
-        if (numOfSims == 0)
-            throw new Exception("No simulations are selected");
+//        if (numOfSims == 0)
+//            throw new Exception("No simulations are selected");
+        ready(model);
+    }
+
+    public void ready(Model model) {
         dynamic_PlotViews.fix(model);
         dynamic_ParameterScan.cleanUnusedParams(model);
+        if (model.getStochasticGradeType() == StochasticGradeType.TAU_LEAPING){
+            this.getStochastic().get("Method").setValue("Tau-leaping");
+        }
     }
 
     //////////////////////////////////////////

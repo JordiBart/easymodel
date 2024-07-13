@@ -10,12 +10,12 @@ For[j = 1, j <= Length[SMTransposed], j++,
 	smReaction = SMTransposed[[j]];
 	dvPos = Flatten[Position[smReaction, _?Negative]];
 	auxReap=Reap[
-	For[i = 1, i <= Length[dvPos], i++,
-		rExp = Exponent[RatesWJustDepVars[[j]], DepVars[[dvPos[[i]]]]];
-		If[rExp > 0,
-			Sow[Association["name" -> DepVars[[dvPos[[i]]]], "order" -> rExp, "stCoef" -> Abs[smReaction[[dvPos[[i]]]]]]];
-		];
-	];
+        For[i = 1, i <= Length[dvPos], i++,
+            rExp = Exponent[RatesWJustDepVars[[j]], DepVars[[dvPos[[i]]]]];
+            If[rExp > 0,
+                Sow[Association["name" -> DepVars[[dvPos[[i]]]], "order" -> rExp, "stCoef" -> Abs[smReaction[[dvPos[[i]]]]]]];
+            ];
+        ];
 	];
 	Sow[If[auxReap[[2]] === {}, {}, auxReap[[2,1]]]];
 ];
@@ -136,6 +136,7 @@ stPlotLists=Transpose@WaitAll[Table[ParallelSubmit[{ReactantsReactionLevel,React
 	curProgress=0;
 	intReap=Reap[
         fStAddDepVarStateToInternalList[stTime];
+        Sow[0,"intLeapTimes"];
         While[stTime <= tf,
             fUpdateProgressBar[stTime];
             tauToUse="error";
@@ -352,9 +353,9 @@ stPlotLists=Transpose@WaitAll[Table[ParallelSubmit[{ReactantsReactionLevel,React
             ];
         ]; (*while*)
 	]; (*reap*)
-	intTimeVals = If[intReap[[2]] === {}, {}, intReap[[2,1]]];
-    intDepVals = If[intReap[[2]] === {}, {}, intReap[[2,2]]];
-    intLeapTimes = If[intReap[[2]] === {}, {}, intReap[[2,3]]];
+	intTimeVals = intReap[[2,1]];
+    intDepVals = intReap[[2,2]];
+    intLeapTimes = Rest[intReap[[2,3]]];
 	gridStStatistics[[stRep,1]]=AbsoluteTime[]-$t0; (*wall clock time*)
 	gridStStatistics[[stRep,2]]=Length@intTimeVals-1; (*total steps*)
 	gridStStatistics[[stRep,3]]=leapTotalSteps;

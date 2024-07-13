@@ -14,8 +14,6 @@ import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.utils.DBException;
 
 public class Models extends ArrayList<Model> {
-	private static final long serialVersionUID = 1L;
-
 	public Models() {
 	}
 
@@ -65,7 +63,6 @@ public class Models extends ArrayList<Model> {
 		for (Model mod : this)
 			mod.resetReactions();
 		this.clear();
-		// modelsAutoIncrement = 1;
 	}
 
 	public void removeFormulaFromReactions(Formula f) {
@@ -75,6 +72,8 @@ public class Models extends ArrayList<Model> {
 	}
 
 	public void reset() {
+		for (Model m : this)
+			m.reset();
 		this.clear();
 	}
 

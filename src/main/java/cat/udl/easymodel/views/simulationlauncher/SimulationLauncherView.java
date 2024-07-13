@@ -52,7 +52,7 @@ public class SimulationLauncherView extends VerticalLayout {
         if (sessionData.getSelectedModel() == null) {
             this.setPadding(true);
             this.setSpacing(true);
-            add(new Span("Error: model is not selected"));
+            add(new Span("Error: model is not selected."));
             return;
         }
         this.selectedModel = sessionData.getSelectedModel();
@@ -65,6 +65,7 @@ public class SimulationLauncherView extends VerticalLayout {
             return;
         }
         simConfig = selectedModel.getSimConfig();
+        simConfig.ready(selectedModel);
         plotSettingsDialog = new PlotSettingsDialog(simConfig.getPlotSettings());
         //VIEW START
         this.setPadding(false);
@@ -101,7 +102,7 @@ public class SimulationLauncherView extends VerticalLayout {
             selectedModel.getSimConfig().updateSimTypesToLaunch(multiSelectionEvent.getValue());
             updateSettingsVL();
         });
-        vl.add(mslb, getPlotSettingsButton(), newMathematicaNotebookButton(), newSBMLExportButton(),ToolboxVaadin.newHR(),newLaunchButton());
+        vl.add(mslb, getPlotSettingsButton(), ToolboxVaadin.newHR(),newLaunchButton());
         return vl;
     }
 
@@ -194,6 +195,7 @@ public class SimulationLauncherView extends VerticalLayout {
         settingsVL.add(selModelTxt,title);
         if (selectedModel.getSimConfig().getSimTypesToLaunch().isEmpty()) {
             settingsVL.add(new Span("No simulations are selected."));
+            settingsVL.add(new Span("Launch empty simulation to generate Mathematica Notebook and SBML files."));
         } else {
             if (selectedModel.getSimConfig().getSimTypesToLaunch().contains(SimType.DYNAMIC_DETERMINISTIC)) {
                 settingsVL.add(new DeterministicDynamicSettings(simConfig));
@@ -202,7 +204,7 @@ public class SimulationLauncherView extends VerticalLayout {
                 settingsVL.add(new SteadyStateSettings(simConfig));
             }
             if (selectedModel.getSimConfig().getSimTypesToLaunch().contains(SimType.DYNAMIC_STOCHASTIC)) {
-                settingsVL.add(new StochasticDynamicSettings(simConfig));
+                settingsVL.add(new StochasticDynamicSettings(simConfig, selectedModel.getStochasticGradeType()));
             }
         }
     }

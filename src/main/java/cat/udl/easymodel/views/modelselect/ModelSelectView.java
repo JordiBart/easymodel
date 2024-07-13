@@ -6,6 +6,7 @@ import cat.udl.easymodel.logic.types.RepositoryType;
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.sbml.SBMLMan;
+import cat.udl.easymodel.utils.P;
 import cat.udl.easymodel.utils.ToolboxVaadin;
 import cat.udl.easymodel.vcomponent.common.AreYouSureDialog;
 import cat.udl.easymodel.vcomponent.common.InfoDialogButton;
@@ -126,7 +127,7 @@ public class ModelSelectView extends VerticalLayout {
         try {
             Model copy = new Model(model);
             copy.loadDB();
-            copy.setRepositoryType(RepositoryType.TEMP);
+            //copy.setRepositoryType(RepositoryType.TEMP);
             sessionData.setSelectedModel(copy);
             getUI().ifPresent(ui -> ui.navigate(
                     ModelBuilderView.class));
@@ -151,37 +152,37 @@ public class ModelSelectView extends VerticalLayout {
             }
         });
         if (sessionData.getRepository() == RepositoryType.PUBLIC) {
-            if (sessionData.isUserSet()) {
-                Button copyButton = new Button("Copy to Private Models");
-                copyButton.setWidth("240px");
-                copyButton.addClickListener(ev -> {
-                    try {
-                        if (gridModels.getSelectedItems().isEmpty())
-                            throw new Exception("Please select a model");
-                        Model m = gridModels.getSelectedItems().iterator().next();
-                        AreYouSureDialog dia = new AreYouSureDialog("Confirmation", "Are you sure to make a copy of the model \"" + m.getName() + "\" to your private repository?");
-                        dia.addDetachListener(ev2 -> {
-                            if (dia.isAnswerYes()) {
-                                try {
-                                    if (sessionData.getUser() == null)
-                                        throw new Exception("A user account is required for this operation");
-                                    sessionData.setSelectedModel(
-                                            sessionData.getModels().getPrivateModelCopy(m, sessionData.getUser()));
-                                    sessionData.setRepository(RepositoryType.PRIVATE);
-                                    getUI().ifPresent(ui -> ui.navigate(
-                                            ModelBuilderView.class));
-                                } catch (Exception e1) {
-                                    ToolboxVaadin.showErrorNotification("Model copy error");
-                                }
-                            }
-                        });
-                        dia.open();
-                    } catch (Exception e) {
-                        ToolboxVaadin.showWarningNotification(e.getMessage());
-                    }
-                });
-                hl.add(copyButton);
-            }
+//            if (sessionData.isUserSet()) {
+//                Button copyButton = new Button("Copy to Private Models");
+//                copyButton.setWidth("240px");
+//                copyButton.addClickListener(ev -> {
+//                    try {
+//                        if (gridModels.getSelectedItems().isEmpty())
+//                            throw new Exception("Please select a model");
+//                        Model m = gridModels.getSelectedItems().iterator().next();
+//                        AreYouSureDialog dia = new AreYouSureDialog("Confirmation", "Are you sure to make a copy of the model \"" + m.getName() + "\" to your private repository?");
+//                        dia.addDetachListener(ev2 -> {
+//                            if (dia.isAnswerYes()) {
+//                                try {
+//                                    if (sessionData.getUser() == null)
+//                                        throw new Exception("A user account is required for this operation");
+//                                    sessionData.setSelectedModel(
+//                                            sessionData.getModels().getPrivateModelCopy(m, sessionData.getUser()));
+//                                    sessionData.setRepository(RepositoryType.PRIVATE);
+//                                    getUI().ifPresent(ui -> ui.navigate(
+//                                            ModelBuilderView.class));
+//                                } catch (Exception e1) {
+//                                    ToolboxVaadin.showErrorNotification("Model copy error");
+//                                }
+//                            }
+//                        });
+//                        dia.open();
+//                    } catch (Exception e) {
+//                        ToolboxVaadin.showWarningNotification(e.getMessage());
+//                    }
+//                });
+//                hl.add(copyButton);
+//            }
             VerticalLayout spacer = new VerticalLayout();
             hl.add(spacer, btnLoad);
             hl.expand(spacer);
@@ -201,6 +202,9 @@ public class ModelSelectView extends VerticalLayout {
                             try {
                                 m.deleteDB();
                                 sessionData.getModels().removeModel(m);
+                                if (m==sessionData.getSelectedModel().getParent())
+                                    sessionData.setSelectedModel(null);
+                                m.reset();
                                 update();
                             } catch (Exception e1) {
                                 ToolboxVaadin.showErrorNotification("Delete model error");

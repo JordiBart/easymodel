@@ -44,15 +44,15 @@ public class SimJob extends MathJob {
             errorMessage = executor.submit(this.callable).get(timeout, TimeUnit.MINUTES);
             if (errorMessage.equals("MathLink")){
                 if (isCancelJob)
-                    resultList.add(new ResultText("Simulation cancelled by user",""));
+                    resultList.add(new ResultText("Simulation cancelled by user.",""));
                 else
-                    resultList.add(new ResultText("CRITICAL ERROR: Mathematica exception",""));
+                    resultList.add(new ResultText("CRITICAL ERROR: Mathematica exception.",""));
             } else if (errorMessage.equals("CException")){
 
             }
         } catch (TimeoutException e) {
             errorMessage="Timeout";
-            resultList.add(new ResultText("Simulation timeout reached: " + this.timeout + " minutes",""));
+            resultList.add(new ResultText("Simulation timeout reached: " + this.timeout + " minutes.",""));
         } catch (InterruptedException e) {
             errorMessage="Interrupted";
             e.printStackTrace();

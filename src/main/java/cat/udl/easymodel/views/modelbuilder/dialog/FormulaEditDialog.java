@@ -7,6 +7,7 @@ import cat.udl.easymodel.logic.types.FormulaType;
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.utils.ToolboxVaadin;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -208,6 +209,7 @@ public class FormulaEditDialog extends Dialog {
 		button.addClickListener(event-> {
 				getOkButtonFunction();
 		});
+		button.addClickShortcut(Key.ENTER);
 		return button;
 	}
 	

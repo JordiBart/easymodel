@@ -1,6 +1,7 @@
 package cat.udl.easymodel.views.modelbuilder;
 
 import cat.udl.easymodel.logic.model.Model;
+import cat.udl.easymodel.logic.types.RepositoryType;
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
 import com.vaadin.flow.component.html.Span;
@@ -29,6 +30,8 @@ public class ModelBuilderView extends VerticalLayout {
             this.setPadding(false);
             this.setSpacing(false);
             this.selectedModel = sessionData.getSelectedModel();
+//            if (sessionData.isUserSet())
+//                this.selectedModel.setRepositoryType(RepositoryType.PRIVATE);
 //        reactionsEditorVL = new ReactionEditorVL(selectedModel, mainPanel);
 //        formulasEditorVL = new FormulasEditorVL(reactionsEditorVL);
 

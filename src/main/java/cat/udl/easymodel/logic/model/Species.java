@@ -7,7 +7,6 @@ public class Species {
 	private String name = null;
 	private String concentration = SharedData.defaultInitialConcentration;
 	private SpeciesVarTypeType varType = SpeciesVarTypeType.TIME_DEP;
-	private boolean isStochastic = false;
 	private String amount = null;
 
 	public Species(String name) {
@@ -24,7 +23,6 @@ public class Species {
 		name = from.name;
 		concentration = from.concentration;
 		varType = from.varType;
-		isStochastic = from.isStochastic;
 		amount = from.amount;
 	}
 	
@@ -38,17 +36,14 @@ public class Species {
 		return true;
 	}
 
-	
 	public String getConcentration() {
 		return concentration;
 	}
 
-	
 	public void setConcentration(String concentration) {
 		this.concentration = concentration;
 	}
 
-	
 	public SpeciesVarTypeType getVarType() {
 		return varType;
 	}
@@ -65,17 +60,6 @@ public class Species {
 		this.amount = amount;
 	}
 
-
-	
-	public boolean isStochastic() {
-		return isStochastic;
-	}
-	
-	public void setStochastic(boolean isStochastic) {
-		this.isStochastic = isStochastic;
-	}
-
-	
 	public Species getCopy() {
 		Species copy = new Species(this.name);
 		copy.setConcentration(this.getConcentration());

@@ -153,7 +153,7 @@ public class SharedData {
         ArrayList<String> fileNames = new ArrayList<>();
         fileNames.add("param-scan-dyn.txt");
         fileNames.add("param-scan-steady-state.txt");
-        fileNames.add("quickStochasticCheck.txt");
+        fileNames.add("quickStochasticGradeCheck.txt");
         fileNames.add("steady-state.txt");
         fileNames.add("stochastic-ssa.txt");
         fileNames.add("stochastic-tau-leaping.txt");

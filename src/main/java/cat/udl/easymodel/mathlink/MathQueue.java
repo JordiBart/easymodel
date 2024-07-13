@@ -140,7 +140,7 @@ public class MathQueue implements Callable<String> {
             if (simJob.getMathJobStatus() == MathJobStatus.PENDING) {
                 pendingQueue.remove(simJob);
                 simJob.setMathJobStatus(MathJobStatus.FINISHED);
-                simJob.getResultList().add(new ResultText("Simulation cancelled by user",""));
+                simJob.getResultList().add(new ResultText("Simulation cancelled by user.",""));
             }
         }
     }

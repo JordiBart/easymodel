@@ -1,6 +1,7 @@
 package cat.udl.easymodel.vcomponent.simulation;
 
 import cat.udl.easymodel.logic.simconfig.SimConfig;
+import cat.udl.easymodel.logic.types.StochasticGradeType;
 import cat.udl.easymodel.vcomponent.common.InfoDialogButton;
 import cat.udl.easymodel.views.simulationlauncher.SimConfigToComponent;
 import com.vaadin.flow.component.accordion.Accordion;
@@ -11,9 +12,11 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 
 public class StochasticDynamicSettings extends VerticalLayout {
     private SimConfig simConfig;
-    public StochasticDynamicSettings(SimConfig simConfig) {
+    private StochasticGradeType stochasticGradeType;
+    public StochasticDynamicSettings(SimConfig simConfig, StochasticGradeType stochasticGradeType) {
         super();
         this.simConfig=simConfig;
+        this.stochasticGradeType=stochasticGradeType;
 
         this.setWidth("100%");
         this.setSpacing(false);
@@ -26,7 +29,20 @@ public class StochasticDynamicSettings extends VerticalLayout {
 
         Span title = new Span("Dynamic (Stochastic) Simulation Settings");
         title.getStyle().set("font-weight", "bold");
-        this.add(title,accDyn);
+        this.add(title);
+        if (stochasticGradeType != StochasticGradeType.UNCHECKED) {
+            Span notice = new Span();
+            notice.getStyle().setWidth("500px");
+            if (stochasticGradeType == StochasticGradeType.NOT_COMPATIBLE) {
+                notice.setText("Stochastic simulation is not available for this model.");
+                notice.getStyle().set("color", "red");
+            }else{
+                notice.setText("Stochastic simulation is available for this model. Recommended method is preselected.");
+                notice.getStyle().set("color", "blue");
+            }
+            this.add(notice);
+        }
+        this.add(accDyn);
     }
 
     private HorizontalLayout getMainSettingsHL() {
@@ -37,7 +53,7 @@ public class StochasticDynamicSettings extends VerticalLayout {
 
         leftVL.add(SimConfigToComponent.convert(simConfig.getStochastic().get("Ti"),null));
         leftVL.add(SimConfigToComponent.convert(simConfig.getStochastic().get("Tf"),null));
-        leftVL.add(SimConfigToComponent.convert(simConfig.getStochastic().get("Trajectories"),null));
+        leftVL.add(SimConfigToComponent.convert(simConfig.getStochastic().get("Iterations"),null));
         leftVL.add(SimConfigToComponent.convert(simConfig.getStochastic().get("CellSize"),null));
         leftVL.add(SimConfigToComponent.convert(simConfig.getStochastic().get("Method"),null));
         /////////////

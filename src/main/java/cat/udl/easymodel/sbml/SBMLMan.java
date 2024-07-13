@@ -298,8 +298,7 @@ public class SBMLMan {
 			}
 			if (!Double.isNaN(sp.getInitialAmount())) {
 				emSp.setAmount(getDoubleWithStandardNotation(sp.getInitialAmount()));
-				if (emSp.getConcentration() == null) { // stochastic: no concentration pero si amount
-					emSp.setStochastic(true);
+				if (emSp.getConcentration() == null) { // stochastic: no concentration but amount
 					emSp.setConcentration(getDoubleWithStandardNotation(sp.getInitialAmount() * stochasticFactor));
 				}
 			}

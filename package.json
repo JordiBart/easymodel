@@ -76,6 +76,7 @@
     "@vaadin/virtual-list": "24.3.11",
     "construct-style-sheets-polyfill": "3.1.0",
     "date-fns": "2.29.3",
+    "echarts": "5.5.0",
     "lit": "3.1.2",
     "proj4": "2.9.2"
   },
@@ -172,7 +173,8 @@
     "@polymer/polymer": "$@polymer/polymer",
     "proj4": "$proj4",
     "@vaadin/vaadin-themable-mixin": "$@vaadin/vaadin-themable-mixin",
-    "date-fns": "$date-fns"
+    "date-fns": "$date-fns",
+    "echarts": "$echarts"
   },
   "vaadin": {
     "dependencies": {
@@ -249,6 +251,7 @@
       "@vaadin/virtual-list": "24.3.11",
       "construct-style-sheets-polyfill": "3.1.0",
       "date-fns": "2.29.3",
+      "echarts": "5.5.0",
       "lit": "3.1.2",
       "proj4": "2.9.2"
     },
@@ -270,6 +273,6 @@
       "workbox-core": "7.0.0",
       "workbox-precaching": "7.0.0"
     },
-    "hash": "b84a2f2131ecff61b090471f243985aa8d26af21e55eca0ff11eb20a9c7161cc"
+    "hash": "77f2d65d1325d475713373fe2f05c26033a06d333c03893847155697076b480b"
   }
 }
