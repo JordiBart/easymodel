@@ -51,7 +51,9 @@ public class SpeciesDialog extends Dialog {
 
         centerVL = new VerticalLayout();
         centerVL.setSizeFull();
-        centerVL.setClassName("scroll");
+		centerVL.setPadding(false);
+		centerVL.setSpacing(false);
+//        centerVL.setClassName("scroll");
 
 //        HorizontalLayout headHL = new HorizontalLayout();
 //        headHL.setWidth("100%");
@@ -77,7 +79,7 @@ public class SpeciesDialog extends Dialog {
 		grid.setSizeFull();
 		fillGridItemList();
 		grid.setItems(gridItemList);
-		grid.addColumn(Species::getName).setHeader("Name");
+		grid.addColumn(Species::getName).setHeader("Name").setResizable(true);
 		grid.addColumn(new ComponentRenderer<>(entry -> {
 			TextField tf = new TextField();
 			tf.setWidth("100%");
@@ -95,7 +97,7 @@ public class SpeciesDialog extends Dialog {
 				}
 			});
 			return tf;
-		})).setHeader("Initial Concentration");
+		})).setHeader("Initial Concentration").setResizable(true);
 		grid.addColumn(new ComponentRenderer<>(entry -> {
 			Select<SpeciesVarTypeType> ns = new Select<>();
 			ns.setWidth("100%");
@@ -111,7 +113,7 @@ public class SpeciesDialog extends Dialog {
 				entry.setVarType(event.getValue());
 			});
 			return ns;
-		})).setHeader("Variable Type");
+		})).setHeader("Variable Type").setResizable(true);
 		centerVL.add(grid);
 		centerVL.expand(grid);
 	}

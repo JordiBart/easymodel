@@ -75,10 +75,10 @@ public class UsersAdminVL extends VerticalLayout {
         grid.setSizeFull();
         grid.addColumn(new ComponentRenderer<>(u -> {
             return getTF("name", "New username", u.getName(), u);
-        })).setHeader("Username");
-        grid.addColumn(new ComponentRenderer<>(u -> getTF("password", "New password", "", u))).setHeader("Password");
-        grid.addColumn(new ComponentRenderer<>(u -> getCB("usertype", (u.getUserType() == UserType.ADMIN), u))).setHeader("Admin");
-        grid.addColumn(new ComponentRenderer<>(u -> getCB("delete", u.isDBDelete(), u))).setHeader("Delete");
+        })).setHeader("Username").setResizable(true).setFlexGrow(1);
+        grid.addColumn(new ComponentRenderer<>(u -> getTF("password", "New password", "", u))).setHeader("Password").setResizable(true).setFlexGrow(1);
+        grid.addColumn(new ComponentRenderer<>(u -> getCB("usertype", (u.getUserType() == UserType.ADMIN), u))).setHeader("Admin").setFlexGrow(0);
+        grid.addColumn(new ComponentRenderer<>(u -> getCB("delete", u.isDBDelete(), u))).setHeader("Delete").setFlexGrow(0);
         grid.setItems(usersCopy);
         vl.add(grid);
         return vl;

@@ -74,12 +74,12 @@ public class ReactionEditorVL extends VerticalLayout {
 //        Shortcuts.addShortcutListener(grid, this::addReaction, Key.ENTER);
         grid.setSelectionMode(Grid.SelectionMode.NONE);
         grid.setSizeFull();
-        grid.addColumn(Reaction::getIdJavaStr).setHeader("Name").setFlexGrow(0);
+        grid.addColumn(Reaction::getIdJavaStr).setHeader("Name").setFlexGrow(0).setWidth("70px").setResizable(true);
         grid.addColumn(new ComponentRenderer<>(reaction -> {
             Button btn = getLinkFormulaButton(reaction);
             linkFormulaButtons.put(reaction, btn);
             return btn;
-        })).setHeader("Rate Law").setFlexGrow(0);
+        })).setHeader("Rate Law").setWidth("90px").setFlexGrow(0);
         grid.addColumn(new ComponentRenderer<>(reaction -> {
 //            System.out.println("tf");
             TextField tf = getReactionTextField(reaction);
@@ -91,11 +91,11 @@ public class ReactionEditorVL extends VerticalLayout {
             if (reaction.isBlank())
                 tf.focus();
             return tf;
-        })).setHeader("Reaction").setFlexGrow(1);
+        })).setHeader("Reaction").setFlexGrow(1).setResizable(true);
         grid.addColumn(new ComponentRenderer<>(reaction -> {
             Button btn = getRemoveReactionButton(reaction);
             return btn;
-        })).setHeader("Remove").setFlexGrow(0);
+        })).setHeader("Remove").setWidth("90px").setFlexGrow(0);
         return grid;
     }
 

@@ -6,6 +6,7 @@ import com.vaadin.flow.component.html.Span;
 public class ResultText implements ResultEntry {
     private String value;
     private String style;
+
     public ResultText(String text, String style) {
         this.value = text;
         this.style=style;

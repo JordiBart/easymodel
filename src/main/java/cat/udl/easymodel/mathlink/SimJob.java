@@ -30,6 +30,13 @@ public class SimJob extends MathJob {
         return vaadinSession;
     }
 
+    public void clean(){
+        super.clean();
+        vaadinSession=null;
+        model=null;
+        resultList=null;
+    }
+
     @Override
     public String call() throws Exception {
         this.startDate=Calendar.getInstance().getTime();

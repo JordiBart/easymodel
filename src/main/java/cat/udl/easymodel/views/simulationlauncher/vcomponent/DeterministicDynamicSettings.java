@@ -1,4 +1,4 @@
-package cat.udl.easymodel.vcomponent.simulation;
+package cat.udl.easymodel.views.simulationlauncher.vcomponent;
 
 import cat.udl.easymodel.logic.simconfig.SimConfig;
 import cat.udl.easymodel.logic.simconfig.SimParamScanConfig;
@@ -14,9 +14,10 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 
-public class SteadyStateSettings extends VerticalLayout {
+public class DeterministicDynamicSettings extends VerticalLayout {
     private SimConfig simConfig;
-    public SteadyStateSettings(SimConfig simConfig) {
+
+    public DeterministicDynamicSettings(SimConfig simConfig) {
         super();
         this.simConfig=simConfig;
 
@@ -27,30 +28,33 @@ public class SteadyStateSettings extends VerticalLayout {
         this.getElement().getStyle().set("border-radius", "5px");
 
         Accordion accDyn = new Accordion();
-        accDyn.add("Main Settings", getMainSettingsHL());
-        accDyn.add("Analysis", getAnalysisHL());
-        accDyn.add("Parameter Scan", getParameterScanHL(simConfig.getSteadyState_ParameterScan()));
+        accDyn.add("Main Settings", getDynMainSettingsHL());
+        accDyn.add("Analysis", getDynDetAnalysisHL());
+        accDyn.add("Plot Views", new SimPlotViewsLayout());
+        accDyn.add("Parameter Scan", getParameterScanHL(simConfig.getDynamic_ParameterScan()));
 //        accDyn.setSizeFull();
 
-        Span title = new Span("Steady State Simulation Settings");
+        Span title = new Span("Dynamic (Deterministic) Simulation Settings");
         title.getStyle().set("font-weight", "bold");
         this.add(title,accDyn);
     }
 
-    private HorizontalLayout getMainSettingsHL() {
+    private HorizontalLayout getDynMainSettingsHL() {
         VerticalLayout leftVL = new VerticalLayout();
         leftVL.setWidth("100%");
         leftVL.setSpacing(false);
         leftVL.setPadding(false);
 
-        leftVL.add(SimConfigToComponent.convert(simConfig.getSteadyState().get("Threshold"),null));
+        leftVL.add(SimConfigToComponent.convert(simConfig.getDynamic().get("Ti"),null));
+        leftVL.add(SimConfigToComponent.convert(simConfig.getDynamic().get("Tf"),null));
+        leftVL.add(SimConfigToComponent.convert(simConfig.getDynamic().get("TStep"),null));
         /////////////
         VerticalLayout rightVL = new VerticalLayout();
         rightVL.setWidth("50px");
         rightVL.setSpacing(false);
         rightVL.setPadding(false);
-        Button iBtn = new InfoDialogButton("Information", "Searches Steady State point of the system.\n" +
-                "Stability Analyses provides more details about the Steady State.", "800px", "400px");
+        Button iBtn = new InfoDialogButton("Information", "All values must be positive.\r\n"
+                + "Step size is the time interval between simulation time points.", "800px", "400px");
         rightVL.setDefaultHorizontalComponentAlignment(Alignment.END);
         rightVL.add(iBtn);
 
@@ -63,23 +67,22 @@ public class SteadyStateSettings extends VerticalLayout {
         return hl;
     }
 
-    private HorizontalLayout getAnalysisHL() {
+    private HorizontalLayout getDynDetAnalysisHL() {
         VerticalLayout leftVL = new VerticalLayout();
-        leftVL.setWidth("100%");
+        leftVL.setWidth("400px");
         leftVL.setSpacing(false);
         leftVL.setPadding(false);
 
-        leftVL.add(SimConfigToComponent.convert(simConfig.getSteadyState().get("Stability"),null));
-        leftVL.add(SimConfigToComponent.convert(simConfig.getSteadyState().get("Gains"),null));
-        leftVL.add(SimConfigToComponent.convert(simConfig.getSteadyState().get("Sensitivities"),null));
+        leftVL.add(SimConfigToComponent.convert(simConfig.getDynamic().get("Gains"),null));
+        leftVL.add(SimConfigToComponent.convert(simConfig.getDynamic().get("Sensitivities"),null));
         /////////////
         VerticalLayout rightVL = new VerticalLayout();
         rightVL.setWidth("50px");
         rightVL.setHeight("100%");
         rightVL.setSpacing(false);
         rightVL.setPadding(false);
-        Button iBtn = new InfoDialogButton("Information", "Gains analysis: Steady State sensitivity against changes in independent variables (linear approximation).\r\n"
-                + "Sensitivities analysis: Steady State sensitivity against changes in the rate parameters (linear approximation).", "800px", "400px");
+        Button iBtn = new InfoDialogButton("Information", "Gains analysis: system sensitivity against changes in independent variables (linear approximation).\r\n"
+                + "Sensitivities analysis: system sensitivity against changes in the rate parameters (linear approximation).", "800px", "400px");
         rightVL.setDefaultHorizontalComponentAlignment(Alignment.END);
         rightVL.add(iBtn);
 

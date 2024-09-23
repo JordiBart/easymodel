@@ -6,7 +6,7 @@ This guide is designed to assist in establishing a development environment for E
 This project has been written mostly in java using the JetBrains IntelliJ IDEA.
 Dependencies: Wolfram Mathematica (proprietary), JetBrains IntelliJ IDEA, Java 21 JDK, Node.js, Git, Apache Maven, Laragon, phpmyadmin.
 
-# EasyModel Development Setup Guide (for Windows)
+## EasyModel Development Setup Guide (for Windows)
 
 Install JetBrains IntelliJ IDEA Community Edition (free), Amazon Corretto JDK 21, Node.js, Git.
 Download and install Maven (unzip to a folder e.g. C:\maven) and set the system var MAVEN_HOME (e.g. C:\maven) and add %MAVEN_HOME%\bin to the PATH system var.

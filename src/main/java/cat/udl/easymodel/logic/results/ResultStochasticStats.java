@@ -13,7 +13,7 @@ import java.util.ArrayList;
 public class ResultStochasticStats implements ResultEntry {
     //data
     private boolean isTauLeaping = false;
-    private int numIterations = 0;
+    private int numReplicates = 0;
     private long stStartMillis;
     private ArrayList<ArrayList<ResultStochasticStatsDataElement>> matrixData = new ArrayList<>();
     private boolean isMatrixDirty = true;
@@ -24,15 +24,15 @@ public class ResultStochasticStats implements ResultEntry {
     private GridLayout gridLayout = null;
     private Span stTimeSpan;
 
-    public ResultStochasticStats(int numIterations, boolean isTauLeaping) {
+    public ResultStochasticStats(int numReplicates, boolean isTauLeaping) {
         this.isTauLeaping = isTauLeaping;
-        this.numIterations = numIterations;
+        this.numReplicates = numReplicates;
         if (!isTauLeaping) {
-            int cols = 4, rows = numIterations + 2;
+            int cols = 4, rows = numReplicates + 2;
             for (int i = 0; i < rows; i++) {
                 matrixData.add(new ArrayList<>());
                 if (i == 0) {
-                    matrixData.get(i).add(new ResultStochasticStatsDataElement("spanBold", "Iteration"));
+                    matrixData.get(i).add(new ResultStochasticStatsDataElement("spanBold", "Replicate"));
                     matrixData.get(i).add(new ResultStochasticStatsDataElement("spanBold", "Progress"));
                     matrixData.get(i).add(new ResultStochasticStatsDataElement("spanBold", "Execution time (s)"));
                     matrixData.get(i).add(new ResultStochasticStatsDataElement("spanBold", "Int. steps"));
@@ -51,11 +51,11 @@ public class ResultStochasticStats implements ResultEntry {
                 }
             }
         } else {
-            int cols = 6, rows = numIterations + 2;
+            int cols = 6, rows = numReplicates + 2;
             for (int i = 0; i < rows; i++) {
                 matrixData.add(new ArrayList<>());
                 if (i == 0) {
-                    matrixData.get(i).add(new ResultStochasticStatsDataElement("spanBold", "Iteration"));
+                    matrixData.get(i).add(new ResultStochasticStatsDataElement("spanBold", "Replicate"));
                     matrixData.get(i).add(new ResultStochasticStatsDataElement("spanBold", "Progress"));
                     matrixData.get(i).add(new ResultStochasticStatsDataElement("spanBold", "Execution time (s)"));
                     matrixData.get(i).add(new ResultStochasticStatsDataElement("spanBold", "Int. steps"));
@@ -93,13 +93,13 @@ public class ResultStochasticStats implements ResultEntry {
         stVL.setSpacing(true);
         stStartMillis = System.currentTimeMillis();
         if (!isTauLeaping) {
-            gridLayout = new GridLayout(4, numIterations + 2);
+            gridLayout = new GridLayout(4, numReplicates + 2);
             gridLayout.setWidthCol(0, "100px");
             gridLayout.setWidthCol(1, "300px");
             gridLayout.setWidthCol(2, "150px");
             gridLayout.setWidthCol(3, "100px");
         } else {
-            gridLayout = new GridLayout(6, numIterations + 2);
+            gridLayout = new GridLayout(6, numReplicates + 2);
             gridLayout.setWidthCol(0, "100px");
             gridLayout.setWidthCol(1, "300px");
             gridLayout.setWidthCol(2, "150px");
@@ -161,8 +161,8 @@ public class ResultStochasticStats implements ResultEntry {
         }
     }
 
-    public void updateStochasticProgressBarData(Integer numIterations, String newValue) {
-        matrixData.get(numIterations).get(1).setValue(newValue);
+    public void updateStochasticProgressBarData(Integer numReplicates, String newValue) {
+        matrixData.get(numReplicates).get(1).setValue(newValue);
         Double totalProgress = 0d;
         for (int row = 1; row < matrixData.size() - 1; row++)
             totalProgress += Double.valueOf(matrixData.get(row).get(1).getValue());

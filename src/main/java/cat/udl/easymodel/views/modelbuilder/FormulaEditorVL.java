@@ -53,10 +53,10 @@ public class FormulaEditorVL extends VerticalLayout {
         grid.setSelectionMode(Grid.SelectionMode.NONE);
         grid.setSizeFull();
         grid.setItems(selModel.getFormulas());
-        grid.addColumn(Formula::getNameRaw).setHeader("Name");
-        grid.addColumn(Formula::getFormulaDef).setHeader("Rate Definition");
-        grid.addColumn(new ComponentRenderer<>(formula -> getEditButton(formula))).setHeader("Edit");
-        grid.addColumn(new ComponentRenderer<>(formula -> getRemoveFormulaButton(formula))).setHeader("Remove");
+        grid.addColumn(Formula::getNameRaw).setHeader("Name").setResizable(true).setWidth("150px").setFlexGrow(0);
+        grid.addColumn(Formula::getFormulaDef).setHeader("Rate Definition").setResizable(true).setFlexGrow(1);
+        grid.addColumn(new ComponentRenderer<>(formula -> getEditButton(formula))).setHeader("Edit").setWidth("70px").setFlexGrow(0);
+        grid.addColumn(new ComponentRenderer<>(formula -> getRemoveFormulaButton(formula))).setHeader("Remove").setWidth("90px").setFlexGrow(0);
     }
 
     private void updateDisplayContent() {
@@ -79,12 +79,13 @@ public class FormulaEditorVL extends VerticalLayout {
                 "    Reserved symbols:\r\n" +
                 "        Mathematica functions/constants: m:<Mathematica function>\r\n" +
                 "        Mathematica function indexes: i:<index>\r\n" +
-                "        Special variables: b:t (time)\r\n" +
-                "        b:X[]: Mathematica substrate list\r\n" +
-                "        b:A[]: Mathematica substrate coefficient list\r\n" +
-                "        b:M[]: Mathematica modifier list\r\n" +
-                "        b:XF: first substrate\r\n" +
-                "        b:MF: first modifier\r\n" +
+                "        Special variables:\r\n" +
+                "            b:t -> Time.\r\n" +
+                "            b:X[] -> Mathematica substrate list.\r\n" +
+                "            b:A[] -> Mathematica substrate coefficient list.\r\n" +
+                "            b:M[] -> Mathematica modifier list.\r\n" +
+                "            b:XF -> First substrate.\r\n" +
+                "            b:MF -> First modifier.\r\n" +
                 "    Example: m:Product[b:X[[i:j]]^g[[i:j]],{i:j,1,m:Length[b:X]}]\r\n" +
                 "ii - Defining a new Rate expression\r\n" +
                 "    1. Press \"Add Rate\" button\r\n" +

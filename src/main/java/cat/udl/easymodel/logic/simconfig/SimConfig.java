@@ -21,6 +21,7 @@ public class SimConfig {
     private SimParamScanConfig steadyState_ParameterScan = new SimParamScanConfig();
     // stochastic
     private SimConfigArray stochastic = new SimConfigArray();
+    private boolean isStochasticMethodPreselected=false;
 
     public SimConfig() {
         reset();
@@ -61,7 +62,7 @@ public class SimConfig {
         steadyState.clear();
         steadyState.add(new SimConfigEntry("Threshold", "10^-12", InputType.MATHEXPRESSION, "Threshold",
                 "Threshold condition for the Steady State finding calculus. Low values results in a low tolerance against finding the Steady State."));
-        steadyState.add(new SimConfigEntry("Stability", "0", InputType.CHECKBOX, "Stability Analysis",
+        steadyState.add(new SimConfigEntry("Stability", "0", InputType.CHECKBOX, "Stability",
                 "Add further stability analysis to simulation"));
         steadyState.add(new SimConfigEntry("Gains", "0", InputType.CHECKBOX, "Gains",
                 "Add independent variables gains to simulation"));
@@ -93,10 +94,10 @@ public class SimConfig {
 //		entry = new SimConfigEntry("TStep", "0.1", InputType.DECIMAL, "Time step", "Simulation stepping");
 //		entry.setValueRange("0.000001", "100");
 //		stochastic.add(entry);
-//		entry = new SimConfigEntry("Iterations", new SimConfigSlider("3", "1", "10", 1),
-//				InputType.SLIDER, "Iterations", "Number of stochastic iterations");
-        entry = new SimConfigEntry("Iterations", "3", InputType.NATURAL, "#Iterations", "Number of run passes.");
-        entry.setValueRange("1", "8");
+//		entry = new SimConfigEntry("Replicates", new SimConfigSlider("3", "1", "10", 1),
+//				InputType.SLIDER, "Replicates", "Number of stochastic replicates");
+        entry = new SimConfigEntry("Replicates", "3", InputType.NATURAL, "#Replicates", "Number of run passes.");
+        entry.setValueRange("1", "32");
         stochastic.add(entry);
         entry = new SimConfigEntry("CellSize", "Prokaryotic Cell", InputType.SELECT, "Cell Size", "Cell Size");
         entry.setOptionSet(CellSizes.getInstance().getCellSizeNames());
@@ -139,8 +140,9 @@ public class SimConfig {
     public void ready(Model model) {
         dynamic_PlotViews.fix(model);
         dynamic_ParameterScan.cleanUnusedParams(model);
-        if (model.getStochasticGradeType() == StochasticGradeType.TAU_LEAPING){
+        if (!isStochasticMethodPreselected && model.getStochasticGradeType() == StochasticGradeType.TAU_LEAPING){
             this.getStochastic().get("Method").setValue("Tau-leaping");
+            isStochasticMethodPreselected=true;
         }
     }
 

@@ -2,13 +2,11 @@ package cat.udl.easymodel.views.mainlayout;
 
 import cat.udl.easymodel.logic.model.Model;
 import cat.udl.easymodel.logic.types.NotificationType;
-import cat.udl.easymodel.logic.types.RepositoryType;
 import cat.udl.easymodel.logic.types.UserType;
-import cat.udl.easymodel.utils.P;
 import cat.udl.easymodel.vcomponent.common.PendingNotification;
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
-import cat.udl.easymodel.thread.DailyTaskRunnable;
+import cat.udl.easymodel.thread.NewUserVisitTaskRunnable;
 import cat.udl.easymodel.utils.ToolboxVaadin;
 import cat.udl.easymodel.vcomponent.common.user.EditUserAccountDialog;
 import cat.udl.easymodel.vcomponent.common.user.LoginDialog;
@@ -20,7 +18,6 @@ import cat.udl.easymodel.views.modelbuilder.ModelBuilderView;
 import cat.udl.easymodel.views.modelselect.ModelSelectView;
 import cat.udl.easymodel.views.simulationlauncher.SimulationLauncherView;
 import cat.udl.easymodel.views.simulationresults.SimulationResultsView;
-import com.vaadin.flow.component.HasText;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
@@ -32,7 +29,6 @@ import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.Scroller;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.sidenav.SideNav;
 import com.vaadin.flow.component.sidenav.SideNavItem;
 import com.vaadin.flow.router.*;
@@ -158,7 +154,7 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
         try {
             sharedData.getDbManager().open();
             sessionData.getModels().semiLoadDB();
-            new Thread(new DailyTaskRunnable()).start();
+            new Thread(new NewUserVisitTaskRunnable()).start();
         } catch (Exception e) {
             ToolboxVaadin.showErrorNotification(SharedData.dbError);
             System.err.println(e.getMessage());

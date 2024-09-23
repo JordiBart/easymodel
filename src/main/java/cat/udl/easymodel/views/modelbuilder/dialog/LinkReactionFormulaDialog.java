@@ -6,6 +6,7 @@ import cat.udl.easymodel.logic.model.Reaction;
 import cat.udl.easymodel.logic.types.FormulaValueType;
 import cat.udl.easymodel.main.SessionData;
 import cat.udl.easymodel.main.SharedData;
+import cat.udl.easymodel.utils.P;
 import cat.udl.easymodel.utils.ToolboxVaadin;
 import cat.udl.easymodel.utils.Utils;
 import cat.udl.easymodel.vcomponent.common.InfoDialogButton;
@@ -62,6 +63,7 @@ public class LinkReactionFormulaDialog extends Dialog {
 
         this.setWidth("700px");
         this.setHeight("700px");
+//        this.setHeightFull();
         this.setModal(true);
         this.setResizable(true);
         this.setDraggable(true);
@@ -84,7 +86,7 @@ public class LinkReactionFormulaDialog extends Dialog {
         parametersVL.setSizeFull();
         parametersVL.setPadding(false);
         parametersVL.setSpacing(false);
-        //parametersVL.setClassName("scroll");
+        parametersVL.setClassName("scroll");
 
         HorizontalLayout headHL = new HorizontalLayout();
         headHL.setWidth("100%");
@@ -120,11 +122,13 @@ public class LinkReactionFormulaDialog extends Dialog {
             parametersVL.add(new Span("Please select a Rate Law"));
             parametersVL.setDefaultHorizontalComponentAlignment(FlexComponent.Alignment.CENTER);
         } else {
-            parametersVL.add(getFormulaGenericParametersVL());
-            if (formulaSubstratesArrayParametersMap.size() > 0 && ((SortedMap<String, FormulaArrayValue>) formulaSubstratesArrayParametersMap.values().toArray()[0]).size() > 0) {
+            boolean isAddSubstratesArray = formulaSubstratesArrayParametersMap.size() > 0 && ((SortedMap<String, FormulaArrayValue>) formulaSubstratesArrayParametersMap.values().toArray()[0]).size() > 0;
+            boolean isAddModifiersArray = formulaModifiersArrayParametersMap.size() > 0 && ((SortedMap<String, FormulaArrayValue>) formulaModifiersArrayParametersMap.values().toArray()[0]).size() > 0;
+            parametersVL.add(getFormulaGenericParametersVL(isAddSubstratesArray||isAddModifiersArray));
+            if (isAddSubstratesArray) {
                 parametersVL.add(getConstantsBySubstratesVL());
             }
-            if (formulaModifiersArrayParametersMap.size() > 0 && ((SortedMap<String, FormulaArrayValue>) formulaModifiersArrayParametersMap.values().toArray()[0]).size() > 0) {
+            if (isAddModifiersArray) {
                 parametersVL.add(getConstantsByModifiersVL());
             }
         }
@@ -152,17 +156,25 @@ public class LinkReactionFormulaDialog extends Dialog {
 
     // FORMULA VALUES
 
-    private VerticalLayout getFormulaGenericParametersVL() {
+    private VerticalLayout getFormulaGenericParametersVL(boolean isWithOtherVL) {
         VerticalLayout vl = new VerticalLayout();
         vl.setSpacing(false);
         vl.setPadding(false);
-        vl.setSizeFull();
+        if (!isWithOtherVL)
+            vl.setSizeFull();
+        else {
+            this.setWidth("900px");
+            this.setHeightFull();
+        }
 
         Grid<FormulaValue> genParsGrid = new Grid<>();
-        genParsGrid.setSizeUndefined();
-        genParsGrid.setWidth("100%");
-        genParsGrid.setHeight("100%");
-        genParsGrid.addColumn(FormulaValue::getParameterName).setHeader("Parameter");
+        if (!isWithOtherVL)
+            genParsGrid.setSizeFull();
+        else {
+            genParsGrid.setWidthFull();
+            genParsGrid.setHeight("200px");
+        }
+        genParsGrid.addColumn(FormulaValue::getParameterName).setHeader("Parameter").setResizable(true);
         ArrayList<String> allSubstratesAndModifiers = new ArrayList<>();
         for (String sp : reaction.getLeftPartSpecies().keySet())
             allSubstratesAndModifiers.add(sp);
@@ -170,6 +182,7 @@ public class LinkReactionFormulaDialog extends Dialog {
             allSubstratesAndModifiers.add(sp);
         genParsGrid.addColumn(new ComponentRenderer<>(fv -> {
             ComboBox<String> cb = new ComboBox<>();
+            cb.setWidthFull();
             if (!fv.isForceConstant()) {
                 cb.setPlaceholder("Number/Substrate/Modifier");
                 cb.setItems(allSubstratesAndModifiers);
@@ -221,7 +234,7 @@ public class LinkReactionFormulaDialog extends Dialog {
                 cb.setValue(fv.getValue());
             genParamComboBoxList.add(cb);
             return cb;
-        })).setHeader("Value (Number/Substrate/Modifier)");
+        })).setHeader("Value (Number/Substrate/Modifier)").setResizable(true);
         genParsGrid.setItems(parameterMap.values());
         vl.add(ToolboxVaadin.getCaption("Parameters values"), genParsGrid);
         return vl;
@@ -233,9 +246,11 @@ public class LinkReactionFormulaDialog extends Dialog {
         VerticalLayout vl = new VerticalLayout();
         vl.setSpacing(false);
         vl.setPadding(false);
+
         Grid<String> grid = new Grid<>();
-        grid.setWidth("100%");
-        grid.addColumn(String::toString).setHeader("Parameter");
+        grid.setWidthFull();
+        grid.setHeight("200px");
+        grid.addColumn(String::toString).setHeader("Parameter").setResizable(true);
         SortedMap<String, FormulaArrayValue> firstMap = null;
         for (SortedMap<String, FormulaArrayValue> spMap : formulaSubstratesArrayParametersMap.values()) {
             firstMap = spMap;
@@ -244,6 +259,7 @@ public class LinkReactionFormulaDialog extends Dialog {
         for (String sp : firstMap.keySet()) {
             grid.addColumn(new ComponentRenderer<>(par -> {
                 TextField tf = new TextField();
+                tf.setWidthFull();
                 tf.setPlaceholder("Number");
                 tf.setValueChangeMode(ValueChangeMode.ON_BLUR);
                 tf.addValueChangeListener(ev -> {
@@ -260,10 +276,10 @@ public class LinkReactionFormulaDialog extends Dialog {
                     tf.setValue(formulaSubstratesArrayParametersMap.get(par).get(sp).getValue());
                 return tf;
             }
-            )).setHeader(sp);
+            )).setHeader(sp).setResizable(true);
         }
         grid.setItems(formulaSubstratesArrayParametersMap.keySet());
-        vl.add(ToolboxVaadin.getCaption("Parameters dependant on substrates"), grid);
+        vl.add(ToolboxVaadin.getCaption("Parameters dependent on substrates"), grid);
         return vl;
     }
 
@@ -273,9 +289,11 @@ public class LinkReactionFormulaDialog extends Dialog {
         VerticalLayout vl = new VerticalLayout();
         vl.setSpacing(false);
         vl.setPadding(false);
+
         Grid<String> grid = new Grid<>();
-        grid.setWidth("100%");
-        grid.addColumn(String::toString).setHeader("Parameter");
+        grid.setWidthFull();
+        grid.setHeight("200px");
+        grid.addColumn(String::toString).setHeader("Parameter").setResizable(true);
         SortedMap<String, FormulaArrayValue> firstMap = null;
         for (SortedMap<String, FormulaArrayValue> spMap : formulaModifiersArrayParametersMap.values()) {
             firstMap = spMap;
@@ -284,6 +302,7 @@ public class LinkReactionFormulaDialog extends Dialog {
         for (String sp : firstMap.keySet()) {
             grid.addColumn(new ComponentRenderer<>(par -> {
                 TextField tf = new TextField();
+                tf.setWidthFull();
                 tf.setPlaceholder("Number");
                 tf.setValueChangeMode(ValueChangeMode.ON_BLUR);
                 tf.addValueChangeListener(ev -> {
@@ -300,10 +319,10 @@ public class LinkReactionFormulaDialog extends Dialog {
                     tf.setValue(formulaModifiersArrayParametersMap.get(par).get(sp).getValue());
                 return tf;
             }
-            )).setHeader(sp);
+            )).setHeader(sp).setResizable(true);
         }
         grid.setItems(formulaModifiersArrayParametersMap.keySet());
-        vl.add(ToolboxVaadin.getCaption("Parameters dependant on modifiers"), grid);
+        vl.add(ToolboxVaadin.getCaption("Parameters dependent on modifiers"), grid);
         return vl;
     }
     //////////////////////////////////////////////////

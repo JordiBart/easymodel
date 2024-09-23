@@ -15702,7 +15702,11 @@ div.v-layout.v-horizontal.v-widget {
 	font-size: 15px;
 	font-weight: bold;
 }
-
+.easymodel .v-label.warningH3 {
+    font-size: 15px;
+    font-weight: bold;
+    color: red;
+}
 .easymodel .v-label.textSmall {
 	font-size: 10px;
 }

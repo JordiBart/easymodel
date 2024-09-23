@@ -1,19 +1,23 @@
 package cat.udl.easymodel.thread;
 
 import cat.udl.easymodel.main.SharedData;
-import cat.udl.easymodel.utils.P;
+import cat.udl.easymodel.mathlink.MathQueue;
 
 import java.time.LocalDate;
 
-public class DailyTaskRunnable implements Runnable {
+public class NewUserVisitTaskRunnable implements Runnable {
+	// this task is executed every time a user visits the web app and when the app starts
 	private int lastExecutedDayOfMonth = -1;
 
-	public DailyTaskRunnable() {
+	public NewUserVisitTaskRunnable() {
+		//place code in run()
 	}
 
 	@Override
 	public void run() {
+		MathQueue.getInstance().cleanSimJobs();
 		if (isOKToRunDailyTask()) {
+			//this code will only be executed once a day
 			try {
 				SharedData sharedData = SharedData.getInstance();
 				sharedData.removeExpiredUserCookies();

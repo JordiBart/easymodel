@@ -24,6 +24,8 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -52,7 +54,6 @@ public class ParamScanDialog extends Dialog {
 	private Grid<ParamScanEntry> grid = null;
 	private ArrayList<ParamScanEntry> gridItemList = new ArrayList<>();
 	private ArrayList<ParamScanEntry> loadedFromParamList = new ArrayList<>();
-	private TextArea textAreaReactionPopup;
 
 	public ParamScanDialog(SimParamScanConfig simParamScanConfig, ParamScanType type) {
 		super();
@@ -108,20 +109,25 @@ public class ParamScanDialog extends Dialog {
 		// REACTION TYPE
 		if (type == ParamScanType.PARAMETER) {
 			Grid.Column<ParamScanEntry> colReaction = grid.addColumn(ParamScanEntry::getReactionId)
-					.setHeader("Reaction");
-			grid.addComponentColumn(entry -> {return new Html(entry.getFormulaDef().replaceAll(!entry.isArrayParameter() ? entry.getParameterName() : ".^",
-					"<u>" + entry.getParameterName() + "</u>"));}).setHeader("Rate");
+					.setHeader("Reaction").setFlexGrow(1).setResizable(true);;
+			grid.addComponentColumn(entry -> new Html("<span>"+entry.getFormulaDef().replaceAll(!entry.isArrayParameter() ? entry.getParameterName() : ".^",
+					"<u>" + entry.getParameterName() + "</u>")+"</span>")).setHeader("Rate").setFlexGrow(1).setResizable(true);;
 			grid.addItemClickListener(event -> {
 				if (event.getColumn() == colReaction) {
-					textAreaReactionPopup.setValue("Reaction " + event.getItem().getReactionId() + ": "
-							+ event.getItem().getReaction().getReactionStr() + "\n" + "Rate "
+					String msg = "Reaction " + event.getItem().getReactionId() + ": "
+							+ event.getItem().getReaction().getReactionStr() + "<br>" + "Rate "
 							+ event.getItem().getReaction().getFormula().getNameToShow() + ": "
-							+ event.getItem().getFormulaDef());
+							+ event.getItem().getFormulaDef();
+					Notification notification = new Notification();
+					notification.add(new Html("<span>"+msg+"</span"));
+					notification.setDuration(10000);
+					notification.setPosition(Notification.Position.MIDDLE);
+					notification.open();
 				}
 			});
 		}
-		grid.addColumn(ParamScanEntry::getShowParameterName).setHeader(type.getString());
-		grid.addColumn(ParamScanEntry::getParameterValue).setHeader("Original Value");
+		grid.addColumn(ParamScanEntry::getShowParameterName).setHeader(type.getString()).setFlexGrow(1).setResizable(true);;
+		grid.addColumn(ParamScanEntry::getParameterValue).setHeader("Original Value").setFlexGrow(1).setResizable(true);;
 		grid.addComponentColumn(entry -> {
 			TextField tf = new TextField();
 			tf.setWidth("100%");
@@ -133,7 +139,7 @@ public class ParamScanDialog extends Dialog {
 				beginAndEndValBlur(entry, tf, true);
 			});
 			return tf;
-		}).setHeader("Begin Value");
+		}).setHeader("Begin Value").setFlexGrow(1).setResizable(true);;
 
 		grid.addComponentColumn(entry -> {
 			TextField tf = new TextField();
@@ -146,7 +152,7 @@ public class ParamScanDialog extends Dialog {
 				beginAndEndValBlur(entry, tf, false);
 			});
 			return tf;
-		}).setHeader("End Value");
+		}).setHeader("End Value").setFlexGrow(1).setResizable(true);;
 
 		grid.addComponentColumn(entry -> {
 			TextField tf = new TextField();
@@ -159,7 +165,7 @@ public class ParamScanDialog extends Dialog {
 				numIntervalsBlur(entry, tf);
 			});
 			return tf;
-		}).setHeader("#Intervals");
+		}).setHeader("#Intervals").setFlexGrow(1).setResizable(true);;
 
 		grid.addComponentColumn(entry -> {
 			Checkbox cb = new Checkbox();
@@ -179,7 +185,7 @@ public class ParamScanDialog extends Dialog {
 				}
 			});
 			return cb;
-		}).setHeader("Logarithmic");
+		}).setHeader("Logarithmic").setFlexGrow(1).setResizable(true);;
 		// select loaded items
 		for (ParamScanEntry gridEntry : loadedFromParamList)
 			grid.select(gridEntry);

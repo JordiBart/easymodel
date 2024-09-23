@@ -2,7 +2,7 @@ package cat.udl.easymodel;
 
 import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.mathlink.MathQueue;
-import cat.udl.easymodel.thread.DailyTaskRunnable;
+import cat.udl.easymodel.thread.NewUserVisitTaskRunnable;
 import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.server.PWA;
 import org.springframework.boot.CommandLineRunner;
@@ -42,7 +42,7 @@ public class Application implements AppShellConfigurator {
                 sharedData.getUsers().loadDB();
                 sharedData.getPredefinedFormulas().loadDB();
                 sharedData.getGenericFormulas().loadDB();
-                new DailyTaskRunnable().run();
+                new NewUserVisitTaskRunnable().run();
                 System.out.println("MYSQL START OK!");
             } catch (Exception e) {
                 System.err.println("MYSQL START ERROR!");

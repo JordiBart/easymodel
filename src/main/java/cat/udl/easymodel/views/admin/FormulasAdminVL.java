@@ -81,13 +81,13 @@ public class FormulasAdminVL extends VerticalLayout {
         grid.setSelectionMode(Grid.SelectionMode.NONE);
         grid.setSizeFull();
         grid.setItems(loadedFormulas);
-        grid.addColumn(new ComponentRenderer<>(f -> getTF("name", "Name", f.getNameRaw(), f))).setHeader("Name");
-        grid.addColumn(new ComponentRenderer<>(f -> getTF("formula", "Formula", f.getFormulaDef(), f))).setHeader("Formula");
-        grid.addColumn(new ComponentRenderer<>(f -> getCB("onesubstrateonly", f.isOneSubstrateOnly(), f))).setHeader("OneSubstrateOnly");
-        grid.addColumn(new ComponentRenderer<>(f -> getCB("noproducts", f.isNoProducts(), f))).setHeader("NoProducts");
-        grid.addColumn(new ComponentRenderer<>(f -> getCB("onemodifieronly", f.isOneModifierOnly(), f))).setHeader("OneModifierOnly");
-        grid.addColumn(new ComponentRenderer<>(f -> getCB("formulatype", (f.getFormulaType() == FormulaType.PREDEFINED), f))).setHeader("Predefined");
-        grid.addColumn(new ComponentRenderer<>(f -> getCB("delete", f.isDBDelete(), f))).setHeader("Delete");
+        grid.addColumn(new ComponentRenderer<>(f -> getTF("name", "Name", f.getNameRaw(), f))).setHeader("Name").setResizable(true).setFlexGrow(1);
+        grid.addColumn(new ComponentRenderer<>(f -> getTF("formula", "Formula", f.getFormulaDef(), f))).setHeader("Formula").setResizable(true).setFlexGrow(1);
+        grid.addColumn(new ComponentRenderer<>(f -> getCB("onesubstrateonly", f.isOneSubstrateOnly(), f))).setHeader("OneSubstrateOnly").setFlexGrow(0);
+        grid.addColumn(new ComponentRenderer<>(f -> getCB("noproducts", f.isNoProducts(), f))).setHeader("NoProducts").setFlexGrow(0);
+        grid.addColumn(new ComponentRenderer<>(f -> getCB("onemodifieronly", f.isOneModifierOnly(), f))).setHeader("OneModifierOnly").setFlexGrow(0);
+        grid.addColumn(new ComponentRenderer<>(f -> getCB("formulatype", (f.getFormulaType() == FormulaType.PREDEFINED), f))).setHeader("Predefined").setFlexGrow(0);
+        grid.addColumn(new ComponentRenderer<>(f -> getCB("delete", f.isDBDelete(), f))).setHeader("Delete").setFlexGrow(0);
         vl.add(grid);
         return vl;
     }

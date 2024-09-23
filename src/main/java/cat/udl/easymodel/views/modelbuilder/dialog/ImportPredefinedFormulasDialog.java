@@ -5,6 +5,7 @@ import cat.udl.easymodel.logic.model.Model;
 import cat.udl.easymodel.logic.types.FormulaType;
 import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.utils.ToolboxVaadin;
+import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -34,10 +35,10 @@ public class ImportPredefinedFormulasDialog extends Dialog {
         mainVL = new VerticalLayout();
         mainVL.setSizeFull();
         mainVL.setPadding(false);
+        mainVL.setSpacing(false);
 
         VerticalLayout windowVL = new VerticalLayout();
         windowVL.setSpacing(true);
-        windowVL.setMargin(true);
         windowVL.setPadding(false);
         windowVL.setSizeFull();
         windowVL.setDefaultHorizontalComponentAlignment(FlexComponent.Alignment.START);
@@ -53,9 +54,10 @@ public class ImportPredefinedFormulasDialog extends Dialog {
         grid = new Grid<Formula>();
         grid.setSelectionMode(Grid.SelectionMode.MULTI);
         grid.setSizeFull();
+        grid.addColumn(Formula::getNameToShow).setHeader("Name").setWidth("250px").setFlexGrow(0).setResizable(true);
+        grid.addColumn(Formula::getFormulaImportDef).setHeader("Rate Definition").setFlexGrow(1).setResizable(true);
         grid.setItems(sharedData.getPredefinedPlusGenericFormulas());
-        grid.addColumn(Formula::getNameToShow).setHeader("Name");
-        grid.addColumn(Formula::getFormulaImportDef).setHeader("Rate Definition");
+        grid.recalculateColumnWidths();
 //		grid.addSelectionListener(event -> {
 //			Set<Formula> selected = event.getAllSelectedItems();
 //			Notification.show(selected.size() + " items selected");
@@ -90,6 +92,7 @@ public class ImportPredefinedFormulasDialog extends Dialog {
                 ToolboxVaadin.showWarningNotification(e.getMessage());
             }
         });
+        button.addClickShortcut(Key.ENTER);
         return button;
     }
 

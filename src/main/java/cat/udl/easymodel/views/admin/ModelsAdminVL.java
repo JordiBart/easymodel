@@ -80,10 +80,10 @@ public class ModelsAdminVL extends VerticalLayout {
         grid.setSelectionMode(Grid.SelectionMode.NONE);
         grid.setSizeFull();
         grid.setItems(loadedModels);
-        grid.addColumn(new ComponentRenderer<>(m -> getTF("name", "Name", m.getName(), m))).setHeader("Name");
-        grid.addColumn(new ComponentRenderer<>(m -> getCB("repositorytype", m.getRepositoryType() == RepositoryType.PUBLIC, m))).setHeader("Public");
-        grid.addColumn(Model::getUserName).setHeader("User");
-        grid.addColumn(new ComponentRenderer<>(m -> getCB("delete", m.isDBDelete(), m))).setHeader("Delete");
+        grid.addColumn(new ComponentRenderer<>(m -> getTF("name", "Name", m.getName(), m))).setHeader("Name").setResizable(true).setFlexGrow(1);
+        grid.addColumn(new ComponentRenderer<>(m -> getCB("repositorytype", m.getRepositoryType() == RepositoryType.PUBLIC, m))).setHeader("Public").setFlexGrow(0);
+        grid.addColumn(Model::getUserName).setHeader("User").setFlexGrow(0);
+        grid.addColumn(new ComponentRenderer<>(m -> getCB("delete", m.isDBDelete(), m))).setHeader("Delete").setFlexGrow(0);
         vl.add(grid);
         return vl;
     }

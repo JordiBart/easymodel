@@ -1,18 +1,14 @@
-package cat.udl.easymodel.vcomponent.simulation;
+package cat.udl.easymodel.views.simulationlauncher.vcomponent;
 
 import cat.udl.easymodel.logic.model.Model;
 import cat.udl.easymodel.logic.simconfig.SimConfig;
-import cat.udl.easymodel.logic.simconfig.SimConfigArray;
 import cat.udl.easymodel.logic.simconfig.SimPlotView;
 import cat.udl.easymodel.logic.simconfig.SimPlotViewArray;
 import cat.udl.easymodel.main.SessionData;
-import cat.udl.easymodel.utils.Utils;
 import cat.udl.easymodel.vcomponent.common.InfoDialogButton;
-import cat.udl.easymodel.views.simulationlauncher.SimConfigToComponent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
-import com.vaadin.flow.component.checkbox.CheckboxGroup;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -21,7 +17,6 @@ import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.server.VaadinSession;
 
 import java.util.ArrayList;
-import java.util.Collection;
 
 public class SimPlotViewsLayout extends VerticalLayout {
     private TabSheet tabSheetPlotViews = new TabSheet();

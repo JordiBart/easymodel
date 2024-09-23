@@ -32,7 +32,7 @@ public class SharedData {
     private VisitCounterRunnable visitCounterRunnable = null;
     private final HashMap<String, String> mathematicaCodeMap = new HashMap<>(); // key: txt filename, value: txt file content
     private ArrayList<UserCookie> userCookies = new ArrayList<>();
-    // Constants
+    // constants
     public static final String appDir = "easymodel-appdata";
     public static final String propertiesFilePath = appDir + "/easymodel.properties";
     public static final String visitCounterFilePath = appDir + "/visitcounter.jo";
@@ -41,12 +41,12 @@ public class SharedData {
     public static final String appVersion = "2.4";
     public static final String fullAppName = appName + " " + appVersion;
     public static final String dbError = "DATABASE CONNECTION ERROR";
+    public static final int daysToExpireSimResults = 45;
     // default
     public static final String defaultInitialConcentration = "1";
     public static final String defaultParameterValue = "0.1";
     // mathLink
     public static final int maxMathLinks = 1;
-    public static final int maxSimJobsPerUser = 3;
     // SBML
     public static final int sbmlLevel = 3;
     public static final int sbmlVersion = 2;
@@ -104,6 +104,11 @@ public class SharedData {
 
         if (properties.getProperty("privateWeeks") == null || !properties.getProperty("privateWeeks").matches("\\d+"))
             properties.setProperty("privateWeeks", "2");
+        if (properties.getProperty("maxOnMemorySimResults") == null || !properties.getProperty("maxOnMemorySimResults").matches("\\d+"))
+            properties.setProperty("maxOnMemorySimResults", "200");
+        if (properties.getProperty("maxSimJobsPerUser") == null || !properties.getProperty("maxSimJobsPerUser").matches("\\d+"))
+            properties.setProperty("maxSimJobsPerUser", "3");
+
         if (properties.getProperty("simulationTimeoutMinutes") == null
                 || !properties.getProperty("simulationTimeoutMinutes").matches("\\d+"))
             properties.setProperty("simulationTimeoutMinutes", "30");

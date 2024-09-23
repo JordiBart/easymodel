@@ -1,4 +1,4 @@
-package cat.udl.easymodel.vcomponent.simulation;
+package cat.udl.easymodel.views.simulationlauncher.vcomponent;
 
 import cat.udl.easymodel.logic.simconfig.SimConfig;
 import cat.udl.easymodel.logic.types.StochasticGradeType;
@@ -53,7 +53,7 @@ public class StochasticDynamicSettings extends VerticalLayout {
 
         leftVL.add(SimConfigToComponent.convert(simConfig.getStochastic().get("Ti"),null));
         leftVL.add(SimConfigToComponent.convert(simConfig.getStochastic().get("Tf"),null));
-        leftVL.add(SimConfigToComponent.convert(simConfig.getStochastic().get("Iterations"),null));
+        leftVL.add(SimConfigToComponent.convert(simConfig.getStochastic().get("Replicates"),null));
         leftVL.add(SimConfigToComponent.convert(simConfig.getStochastic().get("CellSize"),null));
         leftVL.add(SimConfigToComponent.convert(simConfig.getStochastic().get("Method"),null));
         /////////////

@@ -34,9 +34,9 @@ public class ResultList extends ArrayList<ResultEntry> {
         isDirty = dirty;
     }
 
-    public void updateStochasticProgressBar(Integer numIteration, String newValue) {
+    public void updateStochasticProgressBar(Integer numReplicate, String newValue) {
         if (resultStochasticStats != null) {
-            resultStochasticStats.updateStochasticProgressBarData(numIteration, newValue);
+            resultStochasticStats.updateStochasticProgressBarData(numReplicate, newValue);
             setDirty(true);
         }
     }

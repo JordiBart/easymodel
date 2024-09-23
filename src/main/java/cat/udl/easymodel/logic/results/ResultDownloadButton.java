@@ -1,7 +1,5 @@
 package cat.udl.easymodel.logic.results;
 
-import cat.udl.easymodel.controller.SimulationCtrl;
-import cat.udl.easymodel.main.SharedData;
 import cat.udl.easymodel.utils.Utils;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;

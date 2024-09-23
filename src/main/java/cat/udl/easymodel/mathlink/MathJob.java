@@ -37,6 +37,20 @@ public abstract class MathJob implements Callable<String> {
         mathJobStatus = MathJobStatus.FINISHED;
     }
 
+    public void clean() {
+        id=null;
+        mathLinkOp=null;
+        sharedData=null;
+        timeout=null;
+        executor=null;
+        callable=null;
+        creationDate=null;
+        startDate=null;
+        finishDate=null;
+        mathJobStatus=null;
+        errorMessage=null;
+    }
+
     public String getJobId() {
         return id;
     }
