@@ -980,7 +980,7 @@ public class SimulationCtrl {
                                 mathCommand += sensContext + dvToShow + r.getMathematicaContext() + par + "[" + timeVar
                                         + "]*" + r.getFormulaGeneralParameters().get(par).getStringValue() + "/" + modelContext
                                         + dvToShow + "[" + timeVar + "],";
-                                mathCommand2 += "\"S_" + dvToShow + "_" + par + "\",";
+                                mathCommand2 += "\"S_" + dvToShow + "_" + r.getIdJavaStr() + "_" + par + "\",";
                             }
                         }
                         for (String parName : r.getFormulaSubstratesArrayParameters().keySet()) {

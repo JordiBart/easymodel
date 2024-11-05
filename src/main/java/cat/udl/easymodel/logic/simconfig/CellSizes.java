@@ -34,6 +34,7 @@ public class CellSizes {
 		cellSizeSet.add(new CellSize("Prokaryotic Cell", 602.41)); // (3.*10^6)/4980 a.k.a. Escherichia coli
 		cellSizeSet.add(new CellSize("Unicellular Eukaryotic", 120482d)); // Prokaryotic * 200
 		cellSizeSet.add(new CellSize("Multicellular Eukaryote", 602410d)); // Prokaryotic * 1000
+		//cellSizeSet.add(new CellSize("No concentration conversion", 1d));
 	}
 
 	public Set<String> getCellSizeNames() {

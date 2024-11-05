@@ -22,6 +22,7 @@
 /frontend/generated/
 /easymodel-appdata/
 /src/main/resources/keystore.p12
+/src/main/bundles/
 #/src/main/java/cat/udl/easymodel/httpservlet/
 /*.log
 /package-lock.json
