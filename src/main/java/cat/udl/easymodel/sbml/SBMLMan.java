@@ -561,8 +561,10 @@ public class SBMLMan {
 			res += getFixedStoichiometryWithMultiplier(sr.getStoichiometry()) + getFixedSBMLId(sr.getSpeciesInstance().getId());
 		}
 		for (int i = 0; i < r.getModifierCount(); i++) {
+			if (i == 0)
+				res += " ;";
 			ModifierSpeciesReference sr = r.getModifier(i);
-			res += ";" + getFixedSBMLId(sr.getSpeciesInstance().getId());
+			res += " " + getFixedSBMLId(sr.getSpeciesInstance().getId());
 		}
 		return res;
 	}
